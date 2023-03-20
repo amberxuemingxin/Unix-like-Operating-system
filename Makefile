@@ -1,27 +1,24 @@
 
-# name of the program to build
-#
-PROG=PennOS
-
-PROMPT='"$(PROG)> "'
-
-# Remove -DNDEBUG during development if assert(3) is used
-#
-override CPPFLAGS += -DNDEBUG -DPROMPT=$(PROMPT)
-
 CC = clang
 
 # Replace -O1 with -g for a debug version during development
 #
 CFLAGS = -Wall -Werror -O1
+PROG = PennOS
 
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:.c=.o)
+SRC_DIR = ./src
+BIN_DIR = ./bin
+
+SRCS = $(wildcard $(SRC_DIR)/*.c)
+OBJS = $(BIN_DIR)/$(notdir $(SRCS:.c=.o))
 
 .PHONY : clean
 
 $(PROG) : $(OBJS)
-	$(CC) -o $@ $^ parser.o
+	$(CC) -c $(SRCS) -o $@ ${OBJS}
+
+$(BIN_DIR)/%.o: $(SRC_DIR)/%.c*
+	$(CC) $(CFLAGS) -o $@ $<
 
 clean :
-	$(RM) $(OBJS) $(PROG)
+	$(RM) $(OBJS)
