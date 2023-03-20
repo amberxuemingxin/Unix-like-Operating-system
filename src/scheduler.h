@@ -1,7 +1,10 @@
-#include "PCB.h"
 
-pcb_t k_process_create(pcb_t *parent);
+/*Keeps all queues
+ Ready queue: three priority queues 
+ Blocked queue: one 
+ Zombie queue: one*/
 
-int k_process_kill(pcb_t *process, int signal);
+ // set up signals
 
-void k_process_cleanup(pcb_t *process);
+ // pick a thread and run
+ void schedule();
