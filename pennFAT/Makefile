@@ -18,7 +18,7 @@ OBJS = $(SRCS:.c=.o)
 .PHONY : clean
 
 $(PROG) : $(OBJS)
-	$(CC) -o $@ $^ parser.o
+	# $(CC) -o $@ $^ parser.o
 
 clean :
 	$(RM) $(OBJS) $(PROG)
