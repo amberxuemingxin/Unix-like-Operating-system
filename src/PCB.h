@@ -20,5 +20,7 @@ typedef struct pcb
 } pcb_t;
 
 void p_kill(pid_t pid, int signal);
+
 void p_waitpid();
+
 void p_exit();
