@@ -14,6 +14,7 @@ typedef struct pcb
     pid_t pid;
     pid_t ppid;
     pid_t *cpid;
+    int jid;
     int status;
     int priority;
     ucontext_t *ucp;
