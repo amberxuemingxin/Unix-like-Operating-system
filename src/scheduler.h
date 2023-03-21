@@ -1,3 +1,5 @@
+#include "queue.h"
+
 
 /*Keeps all queues
  Ready queue: three priority queues 

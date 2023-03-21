@@ -1,8 +1,9 @@
+#include <stdlib.h>
 #include "PCB.h"
 
 typedef struct ListNode {
-    pcb_t *context;
-    node *next;
+    pcb_t *pcb;
+    struct ListNode *next;
 } node; 
 
 typedef struct LinkedList {
@@ -14,12 +15,10 @@ node *init_node(pcb_t *new_pcb);
 
 queue *init_queue();
 
-int add_node(queue *q, node *node);
-
-int remove_node(queue *q, node *remove);
+void add_node(queue *q, node *n);
 
 int remove_head(queue *q);
 
-void free_node(node *node);
+void free_node(node *n);
 
 void free_queue(queue *q);
