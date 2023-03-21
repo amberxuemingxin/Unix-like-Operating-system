@@ -10,15 +10,13 @@ SRC_DIR = ./src
 BIN_DIR = ./bin
 
 SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(BIN_DIR)/$(notdir $(SRCS:.c=.o))
+#OBJS = $(BIN_DIR)/$(notdir $(SRCS:.c=.o))
+OBJS = $(SRCS:.c=.o)
 
 .PHONY : clean
 
 $(PROG) : $(OBJS)
-	$(CC) -c $(SRCS) -o $@ ${OBJS}
-
-$(BIN_DIR)/%.o: $(SRC_DIR)/%.c*
-	$(CC) $(CFLAGS) -o $@ $<
+	# $(CC) -o $@ $^ parser.o
 
 clean :
-	$(RM) $(OBJS)
+	$(RM) $(OBJS) $(PROG)

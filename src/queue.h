@@ -18,6 +18,8 @@ int add_node(queue *q, node *node);
 
 int remove_node(queue *q, node *remove);
 
+int remove_head(queue *q);
+
 void free_node(node *node);
 
 void free_queue(queue *q);

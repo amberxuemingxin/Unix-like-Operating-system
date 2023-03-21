@@ -3,7 +3,6 @@ int loop () {
 
     // parse the user input 
 
-    // spawn the process
-
     // call scheduler 
+    return 1;
 }

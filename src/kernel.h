@@ -2,7 +2,7 @@
 
 // kernel level
 
-pcb_t k_process_create(pcb_t *parent);
+// pcb_t k_process_create(pcb_t *parent);
 
 int k_process_kill(pcb_t *process, int signal);
 

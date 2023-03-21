@@ -1,6 +1,9 @@
-int main(int argc, char *argv[]) {
-    // spawn a process for shell
+#include "kernel.h"
 
-    // call shell
+int k_process_kill(pcb_t *process, int signal) {
+    return 0;
 }
 
+void k_process_cleanup(pcb_t *process) {
+    return;
+}
