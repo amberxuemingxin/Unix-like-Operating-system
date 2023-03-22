@@ -34,7 +34,7 @@ void add_node(queue *q, node *n) {
 }
 
 void free_node(node *n) {
-    free_pcb(n->pcb);
+    free(n->pcb);
     free(n);
 }
 

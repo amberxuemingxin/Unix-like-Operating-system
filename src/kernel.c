@@ -1,4 +1,5 @@
 #include "kernel.h"
+#include "PCB.h"
 
 int k_process_kill(pcb_t *process, int signal) {
     return 0;

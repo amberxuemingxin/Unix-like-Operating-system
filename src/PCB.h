@@ -1,3 +1,6 @@
+#ifndef PCB_HEADER
+#define PCB_HEADER
+
 #include <sys/types.h>
 #include <ucontext.h> 
 #include <stdlib.h>
@@ -8,7 +11,7 @@
 #define STOPPED 2
 #define ZOMBIED 3
 
-typedef struct pcb
+typedef struct pcb_def
 {
     const char *fd0;
     const char *fd1;
@@ -19,6 +22,4 @@ typedef struct pcb
     ucontext_t *context;
 } pcb_t;
 
-pcb_t *pcb_spawn(ucontext_t *context, int pid, int ppid, int priority, struct parsed_command *cmd);
-
-void free_pcb(pcb_t *p);
+#endif

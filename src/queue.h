@@ -1,3 +1,6 @@
+#ifndef QUEUE_HEADER
+#define QUEUE_HEADER
+
 #include <stdlib.h>
 #include "PCB.h"
 
@@ -22,3 +25,5 @@ int remove_head(queue *q);
 void free_node(node *n);
 
 void free_queue(queue *q);
+
+#endif

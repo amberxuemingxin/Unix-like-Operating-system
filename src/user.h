@@ -1,8 +1,8 @@
 #include "PCB.h"
 
-#define S_SIGSTOP 5
-#define S_SIGCONT 6
-#define S_SIGTERM 7
+#define S_SIGSTOP 0
+#define S_SIGCONT 1
+#define S_SIGTERM 2
 
 // user level
 
