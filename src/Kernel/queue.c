@@ -1,8 +1,8 @@
 #include "queue.h"
 
-node *init_node(pcb_t *new_pcb) {
+node *init_node(void *payload) {
     node *n = (node *)malloc(sizeof(node));
-    n->pcb = new_pcb;
+    n->payload = payload;
     n->next = NULL;
 
     return n;
@@ -34,7 +34,7 @@ void add_node(queue *q, node *n) {
 }
 
 void free_node(node *n) {
-    free(n->pcb);
+    free(n->payload);
     free(n);
 }
 

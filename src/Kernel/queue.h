@@ -2,10 +2,9 @@
 #define QUEUE_HEADER
 
 #include <stdlib.h>
-#include "PCB.h"
 
 typedef struct ListNode {
-    pcb_t *pcb;
+    void *payload;
     struct ListNode *next;
 } node; 
 
@@ -14,7 +13,7 @@ typedef struct LinkedList {
     int length;
 } queue;
 
-node *init_node(pcb_t *new_pcb);
+node *init_node(void *payload);
 
 queue *init_queue();
 
