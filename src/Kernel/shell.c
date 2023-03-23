@@ -1,7 +1,7 @@
 #include "shell.h"
 #include "parser.h"
 
-int loop () {
+void shellLoop () {
     
     while (1) {
         // prompt to the user
@@ -40,5 +40,4 @@ int loop () {
         free(cmd);
         // call scheduler 
     }
-    return 1;
 }
