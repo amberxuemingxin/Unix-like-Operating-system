@@ -38,7 +38,6 @@ typedef struct pcb_def
 
     // child process management
     node *children;
-    node *zombies;
 
     // context of the process
     ucontext_t context;

@@ -4,12 +4,13 @@
 #include <valgrind/valgrind.h> // VALGRIND_STACK_REGISTER
 
 #include "kernel.h"
+#include "scheduler.h"
 #include "shell.h"
 
 ucontext_t mainContext;
 ucontext_t schedulerContext;
 
-void setStack(stack_t *stack)
+void set_stack(stack_t *stack)
 {
     void *sp = malloc(SIGSTKSZ);
     VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ);
@@ -17,12 +18,12 @@ void setStack(stack_t *stack)
     *stack = (stack_t) { .ss_sp = sp, .ss_size = SIGSTKSZ };
 }
 
-void makeContext(ucontext_t *ucp,  void (*func)(), char *argv[])
+void make_context(ucontext_t *ucp,  void (*func)(), char *argv[])
 {
     getcontext(ucp);
 
     sigemptyset(&ucp->uc_sigmask);
-    setStack(&ucp->uc_stack);
+    set_stack(&ucp->uc_stack);
     ucp->uc_link = &schedulerContext;
 
     makecontext(ucp, func, 1, argv);
@@ -39,10 +40,9 @@ pcb_t *k_shell_create() {
     shell->status = RUNNING;
     shell->priority = -1;
     shell->children = NULL;
-    shell->zombies = NULL;
 
     char *shellArgs[2] = {"shell", NULL};
-    makeContext(&(shell->context), shellLoop, shellArgs);
+    make_context(&(shell->context), shellLoop, shellArgs);
 
     return shell;
 }
