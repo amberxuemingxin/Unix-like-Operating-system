@@ -19,7 +19,6 @@ void signalHandler(int sigNum) {
     }
 }
 
-
 int main(int argc, char *argv[]) {
     // FAT *currFat = NULL;
 
