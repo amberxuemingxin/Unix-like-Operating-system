@@ -1,4 +1,4 @@
-PROG=pennFAT
+PROG=pennfat
 
 PROMPT='"$(PROG)> "'
 
