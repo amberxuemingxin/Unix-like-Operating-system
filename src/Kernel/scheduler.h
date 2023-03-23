@@ -8,16 +8,13 @@
  Zombie queue: one*/
  typedef struct scheduler_def
  {
+    int ticks;
     queue *queue_high;
     queue *queue_mid;
     queue *queue_low;
     queue *queue_zombie;
  } scheduler;
 
-
- // set up signals
-
- // pick a thread and run
- void schedule();
+scheduler *init_scheduler();
 
  #endif

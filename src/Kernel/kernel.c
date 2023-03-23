@@ -4,11 +4,12 @@
 #include <valgrind/valgrind.h> // VALGRIND_STACK_REGISTER
 
 #include "kernel.h"
-#include "scheduler.h"
 #include "shell.h"
+#include "logger.h"
 
-ucontext_t mainContext;
-ucontext_t schedulerContext;
+int ticks = 0;
+ucontext_t main_context;
+ucontext_t scheduler_context;
 
 void set_stack(stack_t *stack)
 {
@@ -24,7 +25,7 @@ void make_context(ucontext_t *ucp,  void (*func)(), char *argv[])
 
     sigemptyset(&ucp->uc_sigmask);
     set_stack(&ucp->uc_stack);
-    ucp->uc_link = &schedulerContext;
+    ucp->uc_link = &scheduler_context;
 
     makecontext(ucp, func, 1, argv);
 }
@@ -43,6 +44,8 @@ pcb_t *k_shell_create() {
 
     char *shellArgs[2] = {"shell", NULL};
     make_context(&(shell->context), shellLoop, shellArgs);
+    
+    log_events(CREATE, ticks, shell->pid, shell->priority, shell->process);
 
     return shell;
 }

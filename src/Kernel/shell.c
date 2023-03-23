@@ -17,6 +17,7 @@ void shellLoop () {
         if (chars_read <= 0)
         {
             free(user_input);
+            
             break;
         }
         // parse user input

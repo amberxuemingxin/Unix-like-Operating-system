@@ -1,16 +1,13 @@
 #include "scheduler.h"
 
-// three ready queues
-queue queue_minus;
-queue queue_zero;
-queue queue_positive;
+scheduler *init_scheduler() {
+    scheduler *s = (scheduler *)malloc(sizeof(scheduler));
 
-// one zombie queue
-queue zombie_queue;
+    s->ticks = 0;
+    s->queue_high = init_queue();
+    s->queue_mid = init_queue();
+    s->queue_low = init_queue();
+    s->queue_zombie = init_queue();
 
-// one blocked queue;
-queue blocked_queue;
-
-void scheduler() {
-    
+    return s;
 }
