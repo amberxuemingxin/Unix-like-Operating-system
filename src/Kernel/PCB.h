@@ -41,7 +41,7 @@ typedef struct pcb_def
     node *zombies;
 
     // context of the process
-    ucontext_t *context;
+    ucontext_t context;
 } pcb_t;
 
 #endif

@@ -4,7 +4,6 @@
 #include <valgrind/valgrind.h> // VALGRIND_STACK_REGISTER
 
 #include "kernel.h"
-#include "PCB.h"
 #include "shell.h"
 
 ucontext_t mainContext;
@@ -43,7 +42,7 @@ pcb_t *k_shell_create() {
     shell->zombies = NULL;
 
     char *shellArgs[2] = {"shell", NULL};
-    makeContext(shell->context, shellLoop, shellArgs);
+    makeContext(&(shell->context), shellLoop, shellArgs);
 
     return shell;
 }

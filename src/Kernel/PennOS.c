@@ -2,7 +2,9 @@
 
 int main(int argc, char *argv[]) {
     // spawn a process for shell
-    k_shell_create();
+    pcb_t *shell_process = k_shell_create();
+
+    setcontext(&(shell_process)->context);
 
     return 0;
 }
