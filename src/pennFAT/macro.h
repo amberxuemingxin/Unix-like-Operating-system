@@ -1,6 +1,7 @@
 #define PENNFAT_PROMPT "pennfat> "
 #define PROMPT_LENGTH 9
-
+#define SUCCESS 0
+#define FAILURE -1
 #define UNKNOWN_FILETYPE 0
 #define REGULAR_FILETYPE 1
 #define DIRECTORY_FILETYPE 2

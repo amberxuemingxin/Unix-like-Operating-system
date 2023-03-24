@@ -28,6 +28,7 @@ typedef struct FAT {
     uint32_t block_size;
     uint32_t entry_num;
     uint32_t file_num;
+    uint32_t free_blocks;
     dir_node* first_dir_node;
     dir_node* last_dir_node;
 }FAT;
@@ -44,4 +45,7 @@ dir_node * NewDirNode(
 void free_dir_node(dir_node *node);
 
 
+FAT* make_fat(char* f_name, uint8_t num_blocks, uint8_t block_size, bool new);
+
+void free_fat(FAT** fat);
 #endif
