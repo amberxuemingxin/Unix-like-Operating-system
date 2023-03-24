@@ -20,6 +20,9 @@ int main(int argc, char *argv[]) {
 
     // create the context for scheduler
 
+    // set timer
+    set_timer();
+
     // spawn a process for shell
     pcb_t *shell_process = k_shell_create();
 

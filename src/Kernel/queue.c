@@ -33,6 +33,27 @@ void add_node(queue *q, node *n) {
 
 }
 
+void remove_node(queue *q, node *n) {
+    node *prev = NULL;
+    node *tmp = q->head;
+
+    while (tmp) {
+        if (tmp == n) {
+            if (prev) {
+                prev->next = n->next;
+                free_node(n);
+                return;
+            }
+
+            q->head = n->next;
+            free_node(n);
+        }
+
+        prev = tmp;
+        tmp = tmp->next;
+    }
+}
+
 void free_node(node *n) {
     free(n->payload);
     free(n);

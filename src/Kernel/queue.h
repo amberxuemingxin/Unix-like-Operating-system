@@ -19,6 +19,8 @@ queue *init_queue();
 
 void add_node(queue *q, node *n);
 
+void remove_node(queue *q, node *n);
+
 int remove_head(queue *q);
 
 void free_node(node *n);

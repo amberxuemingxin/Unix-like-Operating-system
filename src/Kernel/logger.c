@@ -23,6 +23,24 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
     case 5:
         log_type = "WAITED";
         break;
+    case 6:
+        log_type = "SCHEDULE";
+        break;
+    case 8:
+        log_type = "NICE";
+        break;
+    case 9:
+        log_type = "BLOCKED";
+        break;
+    case 10:
+        log_type = "UNBLOCKED";
+        break;
+    case 11:
+        log_type = "STOPPED";
+        break;
+    case 12:
+        log_type = "CONTINUED";
+        break;
     default:
         log_type = "";
         break;
@@ -34,7 +52,7 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);
     }
-    int return_value = fprintf(log_file, "[%d] %s %d %d %s\n", ticks, log_type, pid, priority, process);
+    int return_value = fprintf(log_file, "[%d]\t%s\t%d\t%d\t%s\n", ticks, log_type, pid, priority, process);
     if (return_value < 0) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);

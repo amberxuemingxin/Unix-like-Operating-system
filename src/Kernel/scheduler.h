@@ -3,8 +3,10 @@
 
 #include "queue.h"
 
+#define CENTISECOND 10000 /* 10 millisconds */
+
 /*Keeps all queues
- Ready queue: three priority queues 
+ Ready queue: three
  Zombie queue: one*/
  typedef struct scheduler_def
  {
@@ -16,5 +18,13 @@
  } scheduler;
 
 scheduler *init_scheduler();
+
+void set_timer();
+
+void schedule();
+
+void add_to_scheduler(node *n, scheduler *s);
+
+void remove_from_scheduler(node *n, scheduler *s);
 
  #endif

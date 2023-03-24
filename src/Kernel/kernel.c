@@ -7,9 +7,16 @@
 #include "shell.h"
 #include "logger.h"
 
+/* Define macros for signals*/
+#define S_SIGSTOP 0
+#define S_SIGCONT 1
+#define S_SIGTERM 2
+
 int ticks = 0;
+pcb_t *foreground;
 ucontext_t main_context;
 ucontext_t scheduler_context;
+
 
 void set_stack(stack_t *stack)
 {
@@ -40,10 +47,13 @@ pcb_t *k_shell_create() {
     shell->pgid = 1;
     shell->status = RUNNING;
     shell->priority = -1;
+    shell->ticks = -1;
     shell->children = NULL;
 
-    char *shellArgs[2] = {"shell", NULL};
-    make_context(&(shell->context), shellLoop, shellArgs);
+    foreground = shell;
+
+    char *shell_args[2] = {"shell", NULL};
+    make_context(&(shell->context), shellLoop, shell_args);
     
     log_events(CREATE, ticks, shell->pid, shell->priority, shell->process);
 
@@ -54,6 +64,10 @@ void k_process_create(pcb_t *parent) {
 }
 
 int k_process_kill(pcb_t *process, int signal) {
+    // stop the process
+    if (signal = S_SIGSTOP) {
+        process->status = STOPPED;
+    }
     return 0;
 }
 
