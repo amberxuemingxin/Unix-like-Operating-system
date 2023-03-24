@@ -10,7 +10,6 @@
  Zombie queue: one*/
  typedef struct scheduler_def
  {
-    int ticks;
     queue *queue_high;
     queue *queue_mid;
     queue *queue_low;

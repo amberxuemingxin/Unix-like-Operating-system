@@ -59,7 +59,7 @@ void free_node(node *n) {
     free(n);
 }
 
-int remove_head(queue *q) {
+node *remove_head(queue *q) {
     if (q->head == NULL) {
         return -1;
     }
@@ -68,8 +68,7 @@ int remove_head(queue *q) {
     q->head = tmp->next;
     q->length--;
 
-    free_node(tmp);
-    return 0;
+    return tmp;
 }
 
 void free_queue(queue *q) {

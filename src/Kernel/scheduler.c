@@ -1,4 +1,5 @@
 #include <sys/time.h>  // setitimer
+#include <stdlib.h> // rand
 
 #include "scheduler.h"
 #include "logger.h"
@@ -9,7 +10,6 @@ extern int ticks;
 scheduler *init_scheduler() {
     scheduler *s = (scheduler *)malloc(sizeof(scheduler));
 
-    s->ticks = 0;
     s->queue_high = init_queue();
     s->queue_mid = init_queue();
     s->queue_low = init_queue();
@@ -49,6 +49,30 @@ void remove_from_scheduler(node *n, scheduler *s) {
     } else if (process->priority == 1) {
         remove_node(s->queue_low, n);
     }
+}
+
+node *pick_next_process(scheduler *s) {
+    node *picked_node;
+
+    int low_length = s->queue_low->length;
+    int mid_length = (int) (s->queue_mid->length * 1.5);
+    int high_length = (int) (s->queue_high->length * 1.5 * 1.5);
+
+    bool low_queue_existed = (low_length > 0) ? true : false;
+    bool mid_queue_existed = (mid_length > 0) ? true : false;
+    bool high_queue_existed = (high_length > 0) ? true : false;
+
+    int picked_queue = rand() % (low_length + mid_length + high_length);
+    
+    if (picked_queue < low_length && low_queue_existed) {
+        picked_node = s->queue_low->head;
+    } else if (picked_queue < low_length + mid_length && mid_queue_existed) {
+        picked_node = s->queue_mid->head;
+    } else if (picked_queue < low_length + mid_length + high_length && high_queue_existed) {
+        picked_node = s->queue_high->head;
+    }
+
+    return picked_node;
 }
 
 void schedule() {
