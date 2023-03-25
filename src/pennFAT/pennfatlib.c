@@ -57,11 +57,14 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
     return FAILURE;
 }
 
-int pennfat_mkfs(char *fileName, uint8_t numBlocks, uint8_t blockSizeIndicator, FAT **FAT){
+int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **FAT){
     printf("making a new file system, file name is  %s, %d number of blocks, with %d block size\n", fileName, numBlocks, blockSizeIndicator);
+    // if FAT exist, we need to overwrite the origianl FAT
     if (FAT != NULL) {
         free_fat(FAT);
     }
+    *FAT = make_fat(f_name, block_num, block_size);
+
     return SUCCESS;
 }
 
