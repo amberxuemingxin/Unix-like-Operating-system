@@ -35,11 +35,11 @@ void free_directory_node(dir_node *node) {
 FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     if (block_num > 32 || block_num < 1) {
         perror("number of blocks needs to be within 1-32");
-        return nullptr;
+        return NULL;
     }
     if (block_size > 4 || block_size < 1) {
         perror("block size needs to be within 1-4");
-        return nullptr;
+        return NULL;
     }
     FAT* res = (FAT*) malloc(sizeof(FAT));
     res->file_num = 0;
@@ -93,7 +93,7 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
 
     // end off file links in the first block or root directory if first time initializing
     res->block_arr[1] = 0xFFFF;
-
+    return res;
 }   
 
 // void free_fat(FAT** fat){
