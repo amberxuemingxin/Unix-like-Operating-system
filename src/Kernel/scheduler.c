@@ -75,6 +75,18 @@ node *pick_next_process(scheduler *s) {
     return picked_node;
 }
 
-void schedule() {
-    // log_events(SCHEDULE, ticks, );
+void schedule(scheduler *s) {
+    while (1) {
+        node *next_process = pick_next_process(s);
+        pcb_t *process = (pcb_t *) (next_process->payload);
+
+        log_events(SCHEDULE, ticks, process->pid, process->priority, process->process);
+
+        // switch user context
+
+        // execute the process
+
+        // exit the current process / insert the node back to the queue
+
+    }
 }

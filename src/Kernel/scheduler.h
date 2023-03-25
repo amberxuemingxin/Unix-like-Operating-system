@@ -20,7 +20,7 @@ scheduler *init_scheduler();
 
 void set_timer();
 
-void schedule();
+void schedule(scheduler *s);
 
 void add_to_scheduler(node *n, scheduler *s);
 
