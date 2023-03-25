@@ -41,12 +41,12 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
     } else if (strcmp(cmd, "chmod") == 0) {
         return pennfat_chmod(commands[0], *FAT);
     } else if (strcmp(cmd, "describe") == 0) {
-        printf("Filename  : %s\n", (*FAT)->f_name);
-        printf("NumBlocks : %d\n", (*FAT)->block_num);
-        printf("BlockSize : %d\n", (*FAT)->block_size);
-        printf("NumEntries: %d\n", (*FAT)->entry_num);
-        printf("FileCount : %d\n", (*FAT)->file_num);
-        printf("FreeBlocks: %d\n", (*FAT)->free_blocks);
+        printf("File system name : %s\n", (*FAT)->f_name);
+        printf("Number of block in the filesystem : %d\n", (*FAT)->block_num);
+        printf("Block size : %d\n", (*FAT)->block_size);
+        printf("Number of entries: %d\n", (*FAT)->entry_num);
+        printf("number of files : %d\n", (*FAT)->file_num);
+        printf("available blocks: %d\n", (*FAT)->free_blocks);
     }
     
      else {
@@ -59,9 +59,9 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
 int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **FAT){
     printf("making a new file system, file name is  %s, %d number of blocks, with %d block size\n", f_name, block_num, block_size);
     // if FAT exist, we need to overwrite the origianl FAT
-    // if (FAT != NULL) {
-    //     free_fat(FAT);
-    // }
+    if (FAT != NULL) {
+        free_fat(FAT);
+    }
     *FAT = make_fat(f_name, block_num, block_size);
 
     return SUCCESS;

@@ -37,8 +37,8 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
         perror("number of blocks needs to be within 1-32");
         return NULL;
     }
-    if (block_size > 4 || block_size < 1) {
-        perror("block size needs to be within 1-4");
+    if (block_size > 4 || block_size < 0) {
+        perror("block size needs to be within 0-4");
         return NULL;
     }
     FAT* res = (FAT*) malloc(sizeof(FAT));
@@ -52,7 +52,10 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     res->f_name[len] =  '\0';
     res->block_num = block_num;
 
-    if (block_size == 1) {
+    if (block_size == 0) {
+        res->block_size = 256;
+    }
+    else if (block_size == 1) {
         res->block_size = 512;
     } else if(block_size == 2) {
         res->block_size = 1024;
@@ -65,8 +68,8 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     // # of FAT entries = block size * number of blocks in FAT / 2
     res->entry_num = res->block_size * res->block_num;
     res->entry_num /= 2;
-
-    int fs_fd = open(f_name, O_RDWR);
+    res->free_blocks = res->entry_num -2;
+    int fs_fd = open(f_name, O_RDWR | O_TRUNC | O_CREAT, 0644);
     if(fs_fd == -1) {
         perror("open file");
         return NULL;
@@ -87,25 +90,30 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
         return NULL;
     }
 
-    // set first block to store FAT metadata with LSB/MSB value
+    //first block stored FS information by LSB and MSB
                                     //LSB               MSB
     res->block_arr[0] = (uint16_t) block_num << 8 | block_size;
 
-    // end off file links in the first block or root directory if first time initializing
+    //second block is the root directory
     res->block_arr[1] = 0xFFFF;
     return res;
 }   
 
-// void free_fat(FAT** fat){
-//     printf("freed!\n");
+void free_fat(FAT** fat){
+    struct FAT *curr_fat = *fat;
+    if (curr_fat == NULL)   return;
 
-//     // struct FAT *curr_fat = *fat;
-//     // if (curr_fat == NULL) return;
+    while (curr_fat->first_dir_node != NULL) {
+        dir_node *curr = curr_fat->first_dir_node;
+        curr_fat->first_dir_node = curr->next;
+        free_directory_node(curr);
+    }
 
+    if (munmap(curr_fat->block_arr, curr_fat->block_num * curr_fat->block_num) == -1) {
+        perror("munmap");
+        return;
+    }
 
-//     // if(curr_fat->f_name != NULL) {
-//     //     free(curr_fat->f_name);
-//     // }
-
-// }
+    free(curr_fat);
+}
     
