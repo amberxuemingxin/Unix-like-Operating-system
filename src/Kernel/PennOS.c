@@ -5,8 +5,8 @@
 
 scheduler *s;
 
-extern ucontext_t main_context;
-extern ucontext_t scheduler_context;
+ucontext_t main_context;
+ucontext_t scheduler_context;
 
 // set up signals handling exit ctrl c
 
@@ -30,7 +30,9 @@ int main(int argc, char *argv[]) {
     node *shell = init_node(shell_process);
     add_node(s->queue_high, shell);
 
-    setcontext(&(shell_process)->context);
+
+    // 
+    // setcontext(&(shell_process)->context);
 
     return 0;
 }

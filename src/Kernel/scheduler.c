@@ -76,6 +76,9 @@ node *pick_next_process(scheduler *s) {
 }
 
 void schedule(scheduler *s) {
+    /* 1. do we want to keep the scheduler running? */
+    /* 2. do we need to create a process for the scheduler? */
+    /* 3. mainContext & schedulerContext & shellContext in log example */
     while (1) {
         node *next_process = pick_next_process(s);
         pcb_t *process = (pcb_t *) (next_process->payload);

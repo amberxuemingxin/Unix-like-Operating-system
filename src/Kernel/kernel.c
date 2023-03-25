@@ -14,8 +14,9 @@
 
 int ticks = 0;
 pcb_t *foreground;
-ucontext_t main_context;
-ucontext_t scheduler_context;
+
+extern ucontext_t main_context;
+extern ucontext_t scheduler_context;
 
 
 void set_stack(stack_t *stack)
