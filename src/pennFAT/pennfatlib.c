@@ -7,7 +7,6 @@
 #include <math.h>
 #include <limits.h>
 
-#include "FAT.h"
 #include "pennfatlib.h"
 #include "macro.h"
 
@@ -58,11 +57,11 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
 }
 
 int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **FAT){
-    printf("making a new file system, file name is  %s, %d number of blocks, with %d block size\n", fileName, numBlocks, blockSizeIndicator);
+    printf("making a new file system, file name is  %s, %d number of blocks, with %d block size\n", f_name, block_num, block_size);
     // if FAT exist, we need to overwrite the origianl FAT
-    if (FAT != NULL) {
-        free_fat(FAT);
-    }
+    // if (FAT != NULL) {
+    //     free_fat(FAT);
+    // }
     *FAT = make_fat(f_name, block_num, block_size);
 
     return SUCCESS;

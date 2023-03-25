@@ -96,16 +96,16 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
 
 }   
 
-void free_fat(FAT** fat){
-    printf("freed!\n");
+// void free_fat(FAT** fat){
+//     printf("freed!\n");
 
-    // struct FAT *curr_fat = *fat;
-    // if (curr_fat == NULL) return;
+//     // struct FAT *curr_fat = *fat;
+//     // if (curr_fat == NULL) return;
 
 
-    // if(curr_fat->f_name != NULL) {
-    //     free(curr_fat->f_name);
-    // }
+//     // if(curr_fat->f_name != NULL) {
+//     //     free(curr_fat->f_name);
+//     // }
 
-}
+// }
     
