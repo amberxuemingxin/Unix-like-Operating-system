@@ -31,7 +31,7 @@ void add_node(queue *q, node *n) {
     }
 
     q->length++;
-    printf("q len = %d\n", q->length);
+    perror("added!\n");
 }
 
 void remove_node(queue *q, node *n) {
@@ -62,6 +62,7 @@ void free_node(node *n) {
 
 node *remove_head(queue *q) {
     if (q->head == NULL) {
+        perror("ahha\n");
         return q->head;
     }
 

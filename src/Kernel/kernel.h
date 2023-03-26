@@ -4,6 +4,8 @@
 #include "scheduler.h"
 #include "PCB.h"
 
+void idle_process();
+
 void make_context(ucontext_t *ucp,  void (*func)(), char *argv[]);
 
 // kernel level

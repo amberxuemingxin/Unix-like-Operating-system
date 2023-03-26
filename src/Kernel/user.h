@@ -1,8 +1,8 @@
-// #include "PCB.h"
+#include "PCB.h"
 
-// #define S_SIGSTOP 0
-// #define S_SIGCONT 1
-// #define S_SIGTERM 2
+#define S_SIGSTOP 0
+#define S_SIGCONT 1
+#define S_SIGTERM 2
 
 // // user level
 
@@ -17,7 +17,7 @@
 
 // void p_waitpid(pid_t pid, int *wstatus, bool nohang);
 
-// void p_exit();
+void p_exit();
 
 // int p_nice(pid_t pid, int priority);
 

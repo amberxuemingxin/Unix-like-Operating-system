@@ -6,27 +6,33 @@
 #include "logger.h"
 #include "PCB.h"
 
-ucontext_t *active_context;
+node *active_node;
+
+queue *queue_high;
+queue *queue_mid;
+queue *queue_low;
+bool idle;
 
 extern ucontext_t scheduler_context;
+extern ucontext_t idle_context;
 extern int ticks;
 
-scheduler *init_scheduler() {
-    scheduler *s = (scheduler *)malloc(sizeof(scheduler));
-
-    s->queue_high = init_queue();
-    // printf("init high: %d\n", s->queue_high->length);
-    s->queue_mid = init_queue();
-    // printf("init mid: %d\n", s->queue_mid->length);
-    s->queue_low = init_queue();
-    // printf("init low: %d\n", s->queue_low->length);
-    s->queue_zombie = init_queue();
-
-    return s;
+void init_scheduler() {
+    queue_high = init_queue();
+    queue_mid = init_queue();
+    queue_low = init_queue();
 }
 
 void alarm_handler(int signum) {
-    swapcontext(active_context, &scheduler_context);
+    if (signum == SIGALRM) {
+        ticks++;
+    }
+    if (idle) {
+        setcontext(&scheduler_context);
+    } else {
+        pcb_t *active_process = (pcb_t *)active_node->payload;
+        swapcontext(&(active_process->context), &scheduler_context);
+    }
 }
 
 void set_alarm_handler() {
@@ -48,64 +54,129 @@ void set_timer() {
     setitimer(ITIMER_REAL, &it, NULL);
 }
 
-void add_to_scheduler(node *n, scheduler *s) {
+void add_to_scheduler(node *n) {
     pcb_t *process = (pcb_t *)n->payload;
     
     if (process->priority == -1) {
-        add_node(s->queue_high, n);
+        add_node(queue_high, n);
     } else if (process->priority == 0) {
-        add_node(s->queue_mid, n);
+        add_node(queue_mid, n);
     } else if (process->priority == 1) {
-        add_node(s->queue_low, n);
+        add_node(queue_low, n);
     }
 }
 
-void remove_from_scheduler(node *n, scheduler *s) {
+void remove_from_scheduler(node *n) {
     pcb_t *process = (pcb_t *)n->payload;
 
     if (process->priority == -1) {
-        remove_node(s->queue_high, n);
+        remove_node(queue_high, n);
     } else if (process->priority == 0) {
-        remove_node(s->queue_mid, n);
+        remove_node(queue_mid, n);
     } else if (process->priority == 1) {
-        remove_node(s->queue_low, n);
+        remove_node(queue_low, n);
     }
 }
 
-node *pick_next_process(scheduler *s) {
+node *search_in_scheduler(pid_t pid) {
+    node *tmp = queue_high->head;
+    pcb_t *tmp_process;
+    while (tmp) {
+        tmp_process = (pcb_t *)tmp->payload;
+        if (tmp_process->pid == pid) {
+            return tmp;
+        }
+
+        tmp = tmp->next;
+    }
+
+    tmp = queue_mid->head;
+    while (tmp) {
+        tmp_process = (pcb_t *)tmp->payload;
+        if (tmp_process->pid == pid) {
+            return tmp;
+        }
+
+        tmp = tmp->next;
+    }
+    
+    tmp = queue_low->head;
+    while (tmp) {
+        tmp_process = (pcb_t *)tmp->payload;
+        if (tmp_process->pid == pid) {
+            return tmp;
+        }
+
+        tmp = tmp->next;
+    }
+
+    return NULL;
+}
+
+node *pick_next_process() {
     node *picked_node;
 
-    printf("low: %d, mid: %d, high: %d\n", s->queue_low->length, s->queue_mid->length, s->queue_high->length);
+    bool low_queue_existed = (queue_low->length > 0) ? true : false;
+    bool mid_queue_existed = (queue_mid->length > 0) ? true : false;
+    bool high_queue_existed = (queue_high->length > 0) ? true : false;
 
-    int low_length = s->queue_low->length;
-    int mid_length = (int) (s->queue_mid->length * 1.5);
-    int high_length = (int) (s->queue_high->length * 1.5 * 1.5);
+    if (!low_queue_existed && !mid_queue_existed && !high_queue_existed) {
+        idle = true;
+        return NULL;
+    }
 
-    printf("low: %d, mid: %d, high: %d\n", low_length, mid_length, high_length);
-
-    bool low_queue_existed = (low_length > 0) ? true : false;
-    bool mid_queue_existed = (mid_length > 0) ? true : false;
+    idle = false;
+    int low_length = queue_low->length;
+    int mid_length = (int) (queue_mid->length * 1.5);
+    int high_length = (int) (queue_high->length * 1.5 * 1.5);
 
     int picked_queue = rand() % (low_length + mid_length + high_length);
     
     if (picked_queue < low_length && low_queue_existed) {
-        picked_node = s->queue_low->head;
+        picked_node = queue_low->head;
     } else if (picked_queue < low_length + mid_length && mid_queue_existed) {
-        picked_node = s->queue_mid->head;
+        picked_node = queue_mid->head;
     } else {
-        picked_node = s->queue_high->head;
+        picked_node = queue_high->head;
     }
+
+    active_node = picked_node;
 
     return picked_node;
 }
 
-void schedule(scheduler *s) {
+void wait_for_processes(node *n) {
+    remove_from_scheduler(n);
+
+    /* insert the node into the zombie queue */
+    pcb_t *process = (pcb_t *)n->payload;
+    node *parent = search_in_scheduler(process->ppid);
+    pcb_t *parent_process = (pcb_t *)parent->payload;
+    add_node(parent_process->zombies, n);
+    
+    if (!process->waited) {
+        log_events(ZOMBIE, ticks, process->pid, process->priority, process->process);
+    }
+
+
+}
+
+void schedule() {
     /* 1. do we want to keep the scheduler running? */
     // NO called by alarm handler
     /* 2. do we need to create a process for the scheduler? */
     // NO
     /* 3. mainContext & schedulerContext & shellContext in log example */
-    node *next_process = pick_next_process(s);
+
+    node *next_process = pick_next_process();
+
+    if (next_process == NULL) {
+        // perror("hay\n");
+        setcontext(&idle_context);
+        perror("setcontext - idle");
+        exit(EXIT_FAILURE);
+    }
+
     pcb_t *process = (pcb_t *) (next_process->payload);
 
     log_events(SCHEDULE, ticks, process->pid, process->priority, process->process);

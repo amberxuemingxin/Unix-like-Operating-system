@@ -18,6 +18,11 @@ pcb_t *foreground;
 // extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
 
+void idle_process() {
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigsuspend(&mask);
+}
 
 void set_stack(stack_t *stack)
 {
@@ -49,12 +54,14 @@ pcb_t *k_shell_create() {
     shell->status = RUNNING_P;
     shell->priority = -1;
     shell->ticks = -1;
-    shell->children = NULL;
+    shell->children = init_queue();
+    shell->zombies = init_queue();
+    shell->waited = false;
 
     foreground = shell;
 
     char *shell_args[2] = {"shell", NULL};
-    make_context(&(shell->context), shellLoop, shell_args);
+    make_context(&(shell->context), shell_loop, shell_args);
     
     log_events(CREATE, ticks, shell->pid, shell->priority, shell->process);
 

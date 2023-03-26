@@ -11,6 +11,7 @@
 #define BLOCKED_P 1
 #define STOPPED_P 2
 #define ZOMBIED_P 3
+#define EXITED_P 4
 
 typedef struct pcb_def
 {
@@ -37,7 +38,11 @@ typedef struct pcb_def
     int ticks;
 
     // child process management
-    node *children;
+    queue *children;
+    // zombie process management
+    queue *zombies;
+    // after exiting the process, if it's being waited on
+    bool waited;
 
     // context of the process
     ucontext_t context;

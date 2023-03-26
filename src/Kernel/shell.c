@@ -1,7 +1,7 @@
 #include "shell.h"
 #include "parser.h"
 
-void shellLoop () {
+void shell_loop () {
     
     while (1) {
         // prompt to the user
