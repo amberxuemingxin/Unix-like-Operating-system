@@ -1,6 +1,6 @@
 PROG=pennfat
 
-PROMPT='"$(PROG)> "'
+# PROMPT='"$(PROG)> "'
 
 # Remove -DNDEBUG during development if assert(3) is used
 #
@@ -18,6 +18,7 @@ OBJS = $(SRCS:.c=.o)
 .PHONY : clean
 
 $(PROG) : $(OBJS)
+	$(CC) -o $@ $^ parser.o
 
 clean :
 	$(RM) $(OBJS) $(PROG)

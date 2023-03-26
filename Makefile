@@ -1,4 +1,3 @@
-
 CC = clang
 
 # Replace -O1 with -g for a debug version during development
@@ -27,7 +26,13 @@ all: $(PENNOS) $(PENNFAT)
 	$(CC) $(CFLAGS) $(FINAL_OBJS_K) -o $(PENNOS)
 
 $(BIN_DIR_K)/%.o: $(SRC_DIR_K)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@
+ $(CC) $(CFLAGS) -c $< -o $@
+
+$(PENNFAT) : $(FINAL_OBJS_F)
+ $(CC) $(CFLAGS) $(FINAL_OBJS_F) -o $(PENNFAT)
+
+$(BIN_DIR_F)/%.o: $(SRC_DIR_F)/%.c
+ $(CC) $(CFLAGS) -c $< -o $@
 
 clean:
 	rm -f $(BIN_DIR_K)/*.o $(LOG_DIR)/*.txt

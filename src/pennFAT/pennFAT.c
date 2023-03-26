@@ -3,8 +3,11 @@
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
-#include "FAT.h"
+// #include "FAT.h"
 #include "macro.h"
+#include "pennfatlib.h"
+#include "parser.h"
+
 void signalHandler(int sigNum) {
     if (sigNum == SIGINT) {
         ssize_t numBytes = write(STDERR_FILENO, "\n", 1);
@@ -20,7 +23,7 @@ void signalHandler(int sigNum) {
 }
 
 int main(int argc, char *argv[]) {
-    // FAT *currFat = NULL;
+    FAT *currFat = NULL;
 
     // bind signal handler for sigint
     if (signal(SIGINT, signalHandler) == SIG_ERR) {
@@ -51,7 +54,10 @@ int main(int argc, char *argv[]) {
             free(line);
             }
         } else {
-            printf("execute %s\n", line);
+            struct parsed_command* parsed_cmd = NULL;
+            parse_command(line, &parsed_cmd);
+            int num_command = parsed_cmd->num_commands;
+            parse_pennfat_command(parsed_cmd->commands, num_command, &currFat);
         }
         free(line);
     }
