@@ -7,10 +7,10 @@
 #include "parser.h"
 #include "queue.h"
 
-#define RUNNING 0
-#define BLOCKED 1
-#define STOPPED 2
-#define ZOMBIED 3
+#define RUNNING_P 0
+#define BLOCKED_P 1
+#define STOPPED_P 2
+#define ZOMBIED_P 3
 
 typedef struct pcb_def
 {
@@ -38,10 +38,9 @@ typedef struct pcb_def
 
     // child process management
     node *children;
-    node *zombies;
 
     // context of the process
-    ucontext_t *context;
+    ucontext_t context;
 } pcb_t;
 
 #endif

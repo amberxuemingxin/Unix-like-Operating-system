@@ -1,11 +1,31 @@
+#ifndef SCHEDULER_HEADER
+#define SCHEDULER_HEADER
+
 #include "queue.h"
 
+#define CENTISECOND 10000 /* 10 millisconds */
+
 /*Keeps all queues
- Ready queue: three priority queues 
- Blocked queue: one 
+ Ready queue: three
  Zombie queue: one*/
+ typedef struct scheduler_def
+ {
+    queue *queue_high;
+    queue *queue_mid;
+    queue *queue_low;
+    queue *queue_zombie;
+ } scheduler;
 
- // set up signals
+scheduler *init_scheduler();
 
- // pick a thread and run
- void schedule();
+void set_timer();
+
+void set_alarm_handler();
+
+void schedule(scheduler *s);
+
+void add_to_scheduler(node *n, scheduler *s);
+
+void remove_from_scheduler(node *n, scheduler *s);
+
+ #endif

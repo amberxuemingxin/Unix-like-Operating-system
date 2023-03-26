@@ -4,13 +4,22 @@
 #include <valgrind/valgrind.h> // VALGRIND_STACK_REGISTER
 
 #include "kernel.h"
-#include "PCB.h"
 #include "shell.h"
+#include "logger.h"
 
-ucontext_t mainContext;
-ucontext_t schedulerContext;
+/* Define macros for signals*/
+#define S_SIGSTOP 0
+#define S_SIGCONT 1
+#define S_SIGTERM 2
 
-void setStack(stack_t *stack)
+int ticks = 0;
+pcb_t *foreground;
+
+// extern ucontext_t main_context;
+extern ucontext_t scheduler_context;
+
+
+void set_stack(stack_t *stack)
 {
     void *sp = malloc(SIGSTKSZ);
     VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ);
@@ -18,13 +27,13 @@ void setStack(stack_t *stack)
     *stack = (stack_t) { .ss_sp = sp, .ss_size = SIGSTKSZ };
 }
 
-void makeContext(ucontext_t *ucp,  void (*func)(), char *argv[])
+void make_context(ucontext_t *ucp,  void (*func)(), char *argv[])
 {
     getcontext(ucp);
 
     sigemptyset(&ucp->uc_sigmask);
-    setStack(&ucp->uc_stack);
-    ucp->uc_link = &schedulerContext;
+    set_stack(&ucp->uc_stack);
+    ucp->uc_link = func == schedule ? &scheduler_context : NULL;
 
     makecontext(ucp, func, 1, argv);
 }
@@ -37,13 +46,17 @@ pcb_t *k_shell_create() {
     shell->pid = 1;
     shell->ppid = 1;
     shell->pgid = 1;
-    shell->status = RUNNING;
+    shell->status = RUNNING_P;
     shell->priority = -1;
+    shell->ticks = -1;
     shell->children = NULL;
-    shell->zombies = NULL;
 
-    char *shellArgs[2] = {"shell", NULL};
-    makeContext(shell->context, shellLoop, shellArgs);
+    foreground = shell;
+
+    char *shell_args[2] = {"shell", NULL};
+    make_context(&(shell->context), shellLoop, shell_args);
+    
+    log_events(CREATE, ticks, shell->pid, shell->priority, shell->process);
 
     return shell;
 }
@@ -52,6 +65,10 @@ void k_process_create(pcb_t *parent) {
 }
 
 int k_process_kill(pcb_t *process, int signal) {
+    // stop the process
+    if (signal == S_SIGSTOP) {
+        process->status = STOPPED;
+    }
     return 0;
 }
 

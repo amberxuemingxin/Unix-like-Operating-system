@@ -1,4 +1,5 @@
 #include "queue.h"
+#include "stdio.h" // debug purpose
 
 node *init_node(void *payload) {
     node *n = (node *)malloc(sizeof(node));
@@ -30,7 +31,28 @@ void add_node(queue *q, node *n) {
     }
 
     q->length++;
+    printf("q len = %d\n", q->length);
+}
 
+void remove_node(queue *q, node *n) {
+    node *prev = NULL;
+    node *tmp = q->head;
+
+    while (tmp) {
+        if (tmp == n) {
+            if (prev) {
+                prev->next = n->next;
+                free_node(n);
+                return;
+            }
+
+            q->head = n->next;
+            free_node(n);
+        }
+
+        prev = tmp;
+        tmp = tmp->next;
+    }
 }
 
 void free_node(node *n) {
@@ -38,17 +60,16 @@ void free_node(node *n) {
     free(n);
 }
 
-int remove_head(queue *q) {
+node *remove_head(queue *q) {
     if (q->head == NULL) {
-        return -1;
+        return q->head;
     }
 
     node *tmp = q->head;
     q->head = tmp->next;
     q->length--;
 
-    free_node(tmp);
-    return 0;
+    return tmp;
 }
 
 void free_queue(queue *q) {
