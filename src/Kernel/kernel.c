@@ -15,7 +15,7 @@
 int ticks = 0;
 pcb_t *foreground;
 
-extern ucontext_t main_context;
+// extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
 
 
@@ -33,7 +33,7 @@ void make_context(ucontext_t *ucp,  void (*func)(), char *argv[])
 
     sigemptyset(&ucp->uc_sigmask);
     set_stack(&ucp->uc_stack);
-    ucp->uc_link = &scheduler_context;
+    ucp->uc_link = func == schedule ? &scheduler_context : NULL;
 
     makecontext(ucp, func, 1, argv);
 }
@@ -46,7 +46,7 @@ pcb_t *k_shell_create() {
     shell->pid = 1;
     shell->ppid = 1;
     shell->pgid = 1;
-    shell->status = RUNNING;
+    shell->status = RUNNING_P;
     shell->priority = -1;
     shell->ticks = -1;
     shell->children = NULL;
@@ -66,7 +66,7 @@ void k_process_create(pcb_t *parent) {
 
 int k_process_kill(pcb_t *process, int signal) {
     // stop the process
-    if (signal = S_SIGSTOP) {
+    if (signal == S_SIGSTOP) {
         process->status = STOPPED;
     }
     return 0;

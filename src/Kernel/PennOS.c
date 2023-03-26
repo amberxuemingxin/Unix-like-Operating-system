@@ -5,7 +5,7 @@
 
 scheduler *s;
 
-ucontext_t main_context;
+// ucontext_t main_context;
 ucontext_t scheduler_context;
 
 // set up signals handling exit ctrl c
@@ -15,11 +15,12 @@ int main(int argc, char *argv[]) {
     // initialize the scheduler
     s = init_scheduler();
 
-    // char *scheduler_arg[2] = {"scheduler", NULL};
+    char *scheduler_arg[2] = {"schedule", NULL};
     // make_context(&scheduler_context, scheduler)
 
     // create the context for scheduler
-
+    make_context(&scheduler_context, schedule, scheduler_arg);
+    set_alarm_handler();
     // set timer
     set_timer();
 
@@ -28,11 +29,10 @@ int main(int argc, char *argv[]) {
 
     // add shell process into scheduler's ready queue
     node *shell = init_node(shell_process);
-    add_node(s->queue_high, shell);
 
+    add_to_scheduler(shell, s);
 
-    // 
-    // setcontext(&(shell_process)->context);
+    setcontext(&scheduler_context);
 
     return 0;
 }

@@ -20,6 +20,8 @@ scheduler *init_scheduler();
 
 void set_timer();
 
+void set_alarm_handler();
+
 void schedule(scheduler *s);
 
 void add_to_scheduler(node *n, scheduler *s);
