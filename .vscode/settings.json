@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "unistd.h": "c",
-        "FAT.C": "cpp"
+        "FAT.C": "cpp",
+        "typeinfo": "cpp"
     }
 }

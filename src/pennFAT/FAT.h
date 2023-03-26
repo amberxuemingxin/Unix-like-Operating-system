@@ -15,10 +15,10 @@ typedef struct directory {
     uint8_t type;
     uint8_t perm;
     time_t mtime; 
-} directoryEntry;
+} directory_entry;
 
 typedef struct dir_node {
-    directoryEntry *entry;
+    directory_entry *dir_entry;
     struct dir_node* next;
 } dir_node;
 
@@ -28,20 +28,19 @@ typedef struct FAT {
     uint32_t block_size;
     uint32_t entry_num;
     uint32_t file_num;
+    uint32_t free_blocks;
     dir_node* first_dir_node;
     dir_node* last_dir_node;
+    uint16_t* block_arr;
+
 }FAT;
 
-dir_node * NewDirNode(
-    char* f_name,
-    uint32_t size,
-    uint16_t firstBlock,
-    uint8_t type,
-    uint8_t perm,
-    time_t time
-);
+dir_node * new_directory_node(char* f_name, uint32_t size, uint16_t firstBlock, uint8_t type, uint8_t perm, time_t time);
 
-void free_dir_node(dir_node *node);
+void free_directory_node(dir_node *node);
 
 
+FAT* make_fat(char* f_name, uint8_t num_blocks, uint8_t block_size);
+
+void free_fat(FAT** fat);
 #endif

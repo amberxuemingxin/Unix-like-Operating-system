@@ -3,7 +3,7 @@
 
 #include "FAT.h"
 
-int parse_penn_fat_command(char ***commands, int commandCount, FAT **fat);
+int parse_pennfat_command(char ***commands, int commandCount, FAT **fat);
 
 int pennfat_mkfs(char *fileName, uint8_t numBlocks, uint8_t blockSizeIndicator, FAT **fat);
 
