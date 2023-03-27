@@ -9,6 +9,7 @@
 
 #include "pennfatlib.h"
 #include "macro.h"
+#include "FAT.h"
 
 int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
     char* cmd = commands[0][0];
@@ -79,8 +80,53 @@ int pennfat_unmount(FAT **fat){
 
 int pennfat_touch(char **files, FAT *fat){
     printf("this is touch\n");
+    // create one file
+    char *file_name = files[1];
+    dir_node* file_node = search_file(file_name, fat);
+    if (file_node != NULL){    // the file already exists, updates timestamp
+        file_node->dir_entry->mtime = time(0);
+    } else{    // create new file
+
+        // find the first empty block in FAT
+        uint16_t firstBlock = 1;
+        for (uint32_t i = 1; i < fat->entry_num; i++){
+            if (fat->block_arr[i] == 0){
+                firstBlock = (uint16_t) i;
+                break;
+            }
+        }
+        // new a dir entry with 0 byte (empty file)
+        file_node = new_directory_node(file_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
+        // append this node to the FAT dir information. 
+        if (fat->first_dir_node == NULL){
+            fat->first_dir_node = file_node;
+            fat->last_dir_node = file_node;
+        } else {
+            fat->last_dir_node->next = file_node;
+            fat->last_dir_node = file_node;
+        }
+        fat->file_num ++;
+        fat->entry_num ++;
+    }
+    // TODO: add this new entry to the FAT region!
+
     return 1;
 }
+
+dir_node* search_file(char* file_name, FAT* fat){
+    if (fat->file_num == 0){
+        return NULL;
+    }
+    dir_node* curr = fat->first_dir_node;
+    while (curr != NULL){
+        if (strcmp(curr->dir_entry->name, file_name) != 0){
+            curr = curr->next;
+        } else{
+            return curr;
+        }
+    }
+    return NULL;
+} 
 
 int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     printf("this is mv\n");
