@@ -3,8 +3,8 @@
 pennFAT is designed as a custom file system in pennOS. It is based on FAT16, and for the sake of this project, it will only have a root directory.
 
 # PennFAT files:
-    - FAT.H
-    - FAT.C
+    - FAT.h
+    - FAT.c
     - macro.h
     - pennFAT.c
     - pennfatlib.h
