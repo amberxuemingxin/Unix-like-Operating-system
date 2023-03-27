@@ -1,6 +1,7 @@
 #include "shell.h"
 #include "parser.h"
 #include "kernel.h"
+#include "execute.h"
 
 void shell_loop () {
     
@@ -37,6 +38,8 @@ void shell_loop () {
             perror("invalid");
             continue;
         }
+
+        execute(cmd);
 
         free(cmd);
     }

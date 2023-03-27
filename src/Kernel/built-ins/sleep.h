@@ -1,1 +1,1 @@
-void sleep(char *arg);
+void my_sleep(char *arg);

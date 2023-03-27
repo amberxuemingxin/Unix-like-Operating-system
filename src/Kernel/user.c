@@ -10,7 +10,7 @@ extern queue *queue_sleep;
 extern int ticks;
 
 pid_t p_spawn(void (*func)(), char *argv[], int fd0, int fd1) {
-    pcb_t *parent = (pcb_t *)active_node;
+    pcb_t *parent = (pcb_t *)active_node->payload;
     pcb_t *child = k_process_create(parent);
 
     child->fd0 = fd0;

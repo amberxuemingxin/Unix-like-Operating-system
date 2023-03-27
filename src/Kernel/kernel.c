@@ -35,19 +35,6 @@ void set_stack(stack_t *stack)
     *stack = (stack_t) { .ss_sp = sp, .ss_size = SIGSTKSZ };
 }
 
-void swap_contexts(int signum) {
-    if (signum == SIGALRM) {
-        ticks++;
-    }
-
-    if (idle) {
-        setcontext(&scheduler_context);
-    } else {
-        pcb_t *active_process = (pcb_t *)active_node->payload;
-        swapcontext(&(active_process->context), &scheduler_context);
-    }
-}
-
 void make_context(ucontext_t *ucp,  void (*func)(), char *argv[])
 {
     getcontext(ucp);
@@ -142,7 +129,9 @@ pcb_t *k_process_create(pcb_t *parent) {
 
     /* add this process to the children queue */
     node *n = init_node(p);
+    
     add_node(parent->children, n);
+    
     add_to_scheduler(n);
 
     /* update max pid */

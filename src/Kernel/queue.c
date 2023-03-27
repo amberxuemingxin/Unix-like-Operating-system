@@ -19,12 +19,13 @@ queue *init_queue() {
 
 void add_node(queue *q, node *n) {
     node *prev = q->head;
-
+    // perror("added!\n");
     while (prev && prev->next) {
         prev = prev->next;
     }
-
+    // perror("added!\n");
     if (prev == NULL) {
+        // perror("added!\n");
         q->head = n;
     } else {
         prev->next = n;
