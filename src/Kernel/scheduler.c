@@ -11,6 +11,7 @@ node *active_node;
 queue *queue_high;
 queue *queue_mid;
 queue *queue_low;
+queue *queue_sleep;
 bool idle;
 
 extern ucontext_t scheduler_context;
@@ -21,6 +22,7 @@ void init_scheduler() {
     queue_high = init_queue();
     queue_mid = init_queue();
     queue_low = init_queue();
+    queue_sleep = init_queue();
 }
 
 void alarm_handler(int signum) {
@@ -158,7 +160,7 @@ void wait_for_processes(node *n) {
         log_events(ZOMBIE, ticks, process->pid, process->priority, process->process);
     }
 
-
+    // TODO: clean zombies & children
 }
 
 void schedule() {
@@ -171,7 +173,6 @@ void schedule() {
     node *next_process = pick_next_process();
 
     if (next_process == NULL) {
-        // perror("hay\n");
         setcontext(&idle_context);
         perror("setcontext - idle");
         exit(EXIT_FAILURE);

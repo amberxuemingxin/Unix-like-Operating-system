@@ -11,7 +11,7 @@ void make_context(ucontext_t *ucp,  void (*func)(), char *argv[]);
 // kernel level
 pcb_t *k_shell_create();
 
-void k_process_create(pcb_t *parent);
+pcb_t *k_process_create(pcb_t *parent);
 
 int k_process_kill(pcb_t *process, int signal);
 

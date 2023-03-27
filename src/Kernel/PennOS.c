@@ -32,12 +32,7 @@ int main(int argc, char *argv[]) {
     set_timer();
 
     // spawn a process for shell
-    pcb_t *shell_process = k_shell_create();
-
-    // add shell process into scheduler's ready queue
-    node *shell = init_node(shell_process);
-
-    add_to_scheduler(shell);
+    k_shell_create();
 
     setcontext(&scheduler_context);
 

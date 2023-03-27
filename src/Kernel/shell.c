@@ -1,5 +1,8 @@
 #include "shell.h"
 #include "parser.h"
+#include "kernel.h"
+
+#include "built-ins/ls.h"
 
 void shell_loop () {
     
@@ -38,7 +41,10 @@ void shell_loop () {
             continue;
         }
 
+        if (strcmp(cmd->commands[0][0], "ls") == 0) {
+            ls();
+        }
+
         free(cmd);
-        // call scheduler 
     }
 }
