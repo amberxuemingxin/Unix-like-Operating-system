@@ -41,11 +41,9 @@ void free_directory_node(dir_node *node);
 
 FAT* make_fat(char* f_name, uint8_t num_blocks, uint8_t block_size);
 
-void free_fat(FAT** fat);
+void free_fat(FAT* fat);
 
-int update_fat(FAT* fat);
+// int saveFat(FAT *fat);
 
-int saveFat(FAT *fat);
-
-FAT *mount_fat(char *f_name);
+// FAT *mount_fat(char *f_name);
 #endif

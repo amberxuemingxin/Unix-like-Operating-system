@@ -99,8 +99,8 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     return res;
 }   
 
-void free_fat(FAT** fat){
-    struct FAT *curr_fat = *fat;
+void free_fat(FAT* fat){
+    struct FAT *curr_fat = fat;
     if (curr_fat == NULL)   return;
 
     while (curr_fat->first_dir_node != NULL) {
@@ -117,17 +117,3 @@ void free_fat(FAT** fat){
     free(curr_fat);
 }
 
-
-// int saveFat(FAT *fat) {
-//     if (fat == NULL) {
-//         printf("NULL FAT\n");
-//         return FAILURE;
-//     }
-
-//     if (writeDirectoryFile(fat) == FAILURE) {
-//         printf("Failed to write directory entries\n");
-//         return FAILURE;
-//     }
-
-//     return SUCCESS;
-// }
