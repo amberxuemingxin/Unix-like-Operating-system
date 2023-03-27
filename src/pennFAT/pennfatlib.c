@@ -22,12 +22,12 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
         }
         return pennfat_mkfs(commands[0][1], (char) atoi(commands[0][2]), (char) atoi(commands[0][3]), FAT);
     } else if (strcmp(cmd, "mount") == 0) {
-        return pennfat_mount(commands[0][1], FAT);
+        return pennfat_mount(commands[0][1], *FAT);
     } else if (*FAT == NULL) {
-        printf("No filesystem mounted\n");
+        printf("No filesystem made yet\n");
         return FAILURE;
     } else if (strcmp(cmd, "umount") == 0) {
-        return pennfat_unmount(FAT);
+        return pennfat_unmount(*FAT);
     } else if (strcmp(cmd, "touch") == 0) {
         return pennfat_touch(commands[0], *FAT);
     } else if (strcmp(cmd, "mv") == 0) {
@@ -52,7 +52,7 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
     }
     
      else {
-        printf("unknown command");
+        printf("unknown command\n");
     }
 
     return FAILURE;
@@ -62,14 +62,14 @@ int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **FAT)
     printf("making a new file system, file name is  %s, %d number of blocks, with %d block size\n", f_name, block_num, block_size);
     // if FAT exist, we need to overwrite the origianl FAT
     if (FAT != NULL) {
-        free_fat(FAT);
+        free_fat(*FAT);
     }
     *FAT = make_fat(f_name, block_num, block_size);
 
     return SUCCESS;
 }
 
-int pennfat_mount(char *f_name, FAT **FAT) {
+int pennfat_mount(char *f_name, FAT *FAT) {
     // if (f_name == NULL) {
     //     printf("no filename, please enter a filename\n");
     //     return FAILURE;
@@ -86,7 +86,7 @@ int pennfat_mount(char *f_name, FAT **FAT) {
     return SUCCESS;    
 }
 
-int pennfat_unmount(FAT **fat){
+int pennfat_unmount(FAT *fat){
     printf("this is unmount\n");
     return 1;
 }
