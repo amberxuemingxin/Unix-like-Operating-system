@@ -116,4 +116,8 @@ void free_fat(FAT** fat){
 
     free(curr_fat);
 }
+
+// FAT* mount_fat(char* f_name) {
+
+// }
     

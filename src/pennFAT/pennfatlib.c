@@ -67,9 +67,21 @@ int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **FAT)
     return SUCCESS;
 }
 
-int pennfat_mount(char *fileName, FAT **fat) {
-    printf("this is mount\n");
-    return 1;
+int pennfat_mount(char *f_name, FAT **FAT) {
+    // if (f_name == NULL) {
+    //     printf("no filename, please enter a filename\n");
+    //     return FAILURE;
+    // }
+
+    // if (*FAT != NULL)
+    //     freeFat(FAT);
+    
+    // *FAT = loadFat(f_name);
+
+    // if (*FAT == NULL)
+    //     return FAILURE;
+
+    return SUCCESS;    
 }
 
 int pennfat_unmount(FAT **fat){
