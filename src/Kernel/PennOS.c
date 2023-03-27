@@ -9,8 +9,11 @@ ucontext_t scheduler_context;
 ucontext_t idle_context;
 
 // set up signals handling exit ctrl c
-
-int main(int argc, char *argv[]) {
+/*
+ * the main PennOS function that calls other functions and initialize the entire project
+ */
+int main(int argc, char *argv[])
+{
 
     // initialize the scheduler
     init_scheduler();
@@ -19,11 +22,12 @@ int main(int argc, char *argv[]) {
 
     // create the context for scheduler
     char *scheduler_args[2] = {"schedule", NULL};
+
     // void func(int a, int b)
     // args = {"2", "a b"}
     make_context(&scheduler_context, &schedule, scheduler_args);
 
-    /* init the context for the idle process */
+    // init the context for the idle process
     char *idle_args[2] = {"idle", NULL};
     make_context(&idle_context, &idle_process, idle_args);
 
