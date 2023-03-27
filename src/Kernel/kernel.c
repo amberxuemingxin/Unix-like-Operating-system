@@ -19,6 +19,7 @@ pid_t max_pid = 0;
 // extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
 extern node *active_node;
+extern bool idle;
 
 void idle_process() {
     sigset_t mask;
@@ -32,6 +33,19 @@ void set_stack(stack_t *stack)
     VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ);
 
     *stack = (stack_t) { .ss_sp = sp, .ss_size = SIGSTKSZ };
+}
+
+void swap_contexts(int signum) {
+    if (signum == SIGALRM) {
+        ticks++;
+    }
+
+    if (idle) {
+        setcontext(&scheduler_context);
+    } else {
+        pcb_t *active_process = (pcb_t *)active_node->payload;
+        swapcontext(&(active_process->context), &scheduler_context);
+    }
 }
 
 void make_context(ucontext_t *ucp,  void (*func)(), char *argv[])
@@ -138,9 +152,16 @@ pcb_t *k_process_create(pcb_t *parent) {
 }
 
 int k_process_kill(pcb_t *process, int signal) {
+    pcb_t *active_process = (pcb_t *)active_node->payload;
+
     // stop the process
     if (signal == S_SIGSTOP) {
         process->status = STOPPED;
+        log_events(STOPPED, ticks, process->pid, process->priority, process->process);
+
+        if (process == active_process) {
+            k_unblock(process->parent->pid);
+        }
     }
     return 0;
 }

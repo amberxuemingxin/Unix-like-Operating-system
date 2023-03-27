@@ -2,8 +2,6 @@
 #include "parser.h"
 #include "kernel.h"
 
-#include "built-ins/ls.h"
-
 void shell_loop () {
     
     while (1) {
@@ -27,7 +25,6 @@ void shell_loop () {
         struct parsed_command *cmd;
         int flag = parse_command(user_input, &cmd);
 
-        
         free(user_input);
 
         if (flag < 0)
@@ -39,10 +36,6 @@ void shell_loop () {
         {
             perror("invalid");
             continue;
-        }
-
-        if (strcmp(cmd->commands[0][0], "ls") == 0) {
-            ls();
         }
 
         free(cmd);
