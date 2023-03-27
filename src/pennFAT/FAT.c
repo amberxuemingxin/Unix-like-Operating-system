@@ -8,7 +8,7 @@
 #include <sys/mman.h>
 #include "FAT.h"
 #include "macro.h"
-
+// #include "file.h"
 dir_node * new_directory_node(char* f_name, uint32_t size, uint16_t firstBlock, uint8_t type, uint8_t perm, time_t time) {
     dir_node* res = (dir_node*)malloc(sizeof(directory_entry));
     res->next = NULL;
@@ -117,7 +117,17 @@ void free_fat(FAT** fat){
     free(curr_fat);
 }
 
-// FAT* mount_fat(char* f_name) {
 
+// int saveFat(FAT *fat) {
+//     if (fat == NULL) {
+//         printf("NULL FAT\n");
+//         return FAILURE;
+//     }
+
+//     if (writeDirectoryFile(fat) == FAILURE) {
+//         printf("Failed to write directory entries\n");
+//         return FAILURE;
+//     }
+
+//     return SUCCESS;
 // }
-    

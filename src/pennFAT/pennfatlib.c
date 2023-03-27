@@ -10,6 +10,7 @@
 #include "pennfatlib.h"
 #include "macro.h"
 #include "FAT.h"
+// #include "file.h"
 
 int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
     char* cmd = commands[0][0];
@@ -91,14 +92,21 @@ int pennfat_unmount(FAT **fat){
 }
 
 int pennfat_touch(char **files, FAT *fat){
-    printf("this is touch\n");
-    // create one file
-    char *file_name = files[1];
-    dir_node* file_node = search_file(file_name, fat);
-    if (file_node != NULL){    // the file already exists, updates timestamp
-        file_node->dir_entry->mtime = time(0);
-    } else{    // create new file
+    if (files[1] == NULL) {
+        printf("insuffcient arguement\n");
+        return FAILURE;
+    }
+    int index = 1;
 
+    char *file_name = files[index];
+    while (file_name != NULL) {
+        dir_node* file_node = search_file(file_name, fat, NULL);
+        if (file_node != NULL){    // the file already exists, updates timestamp
+                file_node->dir_entry->mtime = time(0);
+                index += 1;
+                file_name = files[index];
+                continue;
+            }
         // find the first empty block in FAT
         uint16_t firstBlock = 1;
         for (uint32_t i = 1; i < fat->entry_num; i++){
@@ -117,22 +125,29 @@ int pennfat_touch(char **files, FAT *fat){
             fat->last_dir_node->next = file_node;
             fat->last_dir_node = file_node;
         }
-        fat->file_num ++;
-        fat->entry_num ++;
+        fat->file_num++;
+        index += 1;
+        file_name = files[index];
     }
-    // TODO: add this new entry to the FAT region!
-
-    return 1;
+    // saveFat(fat);
+    return SUCCESS;
 }
 
-dir_node* search_file(char* file_name, FAT* fat){
+//return file 
+dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
     if (fat->file_num == 0){
         return NULL;
     }
     dir_node* curr = fat->first_dir_node;
     while (curr != NULL){
+        printf("%s\n",curr->dir_entry->name);
+        printf("%s\n",file_name);
+
         if (strcmp(curr->dir_entry->name, file_name) != 0){
             curr = curr->next;
+            if(prev != NULL) {
+                *prev = curr;
+            }
         } else{
             return curr;
         }
@@ -145,15 +160,47 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     return 1;
 }
 
-int pennfat_remove(char **files, FAT *fat){
-    printf("this is rm\n");
+int pennfat_remove(char **commands, FAT *fat){
+    int index = 1;
+    int count = 0;
+    while (commands[count] != NULL) {
+        count++;
+    }
+    if (count < 2) {
+        printf("insuffcient arguemtn\n");
+        return FAILURE;
+    }
+    index = 1;
+    char *file_name = commands[index];
+    while (file_name != NULL) {
+        dir_node* prev_node;
+        dir_node* filenode = search_file(file_name, fat, &prev_node);
+        if (filenode != NULL){    
+            fat->file_num -= 1;
+            index += 1;
+            file_name = commands[index];
+            if (filenode == fat->first_dir_node) {
+                fat->first_dir_node = filenode->next;
+            }
+            else{
+                prev_node->next = filenode->next;
+            }
+
+            // set last node pointer to the prev entry if this entry is the last entry
+            if (filenode == fat->last_dir_node)
+                fat->last_dir_node = prev_node;
+
+        }else {
+            printf("%s file not found", file_name);
+        }
+    }
+    return SUCCESS;
+    
+}
+int pennfat_cat(char **commands, FAT *fat){
     return 1;
 }
 
-int pennfat_cat(char **commands, FAT *fat){
-    printf("this is cat\n");
-    return 1;
-}
 
 int pennfat_cp(char **commands, FAT *fat){
     printf("this is cp\n");
@@ -161,7 +208,30 @@ int pennfat_cp(char **commands, FAT *fat){
 }
 
 int pennfat_ls(FAT *fat){
-    return 1;
+        dir_node *node = fat->first_dir_node;
+
+    while (node != NULL) {
+        directory_entry *entry = node->dir_entry;
+
+
+        struct tm *localTime = localtime(&entry->mtime);
+        
+        char month[4];
+        char day[3];
+        char time[6];
+
+        strftime(month, 4, "%b", localTime);
+        strftime(day, 3, "%d", localTime);
+        strftime(time, 6, "%H:%M", localTime);
+
+
+ 
+        printf("%4s%3s%6s %s\n", month, day, time, entry->name);
+
+        node = node->next;
+    }
+
+    return SUCCESS;
 }
 
 int pennfat_chmod(char **commands, FAT *fat){

@@ -2,6 +2,7 @@
     "files.associations": {
         "unistd.h": "c",
         "FAT.C": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "fat.h": "c"
     }
 }
