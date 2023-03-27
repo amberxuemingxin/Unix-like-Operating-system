@@ -24,6 +24,8 @@ void init_scheduler() {
     queue_mid = init_queue();
     queue_low = init_queue();
     queue_sleep = init_queue();
+
+    active_node = NULL;
 }
 
 void alarm_handler(int signum) {
@@ -143,8 +145,6 @@ node *pick_next_process() {
         picked_node = queue_high->head;
     }
 
-    active_node = picked_node;
-
     return picked_node;
 }
 
@@ -203,7 +203,10 @@ void schedule() {
 
     pcb_t *process = (pcb_t *) (next_process->payload);
 
-    log_events(SCHEDULE, ticks, process->pid, process->priority, process->process);
+    if (active_node != next_process) {
+        active_node = next_process;
+        log_events(SCHEDULE, ticks, process->pid, process->priority, process->process);
+    }
 
     // setcontext process->context
     setcontext(&(process->context));
