@@ -31,7 +31,6 @@ void add_node(queue *q, node *n) {
     }
 
     q->length++;
-    perror("added!\n");
 }
 
 void remove_node(queue *q, node *n) {

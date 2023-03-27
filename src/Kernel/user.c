@@ -26,11 +26,11 @@ pid_t p_spawn(void (*func)(), char *argv[], int fd0, int fd1) {
     return child->pid;
 }
 
-void p_sleep(int sleep_ticks) {
+void p_sleep(unsigned int ticks) {
     pcb_t *active_process = (pcb_t *)active_node->payload;
 
     active_process->status = BLOCKED;
-    active_process->ticks = sleep_ticks;
+    active_process->ticks = ticks;
     add_node(queue_sleep, active_node);
 }
 

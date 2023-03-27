@@ -15,6 +15,8 @@ void set_timer();
 
 void set_alarm_handler();
 
+node *search_in_scheduler(pid_t pid);
+
 void wait_for_processes(node *n);
 
 void schedule();

@@ -9,6 +9,8 @@ void idle_process();
 void make_context(ucontext_t *ucp,  void (*func)(), char *argv[]);
 
 // kernel level
+void k_unblock(pid_t ppid);
+
 pcb_t *k_shell_create();
 
 pcb_t *k_process_create(pcb_t *parent);

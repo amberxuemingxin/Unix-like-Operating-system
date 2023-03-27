@@ -3,6 +3,7 @@
 #include <signal.h> // sigaction, sigemptyset, sigfillset, signal
 
 #include "scheduler.h"
+#include "kernel.h"
 #include "logger.h"
 #include "PCB.h"
 
@@ -152,8 +153,7 @@ void wait_for_processes(node *n) {
 
     /* insert the node into the zombie queue */
     pcb_t *process = (pcb_t *)n->payload;
-    node *parent = search_in_scheduler(process->ppid);
-    pcb_t *parent_process = (pcb_t *)parent->payload;
+    pcb_t *parent_process = process->parent;
     add_node(parent_process->zombies, n);
     
     if (!process->waited) {
@@ -169,6 +169,29 @@ void schedule() {
     /* 2. do we need to create a process for the scheduler? */
     // NO
     /* 3. mainContext & schedulerContext & shellContext in log example */
+
+    /* check for any sleep nodes before we pick a node */
+    node *cur = queue_sleep->head;
+
+    while (cur) {
+        pcb_t *cur_p = (pcb_t *) cur->payload;
+        /* if the current sleep process is not finished */
+        if (cur_p->ticks > 0) {
+            if (cur_p->status != STOPPED_P) {
+                cur_p->ticks--;
+            }
+        } else { /* finished sleep process */
+            if (cur_p->status != EXITED_P) {
+                cur_p->status = EXITED_P;
+            }
+            log_events(EXITED, ticks, cur_p->pid, cur_p->priority, cur_p->process);
+            remove_node(queue_sleep, cur);
+            k_unblock(cur_p->parent->pid);
+            wait_for_processes(cur);
+        }
+
+        cur = cur->next;
+    }
 
     node *next_process = pick_next_process();
 

@@ -13,7 +13,7 @@
 // the output file. It returns the pid of the child thread on success, or -1 on error.*/
 pid_t p_spawn(void (*func)(), char *argv[], int fd0, int fd1);
 
-void p_sleep(int sleep_ticks);
+void p_sleep(unsigned int ticks);
 
 // void p_kill(pid_t pid, int sig);
 

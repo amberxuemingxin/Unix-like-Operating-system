@@ -6,6 +6,7 @@
 #include "kernel.h"
 #include "shell.h"
 #include "logger.h"
+#include "scheduler.h"
 
 /* Define macros for signals*/
 #define S_SIGSTOP 0
@@ -17,6 +18,7 @@ pid_t max_pid = 0;
 
 // extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
+extern node *active_node;
 
 void idle_process() {
     sigset_t mask;
@@ -43,6 +45,40 @@ void make_context(ucontext_t *ucp,  void (*func)(), char *argv[])
     makecontext(ucp, func, 1, argv);
 }
 
+void k_foreground_process(pid_t pid) {
+    node *n = search_in_scheduler(pid);
+
+    if (n == NULL) {
+        perror("Pid not found\n");
+        exit(EXIT_FAILURE);
+    }
+
+    active_node = n;
+
+    /* block the shell if it's not shell */
+    pcb_t *p = (pcb_t *) n->payload;
+    if (p->pid != 1) {
+        p->parent->status = BLOCKED_P;
+        log_events(BLOCKED, ticks, p->parent->pid, p->parent->priority, p->parent->process);
+    }
+ }
+
+void k_unblock(pid_t ppid) {
+    node *parent = search_in_scheduler(ppid);
+
+    if (parent == NULL) {
+        perror("Parent not found\n");
+        exit(EXIT_FAILURE);
+    }
+
+    pcb_t *parent_p = (pcb_t *) parent->payload;
+    if (parent_p->status == BLOCKED_P) {
+        parent_p->status = RUNNING_P;
+
+        log_events(UNBLOCKED, ticks, parent_p->pid, parent_p->priority, parent_p->process);
+    }
+}
+
 pcb_t *k_shell_create() {
     pcb_t *shell = (pcb_t *)malloc(sizeof(pcb_t));
     shell->process = "shell";
@@ -51,6 +87,7 @@ pcb_t *k_shell_create() {
     shell->pid = 1;
     shell->ppid = 1;
     shell->pgid = 1;
+    shell->parent = NULL;
     shell->status = RUNNING_P;
     shell->priority = -1;
     shell->ticks = -1;
@@ -81,6 +118,7 @@ pcb_t *k_process_create(pcb_t *parent) {
     p->pid = max_pid + 1;
     p->ppid = parent->pid;
     p->pgid = parent->pgid;
+    p->parent = parent;
     p->status = RUNNING_P;
     p->priority = 0;
     p->ticks = -1;

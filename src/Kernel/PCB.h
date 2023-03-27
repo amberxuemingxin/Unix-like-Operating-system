@@ -29,6 +29,8 @@ typedef struct pcb_def
     pid_t ppid;
     // process group ID
     pid_t pgid;
+    // parent struct
+    struct pcb_def *parent;
 
     // status of the process (RUNNING, BLOCKED, STOPPED, ZOMBIED)
     int status;
