@@ -6,12 +6,18 @@
 #include "logger.h"
 
 extern node *active_node;
-extern queue *queue_sleep;
 extern int ticks;
 
 pid_t p_spawn(void (*func)(), char *argv[], int fd0, int fd1) {
-    pcb_t *parent = (pcb_t *)active_node->payload;
-    pcb_t *child = k_process_create(parent);
+    bool is_shell = false;
+
+    if (strcmp(argv[0], "shell") == 0) {
+        is_shell = true;
+    }
+
+    pcb_t *parent = is_shell ? NULL : (pcb_t *)active_node->payload;
+
+    pcb_t *child = k_process_create(parent, is_shell);
 
     child->fd0 = fd0;
     child->fd1 = fd1;
@@ -22,17 +28,14 @@ pid_t p_spawn(void (*func)(), char *argv[], int fd0, int fd1) {
     make_context(&(child->context), func, argv);
 
     log_events(CREATE, ticks, child->pid, child->priority, child->process);
+
+    node *n = init_node(child);
+    add_to_scheduler(n);
     return child->pid;
 }
 
 void p_sleep(unsigned int ticks) {
     pcb_t *active_process = (pcb_t *)active_node->payload;
-
-    active_process->status = BLOCKED;
-    active_process->ticks = ticks;
-    // ("The name of the active process = %s\n", active_process->process);
-    add_node(queue_sleep, active_node);
-    // printf("added to sleep %d!\n", queue_sleep->length);
 }
 
 void p_exit() {

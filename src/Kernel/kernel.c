@@ -21,7 +21,6 @@ pid_t max_pid = 0;
 extern ucontext_t scheduler_context;
 extern node *active_node;
 extern bool idle;
-extern char *log_name;
 
 void idle_process()
 {
@@ -74,65 +73,25 @@ void k_foreground_process(pid_t pid)
     }
 }
 
-/*
- * unblock the parent that is being blocked and make it running again
- */
-void k_unblock(pid_t ppid)
-{
-    node *parent = search_in_scheduler(ppid);
+void k_block(pcb_t *parent) {
+    parent->status = BLOCKED_P;
 
-    if (parent == NULL)
-    {
-        perror("Parent not found\n");
-        exit(EXIT_FAILURE);
-    }
-
-    pcb_t *parent_p = (pcb_t *)parent->payload;
-    if (parent_p->status == BLOCKED_P)
-    {
-        parent_p->status = RUNNING_P;
-
-        log_events(UNBLOCKED, ticks, parent_p->pid, parent_p->priority, parent_p->process);
-    }
+    log_events(BLOCKED, ticks, parent->pid, parent->priority, parent->process);
 }
 
 /*
- * create a new shell process
- * @returns a pcb_t pointer to the newly created process
+ * unblock the parent that is being blocked and make it running again
  */
-pcb_t *k_shell_create()
+void k_unblock(pcb_t *parent)
 {
-    pcb_t *shell = (pcb_t *)malloc(sizeof(pcb_t));
-    shell->process = "shell";
-    shell->fd0 = STDIN_FILENO;
-    shell->fd1 = STDOUT_FILENO;
-    shell->pid = 1;
-    shell->ppid = 1;
-    shell->pgid = 1;
-    shell->parent = NULL;
-    shell->status = RUNNING_P;
-    shell->priority = -1;
-    shell->ticks = -1;
-    shell->children = init_queue();
-    shell->zombies = init_queue();
-    shell->waited = false;
+    if (parent->status == BLOCKED_P)
+    {
+        parent->status = RUNNING_P;
 
-    char *shell_args[2] = {"shell", NULL};
-    make_context(&(shell->context), shell_loop, shell_args);
-
-    // update max pid
-    max_pid = shell->pid;
-
-    // initialize a time stamp
-    log_name = time_stamp();
-
-    log_events(CREATE, ticks, shell->pid, shell->priority, shell->process);
-
-    // add shell process into scheduler's ready queue
-    node *shell_node = init_node(shell);
-    add_to_scheduler(shell_node);
-
-    return shell;
+        log_events(UNBLOCKED, ticks, parent->pid, parent->priority, parent->process);
+    } else {
+        perror("Parent is not blocked!");
+    }
 }
 
 /*
@@ -140,18 +99,18 @@ pcb_t *k_shell_create()
  * @param parent, the parent that the new process that will create under
  * @returns a pcb_t pointer p to the newly created process
  */
-pcb_t *k_process_create(pcb_t *parent)
+pcb_t *k_process_create(pcb_t *parent, bool is_shell)
 {
     pcb_t *p = (pcb_t *)malloc(sizeof(pcb_t));
     // process name will be assigned later
     p->fd0 = STDIN_FILENO;
     p->fd1 = STDOUT_FILENO;
-    p->pid = max_pid + 1;
-    p->ppid = parent->pid;
-    p->pgid = parent->pgid;
+    p->pid = is_shell ? 1 : max_pid + 1;
+    p->ppid = is_shell ? 1 : parent->pid;
+    p->pgid = is_shell ? 1: parent->pgid;
     p->parent = parent;
     p->status = RUNNING_P;
-    p->priority = 0;
+    p->priority = is_shell ? -1 : 0;
     p->ticks = -1;
     p->children = init_queue();
     p->zombies = init_queue();
@@ -160,9 +119,9 @@ pcb_t *k_process_create(pcb_t *parent)
     // add this process to the children queue
     node *n = init_node(p);
 
-    add_node(parent->children, n);
-
-    add_to_scheduler(n);
+    if (!is_shell) {
+        add_node(parent->children, n);
+    }
 
     // update max pid
     max_pid = p->pid;

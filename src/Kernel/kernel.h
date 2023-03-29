@@ -13,7 +13,7 @@ void k_unblock(pid_t ppid);
 
 pcb_t *k_shell_create();
 
-pcb_t *k_process_create(pcb_t *parent);
+pcb_t *k_process_create(pcb_t *parent, bool is_shell);
 
 int k_process_kill(pcb_t *process, int signal);
 

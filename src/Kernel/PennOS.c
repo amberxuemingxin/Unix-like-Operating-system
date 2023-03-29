@@ -3,10 +3,15 @@
 #include "kernel.h"
 #include "scheduler.h"
 #include "ucontext.h"
+#include "user.h"
+#include "logger.h"
+#include "shell.h"
 
-// ucontext_t main_context;
 ucontext_t scheduler_context;
 ucontext_t idle_context;
+bool idle;
+
+extern char *log_name;
 
 // set up signals handling exit ctrl c
 /*
@@ -17,6 +22,8 @@ int main(int argc, char *argv[])
 
     // initialize the scheduler
     init_scheduler();
+
+    log_name = time_stamp();
 
     getcontext(&scheduler_context);
 
@@ -36,8 +43,10 @@ int main(int argc, char *argv[])
     set_timer();
 
     // spawn a process for shell
-    k_shell_create();
+    char *shell_args = "shell";
+    p_spawn(shell_loop, &shell_args, STDIN_FILENO, STDOUT_FILENO);
 
-    setcontext(&scheduler_context);
+    idle = true;
+    setcontext(&idle_context);
     return 0;
 }

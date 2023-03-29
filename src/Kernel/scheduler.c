@@ -12,18 +12,17 @@ node *active_node;
 queue *queue_high;
 queue *queue_mid;
 queue *queue_low;
-queue *queue_sleep;
-bool idle;
 
+extern bool idle;
 extern ucontext_t scheduler_context;
 extern ucontext_t idle_context;
 extern int ticks;
 
+// TODO: remove sleep queue
 void init_scheduler() {
     queue_high = init_queue();
     queue_mid = init_queue();
     queue_low = init_queue();
-    queue_sleep = init_queue();
 
     active_node = NULL;
 }
@@ -164,34 +163,10 @@ void wait_for_processes(node *n) {
 }
 
 void schedule() {
-    /* 1. do we want to keep the scheduler running? */
-    // NO called by alarm handler
-    /* 2. do we need to create a process for the scheduler? */
-    // NO
-    /* 3. mainContext & schedulerContext & shellContext in log example */
-    /* check for any sleep nodes before we pick a node */
-    node *cur = queue_sleep->head;
-    while (cur) {
-        perror("mew\n");
-        pcb_t *cur_p = (pcb_t *) cur->payload;
-        /* if the current sleep process is not finished */
-        if (cur_p->ticks > 0) {
-            if (cur_p->status != STOPPED_P) {
-                cur_p->ticks--;
-            }
-        } else { /* finished sleep process */
-            if (cur_p->status != EXITED_P) {
-                cur_p->status = EXITED_P;
-            }
-            log_events(EXITED, ticks, cur_p->pid, cur_p->priority, cur_p->process);
-            remove_node(queue_sleep, cur);
-            k_unblock(cur_p->parent->pid);
-            wait_for_processes(cur);
-        }
-
-        cur = cur->next;
-    }
-
+/*
+*
+* Check the sleeping nodes here!
+*/
     node *next_process = pick_next_process();
 
     if (next_process == NULL) {
