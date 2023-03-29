@@ -22,7 +22,6 @@ pid_t p_spawn(void (*func)(), char *argv[], int fd0, int fd1) {
     make_context(&(child->context), func, argv);
 
     log_events(CREATE, ticks, child->pid, child->priority, child->process);
-
     return child->pid;
 }
 
@@ -31,7 +30,9 @@ void p_sleep(unsigned int ticks) {
 
     active_process->status = BLOCKED;
     active_process->ticks = ticks;
+    // ("The name of the active process = %s\n", active_process->process);
     add_node(queue_sleep, active_node);
+    // printf("added to sleep %d!\n", queue_sleep->length);
 }
 
 void p_exit() {

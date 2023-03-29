@@ -1,4 +1,20 @@
+#include <time.h>
+
 #include "logger.h"
+
+char *log_name;
+
+char *time_stamp() {
+    char *timestamp = (char *)malloc(sizeof(char) * 16);
+    time_t ltime;
+    ltime=time(NULL);
+    struct tm *tm;
+    tm=localtime(&ltime);
+
+    sprintf(timestamp,"%04d%02d%02d%02d%02d%02d", tm->tm_year+1900, tm->tm_mon, 
+        tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+    return timestamp;
+}
 
 void log_events(int type, int ticks, int pid, int priority, char *process) {
     char *log_type;
@@ -46,8 +62,12 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         break;
     }
 
+    char buffer[32]; // The filename buffer
+    snprintf(buffer, sizeof(char) * 32, "log/log%s.txt", log_name);
+
+
     // output file for log
-    FILE *log_file = fopen("log/log.txt", "a+");
+    FILE *log_file = fopen(buffer, "a+");
     if (log_file== NULL) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);

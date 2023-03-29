@@ -39,6 +39,5 @@ int main(int argc, char *argv[])
     k_shell_create();
 
     setcontext(&scheduler_context);
-
     return 0;
 }

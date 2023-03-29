@@ -21,6 +21,7 @@ pid_t max_pid = 0;
 extern ucontext_t scheduler_context;
 extern node *active_node;
 extern bool idle;
+extern char *log_name;
 
 void idle_process()
 {
@@ -121,6 +122,9 @@ pcb_t *k_shell_create()
 
     // update max pid
     max_pid = shell->pid;
+
+    // initialize a time stamp
+    log_name = time_stamp();
 
     log_events(CREATE, ticks, shell->pid, shell->priority, shell->process);
 

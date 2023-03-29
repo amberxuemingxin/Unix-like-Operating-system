@@ -169,11 +169,10 @@ void schedule() {
     /* 2. do we need to create a process for the scheduler? */
     // NO
     /* 3. mainContext & schedulerContext & shellContext in log example */
-
     /* check for any sleep nodes before we pick a node */
     node *cur = queue_sleep->head;
-
     while (cur) {
+        perror("mew\n");
         pcb_t *cur_p = (pcb_t *) cur->payload;
         /* if the current sleep process is not finished */
         if (cur_p->ticks > 0) {
@@ -205,6 +204,7 @@ void schedule() {
 
     if (active_node != next_process) {
         active_node = next_process;
+        // printf("Scheduled!! ticks = %d\n", ticks);
         log_events(SCHEDULE, ticks, process->pid, process->priority, process->process);
     }
 

@@ -7,6 +7,7 @@ void shell_loop () {
     
     while (1) {
         // prompt to the user
+        // perror("before execution");
         shell_prompt();
 
         // get user input
@@ -19,7 +20,6 @@ void shell_loop () {
         if (chars_read <= 0)
         {
             free(user_input);
-            
             break;
         }
         // parse user input
@@ -40,7 +40,7 @@ void shell_loop () {
         }
 
         execute(cmd);
-
+        // perror("After execution");
         free(cmd);
     }
 }

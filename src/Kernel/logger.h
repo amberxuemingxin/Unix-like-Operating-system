@@ -15,4 +15,6 @@
 #define STOPPED 10
 #define CONTINUED 11
 
+char *time_stamp();
+
 void log_events(int type, int ticks, int pid, int priority, char *process);
