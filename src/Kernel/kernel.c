@@ -31,7 +31,7 @@ void idle_process()
 }
 
 /*
- * sets the stack for a context
+ * helper that sets the stack for a context
  * @param stack, a pointer to the stack_t struct that contaisn the new stack
  */
 void set_stack(stack_t *stack)
