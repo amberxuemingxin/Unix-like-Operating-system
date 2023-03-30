@@ -12,6 +12,7 @@ node *active_node;
 queue *queue_high;
 queue *queue_mid;
 queue *queue_low;
+queue *queue_blocked;
 
 extern bool idle;
 extern ucontext_t scheduler_context;
@@ -23,6 +24,7 @@ void init_scheduler() {
     queue_high = init_queue();
     queue_mid = init_queue();
     queue_low = init_queue();
+    queue_blocked = init_queue();
 
     active_node = NULL;
 }
@@ -72,14 +74,17 @@ void add_to_scheduler(node *n) {
 
 void remove_from_scheduler(node *n) {
     pcb_t *process = (pcb_t *)n->payload;
+    node *tmp;
 
     if (process->priority == -1) {
-        remove_node(queue_high, n);
+        tmp = remove_node(queue_high, n);
     } else if (process->priority == 0) {
-        remove_node(queue_mid, n);
-    } else if (process->priority == 1) {
-        remove_node(queue_low, n);
+        tmp = remove_node(queue_mid, n);
+    } else {
+        tmp = remove_node(queue_low, n);
     }
+
+    add_node(queue_blocked, tmp);
 }
 
 node *search_in_scheduler(pid_t pid) {
@@ -164,9 +169,25 @@ void wait_for_processes(node *n) {
 
 void schedule() {
 /*
-*
 * Check the sleeping nodes here!
 */
+    if (active_node) {
+        // perror("here");
+        pcb_t *active_process = (pcb_t *) active_node->payload;
+        if (active_process->ticks > 0) {
+            // printf("ticks %d\n", active_process->ticks);
+            active_process->ticks--;
+        } else if (active_process->ticks == 0) {
+            node *parent = search_in_scheduler(active_process->parent->pid);
+            k_unblock(parent);
+            remove_from_scheduler(active_node);
+            remove_node(queue_blocked, active_node);
+            log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
+            free(active_process);
+            free(active_node);
+        }
+    }
+
     node *next_process = pick_next_process();
 
     if (next_process == NULL) {

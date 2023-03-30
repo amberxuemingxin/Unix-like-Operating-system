@@ -24,9 +24,11 @@ extern bool idle;
 
 void idle_process()
 {
-    sigset_t mask;
-    sigemptyset(&mask);
-    sigsuspend(&mask);
+    while (1) {
+        sigset_t mask;
+        sigemptyset(&mask);
+        sigsuspend(&mask);
+    }
 }
 
 /*
@@ -73,22 +75,24 @@ void k_foreground_process(pid_t pid)
     }
 }
 
-void k_block(pcb_t *parent) {
-    parent->status = BLOCKED_P;
-
-    log_events(BLOCKED, ticks, parent->pid, parent->priority, parent->process);
+void k_block(node *parent) {
+    pcb_t *parent_p = (pcb_t *) parent->payload;
+    parent_p->status = BLOCKED_P;
+    remove_from_scheduler(parent);
+    log_events(BLOCKED, ticks, parent_p->pid, parent_p->priority, parent_p->process);
 }
 
 /*
  * unblock the parent that is being blocked and make it running again
  */
-void k_unblock(pcb_t *parent)
+void k_unblock(node *parent)
 {
-    if (parent->status == BLOCKED_P)
+    pcb_t *parent_p = (pcb_t *) parent->payload;
+    if (parent_p->status == BLOCKED_P)
     {
-        parent->status = RUNNING_P;
-
-        log_events(UNBLOCKED, ticks, parent->pid, parent->priority, parent->process);
+        parent_p->status = RUNNING_P;
+        add_to_scheduler(parent);
+        log_events(UNBLOCKED, ticks, parent_p->pid, parent_p->priority, parent_p->process);
     } else {
         perror("Parent is not blocked!");
     }
@@ -145,7 +149,8 @@ int k_process_kill(pcb_t *process, int signal)
 
         if (process == active_process)
         {
-            k_unblock(process->parent->pid);
+            node *parent = search_in_scheduler(process->parent->pid);
+            k_unblock(parent);
         }
     }
     return 0;

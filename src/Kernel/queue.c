@@ -34,7 +34,7 @@ void add_node(queue *q, node *n) {
     q->length++;
 }
 
-void remove_node(queue *q, node *n) {
+node *remove_node(queue *q, node *n) {
     node *prev = NULL;
     node *tmp = q->head;
 
@@ -42,22 +42,14 @@ void remove_node(queue *q, node *n) {
         if (tmp == n) {
             if (prev) {
                 prev->next = n->next;
-                free_node(n);
-                return;
+                return n;
             }
-
             q->head = n->next;
-            free_node(n);
         }
-
         prev = tmp;
         tmp = tmp->next;
     }
-}
-
-void free_node(node *n) {
-    free(n->payload);
-    free(n);
+    return n;
 }
 
 node *remove_head(queue *q) {
@@ -79,7 +71,8 @@ void free_queue(queue *q) {
     while (q->head) {
         tmp = q->head;
         q->head = tmp->next;
-        free_node(tmp);
+        free(tmp->payload);
+        free(tmp);
     }
 
     free(q);

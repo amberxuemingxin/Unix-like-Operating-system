@@ -42,19 +42,19 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
     case 6:
         log_type = "SCHEDULE";
         break;
-    case 8:
+    case 7:
         log_type = "NICE";
         break;
-    case 9:
+    case 8:
         log_type = "BLOCKED";
         break;
-    case 10:
+    case 9:
         log_type = "UNBLOCKED";
         break;
-    case 11:
+    case 10:
         log_type = "STOPPED";
         break;
-    case 12:
+    case 11:
         log_type = "CONTINUED";
         break;
     default:
