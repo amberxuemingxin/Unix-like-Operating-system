@@ -15,14 +15,14 @@ void set_timer();
 
 void set_alarm_handler();
 
-node *search_in_scheduler(pid_t pid);
+pcb_t *search_in_scheduler(pid_t pid);
 
-void wait_for_processes(node *n);
+void wait_for_processes(pcb_t *p);
 
 void schedule();
 
-void add_to_scheduler(node *n);
+void add_to_scheduler(pcb_t *p);
 
-void remove_from_scheduler(node *n);
+void remove_from_scheduler(pcb_t *p);
 
  #endif

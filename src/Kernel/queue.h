@@ -2,26 +2,18 @@
 #define QUEUE_HEADER
 
 #include <stdlib.h>
-
-typedef struct ListNode {
-    void *payload;
-    struct ListNode *next;
-} node; 
+#include "PCB.h"
 
 typedef struct LinkedList {
-    node *head;
+    pcb_t *head;
     int length;
 } queue;
 
-node *init_node(void *payload);
-
 queue *init_queue();
 
-void add_node(queue *q, node *n);
+void add_process(queue *q, pcb_t *p);
 
-node *remove_node(queue *q, node *n);
-
-node *remove_head(queue *q);
+pcb_t *remove_process(queue *q, pcb_t *p);
 
 void free_queue(queue *q);
 

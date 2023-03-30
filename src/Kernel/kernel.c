@@ -19,7 +19,7 @@ pid_t max_pid = 0;
 
 // extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
-extern node *active_node;
+extern pcb_t *active_process;
 extern bool idle;
 
 void idle_process()
@@ -56,18 +56,17 @@ void make_context(ucontext_t *ucp, void (*func)(), char *argv[])
 
 void k_foreground_process(pid_t pid)
 {
-    node *n = search_in_scheduler(pid);
+    pcb_t *p = search_in_scheduler(pid);
 
-    if (n == NULL)
+    if (p == NULL)
     {
         perror("Pid not found\n");
         exit(EXIT_FAILURE);
     }
 
-    active_node = n;
+    active_process = p;
 
     /* block the shell if it's not shell */
-    pcb_t *p = (pcb_t *)n->payload;
     if (p->pid != 1)
     {
         p->parent->status = BLOCKED_P;
@@ -75,24 +74,22 @@ void k_foreground_process(pid_t pid)
     }
 }
 
-void k_block(node *parent) {
-    pcb_t *parent_p = (pcb_t *) parent->payload;
-    parent_p->status = BLOCKED_P;
+void k_block(pcb_t *parent) {
+    parent->status = BLOCKED_P;
     remove_from_scheduler(parent);
-    log_events(BLOCKED, ticks, parent_p->pid, parent_p->priority, parent_p->process);
+    log_events(BLOCKED, ticks, parent->pid, parent->priority, parent->process);
 }
 
 /*
  * unblock the parent that is being blocked and make it running again
  */
-void k_unblock(node *parent)
+void k_unblock(pcb_t *parent)
 {
-    pcb_t *parent_p = (pcb_t *) parent->payload;
-    if (parent_p->status == BLOCKED_P)
+    if (parent->status == BLOCKED_P)
     {
-        parent_p->status = RUNNING_P;
+        parent->status = RUNNING_P;
         add_to_scheduler(parent);
-        log_events(UNBLOCKED, ticks, parent_p->pid, parent_p->priority, parent_p->process);
+        log_events(UNBLOCKED, ticks, parent->pid, parent->priority, parent->process);
     } else {
         perror("Parent is not blocked!");
     }
@@ -116,15 +113,23 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
     p->status = RUNNING_P;
     p->priority = is_shell ? -1 : 0;
     p->ticks = -1;
-    p->children = init_queue();
-    p->zombies = init_queue();
+    p->children = NULL;
+    p->zombies = NULL;
+    p->next = NULL;
     p->waited = false;
 
     // add this process to the children queue
-    node *n = init_node(p);
-
     if (!is_shell) {
-        add_node(parent->children, n);
+        pcb_t *child = parent->children;
+        while (child) {
+            child = child->next;
+        }
+
+        if (child != NULL) {
+            child->next = p;
+        } else {
+            parent->children = p;
+        }
     }
 
     // update max pid
@@ -139,7 +144,6 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
  */
 int k_process_kill(pcb_t *process, int signal)
 {
-    pcb_t *active_process = (pcb_t *)active_node->payload;
 
     // stop the process
     if (signal == S_SIGSTOP)
@@ -149,8 +153,7 @@ int k_process_kill(pcb_t *process, int signal)
 
         if (process == active_process)
         {
-            node *parent = search_in_scheduler(process->parent->pid);
-            k_unblock(parent);
+            k_unblock(process->parent);
         }
     }
     return 0;

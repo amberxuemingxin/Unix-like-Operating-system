@@ -5,7 +5,6 @@
 #include <ucontext.h> 
 #include <stdlib.h>
 #include "parser.h"
-#include "queue.h"
 
 #define RUNNING_P 0
 #define BLOCKED_P 1
@@ -32,6 +31,8 @@ typedef struct pcb_def
     // parent struct
     struct pcb_def *parent;
 
+    struct pcb_def *next;
+
     // status of the process (RUNNING, BLOCKED, STOPPED, ZOMBIED)
     int status;
     // priority level of the process
@@ -40,14 +41,16 @@ typedef struct pcb_def
     int ticks;
 
     // child process management
-    queue *children;
+    struct pcb_def *children;
     // zombie process management
-    queue *zombies;
+    struct pcb_def *zombies;
     // after exiting the process, if it's being waited on
     bool waited;
 
     // context of the process
     ucontext_t context;
 } pcb_t;
+
+void free_pcb(pcb_t *p);
 
 #endif

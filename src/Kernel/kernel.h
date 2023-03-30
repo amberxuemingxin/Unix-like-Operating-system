@@ -9,9 +9,9 @@ void idle_process();
 void make_context(ucontext_t *ucp,  void (*func)(), char *argv[]);
 
 // kernel level
-void k_block(node *parent);
+void k_block(pcb_t *parent);
 
-void k_unblock(node *parent);
+void k_unblock(pcb_t *parent);
 
 pcb_t *k_process_create(pcb_t *parent, bool is_shell);
 

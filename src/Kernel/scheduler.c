@@ -7,7 +7,7 @@
 #include "logger.h"
 #include "PCB.h"
 
-node *active_node;
+pcb_t *active_process;
 
 queue *queue_high;
 queue *queue_mid;
@@ -26,7 +26,7 @@ void init_scheduler() {
     queue_low = init_queue();
     queue_blocked = init_queue();
 
-    active_node = NULL;
+    active_process = NULL;
 }
 
 void alarm_handler(int signum) {
@@ -36,7 +36,6 @@ void alarm_handler(int signum) {
     if (idle) {
         setcontext(&scheduler_context);
     } else {
-        pcb_t *active_process = (pcb_t *)active_node->payload;
         swapcontext(&(active_process->context), &scheduler_context);
     }
 }
@@ -60,49 +59,44 @@ void set_timer() {
     setitimer(ITIMER_REAL, &it, NULL);
 }
 
-void add_to_scheduler(node *n) {
-    pcb_t *process = (pcb_t *)n->payload;
+void add_to_scheduler(pcb_t *process) {
     
     if (process->priority == -1) {
-        add_node(queue_high, n);
+        add_process(queue_high, process);
     } else if (process->priority == 0) {
-        add_node(queue_mid, n);
+        add_process(queue_mid, process);
     } else if (process->priority == 1) {
-        add_node(queue_low, n);
+        add_process(queue_low, process);
     }
 }
 
-void remove_from_scheduler(node *n) {
-    pcb_t *process = (pcb_t *)n->payload;
-    node *tmp;
+void remove_from_scheduler(pcb_t *process) {
+    pcb_t *tmp;
 
     if (process->priority == -1) {
-        tmp = remove_node(queue_high, n);
+        tmp = remove_process(queue_high, process);
     } else if (process->priority == 0) {
-        tmp = remove_node(queue_mid, n);
+        tmp = remove_process(queue_mid, process);
     } else {
-        tmp = remove_node(queue_low, n);
+        tmp = remove_process(queue_low, process);
     }
 
-    add_node(queue_blocked, tmp);
+    add_process(queue_blocked, tmp);
 }
 
-node *search_in_scheduler(pid_t pid) {
-    node *tmp = queue_high->head;
-    pcb_t *tmp_process;
+pcb_t *search_in_scheduler(pid_t pid) {
+    pcb_t *tmp = queue_high->head;
+
     while (tmp) {
-        tmp_process = (pcb_t *)tmp->payload;
-        if (tmp_process->pid == pid) {
+        if (tmp->pid == pid) {
             return tmp;
         }
-
         tmp = tmp->next;
     }
 
     tmp = queue_mid->head;
     while (tmp) {
-        tmp_process = (pcb_t *)tmp->payload;
-        if (tmp_process->pid == pid) {
+        if (tmp->pid == pid) {
             return tmp;
         }
 
@@ -111,8 +105,7 @@ node *search_in_scheduler(pid_t pid) {
     
     tmp = queue_low->head;
     while (tmp) {
-        tmp_process = (pcb_t *)tmp->payload;
-        if (tmp_process->pid == pid) {
+        if (tmp->pid == pid) {
             return tmp;
         }
 
@@ -122,8 +115,8 @@ node *search_in_scheduler(pid_t pid) {
     return NULL;
 }
 
-node *pick_next_process() {
-    node *picked_node;
+pcb_t *pick_next_process() {
+    pcb_t *picked_process;
 
     bool low_queue_existed = (queue_low->length > 0) ? true : false;
     bool mid_queue_existed = (queue_mid->length > 0) ? true : false;
@@ -142,26 +135,35 @@ node *pick_next_process() {
     int picked_queue = rand() % (low_length + mid_length + high_length);
     
     if (picked_queue < low_length && low_queue_existed) {
-        picked_node = queue_low->head;
+        picked_process = queue_low->head;
     } else if (picked_queue < low_length + mid_length && mid_queue_existed) {
-        picked_node = queue_mid->head;
+        picked_process = queue_mid->head;
     } else {
-        picked_node = queue_high->head;
+        picked_process = queue_high->head;
     }
 
-    return picked_node;
+    return picked_process;
 }
 
-void wait_for_processes(node *n) {
-    remove_from_scheduler(n);
+void wait_for_processes(pcb_t *p) {
+    remove_from_scheduler(p);
 
     /* insert the node into the zombie queue */
-    pcb_t *process = (pcb_t *)n->payload;
-    pcb_t *parent_process = process->parent;
-    add_node(parent_process->zombies, n);
+    pcb_t *parent = p->parent;
     
-    if (!process->waited) {
-        log_events(ZOMBIE, ticks, process->pid, process->priority, process->process);
+    pcb_t *zombie = parent->zombies;
+    while (zombie) {
+        zombie = zombie->next;
+    }
+
+    if (zombie != NULL) {
+        zombie->next = p;
+    } else {
+        parent->zombies = p;
+    }
+    
+    if (!p->waited) {
+        log_events(ZOMBIE, ticks, p->pid, p->priority, p->process);
     }
 
     // TODO: clean zombies & children
@@ -171,24 +173,24 @@ void schedule() {
 /*
 * Check the sleeping nodes here!
 */
-    if (active_node) {
-        // perror("here");
-        pcb_t *active_process = (pcb_t *) active_node->payload;
-        if (active_process->ticks > 0) {
-            // printf("ticks %d\n", active_process->ticks);
-            active_process->ticks--;
-        } else if (active_process->ticks == 0) {
-            node *parent = search_in_scheduler(active_process->parent->pid);
-            k_unblock(parent);
-            remove_from_scheduler(active_node);
-            remove_node(queue_blocked, active_node);
-            log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
-            free(active_process);
-            free(active_node);
-        }
-    }
+    // if (active_node) {
+    //     // perror("here");
+    //     pcb_t *active_process = (pcb_t *) active_node->payload;
+    //     if (active_process->ticks > 0) {
+    //         // printf("ticks %d\n", active_process->ticks);
+    //         active_process->ticks--;
+    //     } else if (active_process->ticks == 0) {
+    //         node *parent = search_in_scheduler(active_process->parent->pid);
+    //         k_unblock(parent);
+    //         remove_from_scheduler(active_node);
+    //         remove_node(queue_blocked, active_node);
+    //         log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
+    //         free(active_process);
+    //         free(active_node);
+    //     }
+    // }
 
-    node *next_process = pick_next_process();
+    pcb_t *next_process = pick_next_process();
 
     if (next_process == NULL) {
         setcontext(&idle_context);
@@ -196,16 +198,14 @@ void schedule() {
         exit(EXIT_FAILURE);
     }
 
-    pcb_t *process = (pcb_t *) (next_process->payload);
-
-    if (active_node != next_process) {
-        active_node = next_process;
+    if (active_process != next_process) {
+        active_process = next_process;
         // printf("Scheduled!! ticks = %d\n", ticks);
-        log_events(SCHEDULE, ticks, process->pid, process->priority, process->process);
+        log_events(SCHEDULE, ticks, active_process->pid, active_process->priority, active_process->process);
     }
 
     // setcontext process->context
-    setcontext(&(process->context));
+    setcontext(&(active_process->context));
 
     // end of scheduler
     perror("setcontext");

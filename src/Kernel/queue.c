@@ -1,14 +1,6 @@
 #include "queue.h"
 #include "stdio.h" // debug purpose
 
-node *init_node(void *payload) {
-    node *n = (node *)malloc(sizeof(node));
-    n->payload = payload;
-    n->next = NULL;
-
-    return n;
-}
-
 queue *init_queue() {
     queue *q = (queue *)malloc(sizeof(queue));
     q->head = NULL;
@@ -17,62 +9,48 @@ queue *init_queue() {
     return q;
 }
 
-void add_node(queue *q, node *n) {
-    node *prev = q->head;
-    // perror("added!\n");
+void add_process(queue *q, pcb_t *p) {
+    pcb_t *prev = q->head;
     while (prev && prev->next) {
         prev = prev->next;
     }
-    // perror("added!\n");
+
     if (prev == NULL) {
-        // perror("added!\n");
-        q->head = n;
+        q->head = p;
     } else {
-        prev->next = n;
+        prev->next = p;
     }
 
     q->length++;
 }
 
-node *remove_node(queue *q, node *n) {
-    node *prev = NULL;
-    node *tmp = q->head;
+pcb_t *remove_process(queue *q, pcb_t *p) {
+    pcb_t *prev = NULL;
+    pcb_t *tmp = q->head;
 
     while (tmp) {
-        if (tmp == n) {
+        if (tmp == p) {
             if (prev) {
-                prev->next = n->next;
-                return n;
+                prev->next = p->next;
+            } else {
+                q->head = p->next;
             }
-            q->head = n->next;
+            p->next = NULL;
+            return p;
         }
         prev = tmp;
         tmp = tmp->next;
     }
-    return n;
-}
-
-node *remove_head(queue *q) {
-    if (q->head == NULL) {
-        perror("ahha\n");
-        return q->head;
-    }
-
-    node *tmp = q->head;
-    q->head = tmp->next;
-    q->length--;
-
-    return tmp;
+    return p;
 }
 
 void free_queue(queue *q) {
-    node *tmp;
+    pcb_t *tmp;
 
     while (q->head) {
         tmp = q->head;
         q->head = tmp->next;
-        free(tmp->payload);
-        free(tmp);
+        free_pcb(tmp);
     }
 
     free(q);
