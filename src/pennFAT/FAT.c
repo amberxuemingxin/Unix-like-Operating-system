@@ -99,6 +99,43 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     return res;
 }   
 
+FAT* mount_fat(char* f_name) {
+    //file system file descriptor
+    int fs_fd;
+    if ((fs_fd = open(f_name, O_RDONLY, 0644)) == -1) {
+        perror("open");
+        return NULL;
+    }
+
+   //read the first bytes as blocksize
+    uint8_t block_size = 0;
+    if (read(fs_fd, &block_size, sizeof(uint8_t)) == -1) {
+        perror("read");
+        return NULL;
+    }
+
+    // read the next byte as number of blocks
+    uint8_t numBlocks = 0;
+    if (read(fs_fd, &numBlocks, sizeof(uint8_t)) == -1) {
+        perror("read");
+        return NULL;
+    }
+
+    if (close(fs_fd) == -1) {
+        perror("close");
+        return NULL;
+    }
+    // make this fat table
+    FAT *res = make_fat(f_name, numBlocks, block_size);
+
+    if (res == NULL) {
+        printf("Failed to load FAT\n");
+        return NULL;
+    }
+
+    return res;
+}
+
 void free_fat(FAT* fat){
     struct FAT *curr_fat = fat;
     if (curr_fat == NULL)   return;

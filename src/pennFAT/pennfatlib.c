@@ -12,7 +12,7 @@
 #include "FAT.h"
 // #include "file.h"
 
-int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
+int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
     char* cmd = commands[0][0];
 
     if(strcmp(cmd, "mkfs") == 0) {
@@ -20,35 +20,39 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **FAT){
             printf("insuffcient arguement\n");
             return FAILURE;
         }
-        return pennfat_mkfs(commands[0][1], (char) atoi(commands[0][2]), (char) atoi(commands[0][3]), FAT);
+        return pennfat_mkfs(commands[0][1], (char) atoi(commands[0][2]), (char) atoi(commands[0][3]), fat);
     } else if (strcmp(cmd, "mount") == 0) {
-        return pennfat_mount(commands[0][1], *FAT);
-    } else if (*FAT == NULL) {
-        printf("No filesystem made yet\n");
+        *fat = pennfat_mount(commands[0][1]);
+        if (*fat == NULL) return FAILURE;
+        return SUCCESS;
+    } else if (*fat == NULL) {
+        printf("No filesystem mounted yet\n");
         return FAILURE;
     } else if (strcmp(cmd, "umount") == 0) {
-        return pennfat_unmount(*FAT);
+        free(*fat);
+        *fat = NULL;
+        return SUCCESS;
     } else if (strcmp(cmd, "touch") == 0) {
-        return pennfat_touch(commands[0], *FAT);
+        return pennfat_touch(commands[0], *fat);
     } else if (strcmp(cmd, "mv") == 0) {
-        return pennfat_mv(commands[0][1], commands[0][2], *FAT);
+        return pennfat_mv(commands[0][1], commands[0][2], *fat);
     } else if (strcmp(cmd, "rm") == 0) {
-        return pennfat_remove(commands[0], *FAT);
+        return pennfat_remove(commands[0], *fat);
     }  else if (strcmp(cmd, "cat") == 0) {
-        return pennfat_cat(commands[0], *FAT);
+        return pennfat_cat(commands[0], *fat);
     } else if (strcmp(cmd, "cp") == 0) {
-        return pennfat_cp(commands[0], *FAT);
+        return pennfat_cp(commands[0], *fat);
     } else if (strcmp(cmd, "ls") == 0) {
-        return pennfat_ls(*FAT);
+        return pennfat_ls(*fat);
     } else if (strcmp(cmd, "chmod") == 0) {
-        return pennfat_chmod(commands[0], *FAT);
+        return pennfat_chmod(commands[0], *fat);
     } else if (strcmp(cmd, "describe") == 0) {
-        printf("File system name : %s\n", (*FAT)->f_name);
-        printf("Number of block in the filesystem : %d\n", (*FAT)->block_num);
-        printf("Block size : %d\n", (*FAT)->block_size);
-        printf("Number of entries: %d\n", (*FAT)->entry_num);
-        printf("number of files : %d\n", (*FAT)->file_num);
-        printf("available blocks: %d\n", (*FAT)->free_blocks);
+        printf("File system name : %s\n", (*fat)->f_name);
+        printf("Number of block in the filesystem : %d\n", (*fat)->block_num);
+        printf("Block size : %d\n", (*fat)->block_size);
+        printf("Number of entries: %d\n", (*fat)->entry_num);
+        printf("number of files : %d\n", (*fat)->file_num);
+        printf("available blocks: %d\n", (*fat)->free_blocks);
     }
     
      else {
@@ -69,26 +73,13 @@ int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **FAT)
     return SUCCESS;
 }
 
-int pennfat_mount(char *f_name, FAT *FAT) {
-    // if (f_name == NULL) {
-    //     printf("no filename, please enter a filename\n");
-    //     return FAILURE;
-    // }
-
-    // if (*FAT != NULL)
-    //     freeFat(FAT);
-    
-    // *FAT = loadFat(f_name);
-
-    // if (*FAT == NULL)
-    //     return FAILURE;
-
-    return SUCCESS;    
-}
-
-int pennfat_unmount(FAT *fat){
-    printf("this is unmount\n");
-    return 1;
+FAT* pennfat_mount(char *f_name) {
+    if (f_name == NULL) {
+        printf("no filename, please enter a filename\n");
+        return NULL;
+    }
+    FAT* fat = mount_fat(f_name);
+    return fat;    
 }
 
 int pennfat_touch(char **files, FAT *fat){
@@ -132,28 +123,6 @@ int pennfat_touch(char **files, FAT *fat){
     // saveFat(fat);
     return SUCCESS;
 }
-
-//return file 
-dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
-    if (fat->file_num == 0){
-        return NULL;
-    }
-    dir_node* curr = fat->first_dir_node;
-    while (curr != NULL){
-        printf("%s\n",curr->dir_entry->name);
-        printf("%s\n",file_name);
-
-        if (strcmp(curr->dir_entry->name, file_name) != 0){
-            curr = curr->next;
-            if(prev != NULL) {
-                *prev = curr;
-            }
-        } else{
-            return curr;
-        }
-    }
-    return NULL;
-} 
 
 int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     printf("this is mv\n");
@@ -237,3 +206,25 @@ int pennfat_ls(FAT *fat){
 int pennfat_chmod(char **commands, FAT *fat){
     return 1;
 }
+
+//return file 
+dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
+    if (fat->file_num == 0){
+        return NULL;
+    }
+    dir_node* curr = fat->first_dir_node;
+    while (curr != NULL){
+        printf("%s\n",curr->dir_entry->name);
+        printf("%s\n",file_name);
+
+        if (strcmp(curr->dir_entry->name, file_name) != 0){
+            curr = curr->next;
+            if(prev != NULL) {
+                *prev = curr;
+            }
+        } else{
+            return curr;
+        }
+    }
+    return NULL;
+} 
