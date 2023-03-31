@@ -80,28 +80,29 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
         return NULL;
     }
 
-    //use ftruncate to make the fatsize == block_num * block size
+    // use ftruncate to make the fatsize == block_num * block size
     if(ftruncate(fs_fd, (fat_size)) == -1) {
         perror("file truncate");
         return NULL;
     }
     
 
-    res->entry_arr = (uint16_t*) mmap(NULL, (res->block_num * res->block_size), 
-        PROT_READ | PROT_WRITE, MAP_SHARED, fs_fd, 0);
-    res->data_arr = (uint16_t*) mmap(NULL, fat_size -(res->block_num * res->block_size),  PROT_READ | PROT_WRITE, MAP_SHARED, fs_fd, 0);
+    res->block_arr = (uint16_t*) mmap(NULL, (fat_size), PROT_READ | PROT_WRITE, MAP_SHARED, fs_fd, 0);
 
-    if (res->entry_arr == MAP_FAILED) {
-        perror("mmap");
+    long page_size = sysconf(_SC_PAGE_SIZE);
+    if (page_size == -1) {
+        perror("sysconf");
         return NULL;
     }
 
+    res->block_arr[3] = 0X1234;
+    res->block_arr[res->entry_size + 1] = 0XFFFF;
     //first block stored FS information by LSB and MSB
                                     //LSB               MSB
-    res->entry_arr[0] = (uint16_t) block_num << 8 | block_size;
+    res->block_arr[0] = (uint16_t) block_num << 8 | block_size;
 
     //second block is the root directory
-    res->entry_arr[1] = 0xFFFF;
+    res->block_arr[1] = ROOT;
     return res;
 }   
 
