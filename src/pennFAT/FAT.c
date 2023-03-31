@@ -67,11 +67,10 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     uint32_t fat_size = 0;
     // # of FAT entries = block size * number of blocks in FAT / 2
     res->entry_size = res->block_size * res->block_num;
+    fat_size += res->entry_size;
     res->entry_size /= 2;
     res->free_entries = res->entry_size -2;
-    fat_size += res->entry_size;
-
-    res->data_size = (res->free_entries) * (res->block_size);
+    res->data_size = (res->free_entries + 1) * (res->block_size);
 
     fat_size += res->data_size;
 
