@@ -95,8 +95,6 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
         return NULL;
     }
 
-    res->block_arr[3] = 0X1234;
-    res->block_arr[res->entry_size + 1] = 0XFFFF;
     //first block stored FS information by LSB and MSB
                                     //LSB               MSB
     res->block_arr[0] = (uint16_t) block_num << 8 | block_size;
