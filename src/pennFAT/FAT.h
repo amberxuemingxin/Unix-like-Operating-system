@@ -26,12 +26,14 @@ typedef struct FAT {
     char* f_name;
     uint8_t block_num;
     uint32_t block_size;
-    uint32_t entry_num;
+    uint32_t entry_size;
+    uint32_t data_size;
     uint32_t file_num;
-    uint32_t free_blocks;
-    dir_node* first_dir_node;
-    dir_node* last_dir_node;
-    uint16_t* block_arr;
+    uint32_t free_entries;
+    // dir_node* first_dir_node;
+    // dir_node* last_dir_node;
+    uint16_t* entry_arr;
+    uint16_t* data_arr;
 }FAT;
 
 dir_node * new_directory_node(char* f_name, uint32_t size, uint16_t firstBlock, uint8_t type, uint8_t perm, time_t time);

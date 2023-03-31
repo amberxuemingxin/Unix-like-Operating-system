@@ -43,8 +43,8 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     }
     FAT* res = (FAT*) malloc(sizeof(FAT));
     res->file_num = 0;
-    res->first_dir_node =NULL;
-    res->last_dir_node =NULL;
+    // res->first_dir_node =NULL;
+    // res->last_dir_node =NULL;
 
     int len = strlen(f_name);
     res->f_name = (char*) malloc(len * sizeof(char) + 1);
@@ -64,11 +64,17 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     } else if(block_size == 4) {
         res->block_size = 4096;
     }
-
+    uint32_t fat_size = 0;
     // # of FAT entries = block size * number of blocks in FAT / 2
-    res->entry_num = res->block_size * res->block_num;
-    res->entry_num /= 2;
-    res->free_blocks = res->entry_num -2;
+    res->entry_size = res->block_size * res->block_num;
+    res->entry_size /= 2;
+    res->free_entries = res->entry_size -2;
+    fat_size += res->entry_size;
+
+    res->data_size = (res->free_entries) * (res->block_size);
+
+    fat_size += res->data_size;
+
     int fs_fd = open(f_name, O_RDWR | O_TRUNC | O_CREAT, 0644);
     if(fs_fd == -1) {
         perror("open file");
@@ -76,26 +82,27 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     }
 
     //use ftruncate to make the fatsize == block_num * block size
-    if(ftruncate(fs_fd, (res->block_num * res->block_size)) == -1) {
+    if(ftruncate(fs_fd, (fat_size)) == -1) {
         perror("file truncate");
         return NULL;
     }
     
 
-    res->block_arr = (uint16_t*) mmap(NULL, (res->block_num * res->block_size), 
+    res->entry_arr = (uint16_t*) mmap(NULL, (res->block_num * res->block_size), 
         PROT_READ | PROT_WRITE, MAP_SHARED, fs_fd, 0);
-    
-    if (res->block_arr == MAP_FAILED) {
+    res->data_arr = (uint16_t*) mmap(NULL, fat_size -(res->block_num * res->block_size),  PROT_READ | PROT_WRITE, MAP_SHARED, fs_fd, 0);
+
+    if (res->entry_arr == MAP_FAILED) {
         perror("mmap");
         return NULL;
     }
 
     //first block stored FS information by LSB and MSB
                                     //LSB               MSB
-    res->block_arr[0] = (uint16_t) block_num << 8 | block_size;
+    res->entry_arr[0] = (uint16_t) block_num << 8 | block_size;
 
     //second block is the root directory
-    res->block_arr[1] = 0xFFFF;
+    res->entry_arr[1] = 0xFFFF;
     return res;
 }   
 
@@ -136,21 +143,21 @@ FAT* mount_fat(char* f_name) {
     return res;
 }
 
-void free_fat(FAT* fat){
-    struct FAT *curr_fat = fat;
-    if (curr_fat == NULL)   return;
+// void free_fat(FAT* fat){
+//     struct FAT *curr_fat = fat;
+//     if (curr_fat == NULL)   return;
 
-    while (curr_fat->first_dir_node != NULL) {
-        dir_node *curr = curr_fat->first_dir_node;
-        curr_fat->first_dir_node = curr->next;
-        free_directory_node(curr);
-    }
+//     while (curr_fat->first_dir_node != NULL) {
+//         dir_node *curr = curr_fat->first_dir_node;
+//         curr_fat->first_dir_node = curr->next;
+//         free_directory_node(curr);
+//     }
 
-    if (munmap(curr_fat->block_arr, curr_fat->block_num * curr_fat->block_num) == -1) {
-        perror("munmap");
-        return;
-    }
+//     if (munmap(curr_fat->block_arr, curr_fat->block_num * curr_fat->block_num) == -1) {
+//         perror("munmap");
+//         return;
+//     }
 
-    free(curr_fat);
-}
+//     free(curr_fat);
+// }
 

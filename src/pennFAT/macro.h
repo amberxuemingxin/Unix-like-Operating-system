@@ -6,7 +6,8 @@
 #define REGULAR_FILETYPE 1
 #define DIRECTORY_FILETYPE 2
 #define SYMBOLIC_LINK 4
-
+#define ROOT 0XFFFF
+#define ZERO 0X0000
 #define NO_PERMS 0
 #define WRITE_PERMS 2
 #define READ_PERMS 4
