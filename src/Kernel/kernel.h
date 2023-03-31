@@ -4,12 +4,16 @@
 #include "scheduler.h"
 #include "PCB.h"
 
+void idle_process();
+
 void make_context(ucontext_t *ucp,  void (*func)(), char *argv[]);
 
 // kernel level
-pcb_t *k_shell_create();
+void k_block(pcb_t *parent);
 
-void k_process_create(pcb_t *parent);
+void k_unblock(pcb_t *parent);
+
+pcb_t *k_process_create(pcb_t *parent, bool is_shell);
 
 int k_process_kill(pcb_t *process, int signal);
 

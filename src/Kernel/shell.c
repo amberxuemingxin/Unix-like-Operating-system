@@ -1,10 +1,13 @@
 #include "shell.h"
 #include "parser.h"
+#include "kernel.h"
+#include "execute.h"
 
-void shellLoop () {
+void shell_loop () {
     
     while (1) {
         // prompt to the user
+        // perror("before execution");
         shell_prompt();
 
         // get user input
@@ -17,14 +20,12 @@ void shellLoop () {
         if (chars_read <= 0)
         {
             free(user_input);
-            
             break;
         }
         // parse user input
         struct parsed_command *cmd;
         int flag = parse_command(user_input, &cmd);
 
-        
         free(user_input);
 
         if (flag < 0)
@@ -38,7 +39,8 @@ void shellLoop () {
             continue;
         }
 
+        execute(cmd);
+        // perror("After execution");
         free(cmd);
-        // call scheduler 
     }
 }

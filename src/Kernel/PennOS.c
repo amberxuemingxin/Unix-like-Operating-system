@@ -2,37 +2,51 @@
 
 #include "kernel.h"
 #include "scheduler.h"
+#include "ucontext.h"
+#include "user.h"
+#include "logger.h"
+#include "shell.h"
 
-scheduler *s;
-
-// ucontext_t main_context;
 ucontext_t scheduler_context;
+ucontext_t idle_context;
+bool idle;
+
+extern char *log_name;
 
 // set up signals handling exit ctrl c
-
-int main(int argc, char *argv[]) {
+/*
+ * the main PennOS function that calls other functions and initialize the entire project
+ */
+int main(int argc, char *argv[])
+{
 
     // initialize the scheduler
-    s = init_scheduler();
+    init_scheduler();
 
-    char *scheduler_arg[2] = {"schedule", NULL};
-    // make_context(&scheduler_context, scheduler)
+    log_name = time_stamp();
+
+    getcontext(&scheduler_context);
 
     // create the context for scheduler
-    make_context(&scheduler_context, schedule, scheduler_arg);
+    char *scheduler_args[2] = {"schedule", NULL};
+
+    // void func(int a, int b)
+    // args = {"2", "a b"}
+    make_context(&scheduler_context, &schedule, scheduler_args);
+
+    // init the context for the idle process
+    char *idle_args[2] = {"idle", NULL};
+    make_context(&idle_context, &idle_process, idle_args);
+
     set_alarm_handler();
     // set timer
     set_timer();
 
     // spawn a process for shell
-    pcb_t *shell_process = k_shell_create();
+    char *shell_args = "shell";
+    p_spawn(shell_loop, &shell_args, STDIN_FILENO, STDOUT_FILENO);
 
-    // add shell process into scheduler's ready queue
-    node *shell = init_node(shell_process);
-
-    add_to_scheduler(shell, s);
-
-    setcontext(&scheduler_context);
-
+    idle = true;
+    setcontext(&idle_context);
     return 0;
 }

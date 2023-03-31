@@ -2,4 +2,4 @@
 #include <stdio.h>
 #include "kernel.h"
 
-void shellLoop();
+void shell_loop();

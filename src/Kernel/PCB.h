@@ -5,12 +5,12 @@
 #include <ucontext.h> 
 #include <stdlib.h>
 #include "parser.h"
-#include "queue.h"
 
 #define RUNNING_P 0
 #define BLOCKED_P 1
 #define STOPPED_P 2
 #define ZOMBIED_P 3
+#define EXITED_P 4
 
 typedef struct pcb_def
 {
@@ -28,6 +28,10 @@ typedef struct pcb_def
     pid_t ppid;
     // process group ID
     pid_t pgid;
+    // parent struct
+    struct pcb_def *parent;
+
+    struct pcb_def *next;
 
     // status of the process (RUNNING, BLOCKED, STOPPED, ZOMBIED)
     int status;
@@ -37,10 +41,16 @@ typedef struct pcb_def
     int ticks;
 
     // child process management
-    node *children;
+    struct pcb_def *children;
+    // zombie process management
+    struct pcb_def *zombies;
+    // after exiting the process, if it's being waited on
+    bool waited;
 
     // context of the process
     ucontext_t context;
 } pcb_t;
+
+void free_pcb(pcb_t *p);
 
 #endif
