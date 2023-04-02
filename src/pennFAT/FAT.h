@@ -52,6 +52,8 @@ FAT* mount_fat(char* f_name);
 
 void free_fat(FAT* fat);
 
+int write_directory_to_block(directory_entry en, FAT* fat);
+
 // int saveFat(FAT *fat);
 
 // FAT *mount_fat(char *f_name);
