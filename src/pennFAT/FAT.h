@@ -31,6 +31,8 @@ typedef struct FAT {
     uint32_t file_num;
     uint32_t free_entries;
     uint16_t* block_arr;
+    dir_node* first_dir_node;
+    dir_node* last_dir_node;
     // directory block starting index
     uint32_t directory_starting_index;
     // data region starting index
