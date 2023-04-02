@@ -88,12 +88,16 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     
 
     res->block_arr = (uint16_t*) mmap(NULL, (fat_size), PROT_READ | PROT_WRITE, MAP_SHARED, fs_fd, 0);
+    res->directory_starting_index = (uint32_t) res->entry_size;
+    res->dblock_starting_index = (uint32_t) (res->directory_starting_index); 
+    res->dblock_starting_index += (uint32_t) (res->block_size)/2; 
 
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    if (page_size == -1) {
-        perror("sysconf");
-        return NULL;
-    }
+
+    res->block_arr[res->directory_starting_index] = (uint16_t) 's';
+    //visualizeation
+    // res->block_arr[(res->directory_starting_index)] =  0XDDDD;
+    // res->block_arr[(res->dblock_starting_index)] =  0XBBBB;
+
 
     //first block stored FS information by LSB and MSB
                                     //LSB               MSB
@@ -141,21 +145,21 @@ FAT* mount_fat(char* f_name) {
     return res;
 }
 
-// void free_fat(FAT* fat){
-//     struct FAT *curr_fat = fat;
-//     if (curr_fat == NULL)   return;
+void free_fat(FAT* fat){
+    struct FAT *curr_fat = fat;
+    if (curr_fat == NULL)   return;
 
-//     while (curr_fat->first_dir_node != NULL) {
-//         dir_node *curr = curr_fat->first_dir_node;
-//         curr_fat->first_dir_node = curr->next;
-//         free_directory_node(curr);
-//     }
+    while (curr_fat->first_dir_node != NULL) {
+        dir_node *curr = curr_fat->first_dir_node;
+        curr_fat->first_dir_node = curr->next;
+        free_directory_node(curr);
+    }
 
-//     if (munmap(curr_fat->block_arr, curr_fat->block_num * curr_fat->block_num) == -1) {
-//         perror("munmap");
-//         return;
-//     }
+    if (munmap(curr_fat->block_arr, curr_fat->block_size * curr_fat->block_num) == -1) {
+        perror("munmap");
+        return;
+    }
 
-//     free(curr_fat);
-// }
+    free(curr_fat);
+}
 
