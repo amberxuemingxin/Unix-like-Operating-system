@@ -164,16 +164,17 @@ void free_fat(FAT* fat){
 }
 
 int write_directory_to_block(directory_entry en, FAT* fat) {
+    // find a spot in file system
     uint16_t index = 0;
-
     while(fat->block_arr[fat->directory_starting_index + index] != ZERO) {
         index += 1;
     }
+    // return failure if out of directory block bound
     if (index >= fat->dblock_starting_index) {
         printf("no directory space anymore\n");
         return FAILURE;
     }
-
+    // writing the directory entry struct into the directory block
     directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
     *entry_ptr = en;
     return SUCCESS;
