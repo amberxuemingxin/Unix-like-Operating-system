@@ -33,17 +33,17 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
         *fat = NULL;
         return SUCCESS;
     } else if (strcmp(cmd, "touch") == 0) {
-        // return pennfat_touch(commands[0], *fat);
+        return pennfat_touch(commands[0], *fat);
     } else if (strcmp(cmd, "mv") == 0) {
         return pennfat_mv(commands[0][1], commands[0][2], *fat);
     } else if (strcmp(cmd, "rm") == 0) {
-        // return pennfat_remove(commands[0], *fat);
+        return pennfat_remove(commands[0], *fat);
     }  else if (strcmp(cmd, "cat") == 0) {
         return pennfat_cat(commands[0], *fat);
     } else if (strcmp(cmd, "cp") == 0) {
         return pennfat_cp(commands[0], *fat);
     } else if (strcmp(cmd, "ls") == 0) {
-        // return pennfat_ls(*fat);
+        return pennfat_ls(*fat);
     } else if (strcmp(cmd, "chmod") == 0) {
         return pennfat_chmod(commands[0], *fat);
     } else if (strcmp(cmd, "describe") == 0) {
@@ -119,10 +119,12 @@ int pennfat_touch(char **files, FAT *fat){
         fat->file_num++;
         index += 1;
         file_name = files[index];
-    }
 
+        
         //TODO: WRITE FILE TO DIRECTORY BLOCK
+        write_directory_to_block(*file_node->dir_entry, fat);
 
+    }
 
     return SUCCESS;
 }

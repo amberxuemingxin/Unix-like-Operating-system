@@ -93,7 +93,7 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     res->dblock_starting_index += (uint32_t) (res->block_size)/2; 
 
 
-    res->block_arr[res->directory_starting_index] = (uint16_t) 's';
+    // res->block_arr[res->directory_starting_index] = (uint16_t) 's';
     //visualizeation
     // res->block_arr[(res->directory_starting_index)] =  0XDDDD;
     // res->block_arr[(res->dblock_starting_index)] =  0XBBBB;
@@ -163,3 +163,19 @@ void free_fat(FAT* fat){
     free(curr_fat);
 }
 
+int write_directory_to_block(directory_entry en, FAT* fat) {
+    // find a spot in file system
+    uint16_t index = 0;
+    while(fat->block_arr[fat->directory_starting_index + index] != ZERO) {
+        index += 1;
+    }
+    // return failure if out of directory block bound
+    if (index >= fat->dblock_starting_index) {
+        printf("no directory space anymore\n");
+        return FAILURE;
+    }
+    // writing the directory entry struct into the directory block
+    directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+    *entry_ptr = en;
+    return SUCCESS;
+}
