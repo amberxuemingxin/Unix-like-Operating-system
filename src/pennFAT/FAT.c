@@ -92,8 +92,6 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     res->dblock_starting_index = (uint32_t) (res->directory_starting_index); 
     res->dblock_starting_index += (uint32_t) (res->block_size)/2; 
 
-    printf("%d", res->directory_starting_index);
-    printf("%d", res->dblock_starting_index);
 
     //visualizeation
     // res->block_arr[(res->directory_starting_index)] =  0XDDDD;
