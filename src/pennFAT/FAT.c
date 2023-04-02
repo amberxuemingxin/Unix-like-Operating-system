@@ -88,12 +88,17 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     
 
     res->block_arr = (uint16_t*) mmap(NULL, (fat_size), PROT_READ | PROT_WRITE, MAP_SHARED, fs_fd, 0);
+    res->directory_starting_index = (uint32_t) res->entry_size;
+    res->dblock_starting_index = (uint32_t) (res->directory_starting_index); 
+    res->dblock_starting_index += (uint32_t) (res->block_size)/2; 
 
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    if (page_size == -1) {
-        perror("sysconf");
-        return NULL;
-    }
+    printf("%d", res->directory_starting_index);
+    printf("%d", res->dblock_starting_index);
+
+    //visualizeation
+    // res->block_arr[(res->directory_starting_index)] =  0XDDDD;
+    // res->block_arr[(res->dblock_starting_index)] =  0XBBBB;
+
 
     //first block stored FS information by LSB and MSB
                                     //LSB               MSB
