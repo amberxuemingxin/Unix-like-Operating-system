@@ -14,4 +14,6 @@
 #define READ_EXCUTABLE_PERMS 5
 #define READ_WRITE_PERMS 6
 #define READ_WRITE_EXCUTABLE 7
-
+#define F_WRITE 1
+#define F_READ 2
+#define F_APPEND 3

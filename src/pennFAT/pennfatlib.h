@@ -27,4 +27,17 @@ int pennfat_chmod(char **commands, FAT *fat);
 
 dir_node* search_file(char* file_name, FAT* fat, dir_node** prev);
 
+
+
+
+
+
+int f_open(const char *f_name, int mode);
+
+int f_read(int fd, int n, char *buf);
+
+int f_write(int fd, const char *str, int n);
+
+int f_close(int fd);
+
 #endif
