@@ -143,15 +143,13 @@ int pennfat_remove(char **commands, FAT *fat){
             }
 
             //TODO: REMOVE FILE FROM DIRECTORY BLOCK
-
-
-
+            delete_directory_from_block(*filenode->dir_entry, fat);
             // set last node pointer to the prev entry if this entry is the last entry
             if (filenode == fat->last_dir_node)
                 fat->last_dir_node = prev_node;
-
         }else {
             printf("%s file not found", file_name);
+            index += 1;
         }
     }
     return SUCCESS;
@@ -172,7 +170,13 @@ int pennfat_ls(FAT *fat){
 
     while (node != NULL) {
         directory_entry *entry = node->dir_entry;
-
+        char *perms;
+        switch(entry->perm) {
+            case(NO_PERMS)       : perms = "--"; break;
+            case(READ_PERMS)     : perms = "r-"; break;
+            case(WRITE_PERMS)    : perms = "-w"; break;
+            case(READ_WRITE_EXCUTABLE): perms = "rw"; break;
+        }
 
         struct tm *localTime = localtime(&entry->mtime);
         
@@ -186,7 +190,7 @@ int pennfat_ls(FAT *fat){
 
 
  
-        printf("%4s%3s%6s %s\n", month, day, time, entry->name);
+        printf("%2s%6db%4s%3s%6s %s\n", perms, entry->size, month, day, time, entry->name);
 
         node = node->next;
     }
