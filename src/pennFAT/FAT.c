@@ -167,7 +167,10 @@ int write_directory_to_block(directory_entry en, FAT* fat) {
     // find a spot in file system
     uint16_t index = 0;
     while(fat->block_arr[fat->directory_starting_index + index] != ZERO) {
-        index += 1;
+        //if the index is non-zero, jump to the next directory block
+        //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
+        // thus increment by 32
+        index += 32;
     }
     // return failure if out of directory block bound
     if (index >= fat->dblock_starting_index) {

@@ -6,12 +6,13 @@
 #include <errno.h>
 #include <math.h>
 #include <limits.h>
-
 #include "pennfatlib.h"
 #include "macro.h"
 #include "FAT.h"
 // #include "file.h"
 
+bool f_opened = false;
+FAT* curr_fat;
 int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
     char* cmd = commands[0][0];
 
@@ -31,6 +32,7 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
     } else if (strcmp(cmd, "umount") == 0) {
         free(*fat);
         *fat = NULL;
+        curr_fat = NULL;
         return SUCCESS;
     } else if (strcmp(cmd, "touch") == 0) {
         return pennfat_touch(commands[0], *fat);
@@ -62,14 +64,14 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
     return FAILURE;
 }
 
-int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **FAT){
+int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **fat){
     printf("making a new file system, file name is  %s, %d number of blocks, with %d block size\n", f_name, block_num, block_size);
     // if FAT exist, we need to overwrite the origianl FAT
-    if (FAT != NULL) {
-        free_fat(*FAT);
+    if (fat != NULL) {
+        free_fat(*fat);
     }
-    *FAT = make_fat(f_name, block_num, block_size);
-
+    *fat = make_fat(f_name, block_num, block_size);
+    curr_fat = *fat;
     return SUCCESS;
 }
 
@@ -79,6 +81,8 @@ FAT* pennfat_mount(char *f_name) {
         return NULL;
     }
     FAT* fat = mount_fat(f_name);
+    curr_fat = fat;
+
     return fat;    
 }
 
@@ -98,32 +102,10 @@ int pennfat_touch(char **files, FAT *fat){
                 file_name = files[index];
                 continue;
             }
-        // find the first empty block in FAT
-        uint16_t firstBlock = 1;
-        for (uint32_t i = 1; i < fat->entry_size; i++){
-            if (fat->block_arr[i] == ZERO){
-                firstBlock = (uint16_t) i;
-                break;
-            }
-        }
-        // new a dir entry with 0 byte (empty file)
-        file_node = new_directory_node(file_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
-        // append this node to the FAT dir information. 
-        if (fat->first_dir_node == NULL){
-            fat->first_dir_node = file_node;
-            fat->last_dir_node = file_node;
-        } else {
-            fat->last_dir_node->next = file_node;
-            fat->last_dir_node = file_node;
-        }
-        fat->file_num++;
+        int fd = f_open(file_name, WRITE_PERMS);
+        f_close(fd);
         index += 1;
         file_name = files[index];
-
-        
-        //TODO: WRITE FILE TO DIRECTORY BLOCK
-        write_directory_to_block(*file_node->dir_entry, fat);
-
     }
 
     return SUCCESS;
@@ -175,10 +157,10 @@ int pennfat_remove(char **commands, FAT *fat){
     return SUCCESS;
     
 }
+
 int pennfat_cat(char **commands, FAT *fat){
     return 1;
 }
-
 
 int pennfat_cp(char **commands, FAT *fat){
     printf("this is cp\n");
@@ -216,7 +198,6 @@ int pennfat_chmod(char **commands, FAT *fat){
     return 1;
 }
 
-//return file 
 dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
     if (fat->file_num == 0){
         return NULL;
@@ -237,3 +218,61 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
     }
     return NULL;
 } 
+
+int f_open(const char *f_name, int mode){
+    int fd = -1;
+    // only one file can be opened at a time
+    if(f_opened){
+        return fd;
+    }
+    
+    //search for file with f_name:
+    dir_node* file_node = search_file((char*)f_name, curr_fat, NULL);
+    //no file found, then create file. 
+    if (file_node == NULL) {
+        uint16_t firstBlock = 1;
+        for (uint32_t i = 1; i < curr_fat->entry_size; i++){
+            if (curr_fat->block_arr[i] == ZERO){
+                firstBlock = (uint16_t) i;
+                break;
+            }
+        }
+        // new a dir entry with 0 byte (empty file)
+        file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
+        // append this node to the FAT dir information. 
+        if (curr_fat->first_dir_node == NULL){
+            curr_fat->first_dir_node = file_node;
+            curr_fat->last_dir_node = file_node;
+        } else {
+            curr_fat->last_dir_node->next = file_node;
+            curr_fat->last_dir_node = file_node;
+        }
+        curr_fat->file_num++;
+        write_directory_to_block(*file_node->dir_entry, curr_fat);
+        f_opened = true;
+        fd = (int)file_node->dir_entry->firstBlock;
+        return fd;
+    }
+
+
+    //TODO: IMPLEMENT WHAT HAPPENS IF FILE IS NOT FOUND IN CURRFAT IN DIFFERNET MODE
+
+    f_opened = true;
+    return fd;
+}
+
+int f_read(int fd, int n, char *buf){
+
+
+    return SUCCESS;
+}
+
+int f_write(int fd, const char *str, int n){
+
+    return SUCCESS;
+}
+
+int f_close(int fd) {
+    f_opened = false;
+    return 0;
+}
