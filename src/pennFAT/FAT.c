@@ -173,7 +173,7 @@ int write_directory_to_block(directory_entry en, FAT* fat) {
         index += 32;
     }
     // return failure if out of directory block bound
-    if (index >= fat->dblock_starting_index) {
+    if (fat->directory_starting_index + index >= fat->dblock_starting_index) {
         printf("no directory space anymore\n");
         return FAILURE;
     }
@@ -181,4 +181,25 @@ int write_directory_to_block(directory_entry en, FAT* fat) {
     directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
     *entry_ptr = en;
     return SUCCESS;
+}
+
+int delete_directory_from_block(directory_entry en, FAT* fat) {
+    // find a spot in file system
+    uint16_t index = 0;
+    while(fat->directory_starting_index + index < fat->dblock_starting_index) {
+        //if the index is non-zero, jump to the next directory block
+        //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
+        // thus increment by 32
+        directory_entry* curr_entry = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+        if(strcmp(curr_entry->name, en.name) == 0) {
+            printf("found!\n");
+            for (int i = 0; i<32; i++) {
+                fat->block_arr[fat->directory_starting_index + index + i] = ZERO;
+            }
+            return SUCCESS;
+        }
+        index += 32;
+    }
+    printf("file not found\n");
+    return FAILURE;
 }
