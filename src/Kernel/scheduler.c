@@ -173,22 +173,19 @@ void schedule() {
 /*
 * Check the sleeping nodes here!
 */
-    // if (active_node) {
-    //     // perror("here");
-    //     pcb_t *active_process = (pcb_t *) active_node->payload;
-    //     if (active_process->ticks > 0) {
-    //         // printf("ticks %d\n", active_process->ticks);
-    //         active_process->ticks--;
-    //     } else if (active_process->ticks == 0) {
-    //         node *parent = search_in_scheduler(active_process->parent->pid);
-    //         k_unblock(parent);
-    //         remove_from_scheduler(active_node);
-    //         remove_node(queue_blocked, active_node);
-    //         log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
-    //         free(active_process);
-    //         free(active_node);
-    //     }
-    // }
+    if (active_process) {
+        // perror("here");
+        if (active_process->ticks > 0) {
+            // printf("ticks %d\n", active_process->ticks);
+            active_process->ticks--;
+        } else if (active_process->ticks == 0) {
+            k_unblock(active_process->parent);
+            remove_from_scheduler(active_process);
+            remove_process(queue_blocked, active_process);
+            log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
+            free(active_process);
+        }
+    }
 
     pcb_t *next_process = pick_next_process();
 

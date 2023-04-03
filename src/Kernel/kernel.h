@@ -6,7 +6,7 @@
 
 void idle_process();
 
-void make_context(ucontext_t *ucp,  void (*func)(), char *argv[]);
+void make_context(ucontext_t *ucp, void (*func)(), int arg_num, char *argv[]);
 
 // kernel level
 void k_block(pcb_t *parent);
