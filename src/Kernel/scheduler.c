@@ -176,7 +176,7 @@ void schedule() {
     if (active_process) {
         // perror("here");
         if (active_process->ticks > 0) {
-            // printf("ticks %d\n", active_process->ticks);
+            printf("ticks %d\n", active_process->ticks);
             active_process->ticks--;
         } else if (active_process->ticks == 0) {
             k_unblock(active_process->parent);

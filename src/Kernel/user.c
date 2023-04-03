@@ -26,7 +26,7 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     child->process = malloc(sizeof(char) * (strlen(argv[0]) + 1));
     strcpy(child->process, argv[0]);
 
-// tmp {"sleep", &num, NULL}
+// tmp {"sleep", "1", NULL}
     
     make_context(&(child->context), func, num_arg, &argv[1]);
 
