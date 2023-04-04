@@ -10,7 +10,7 @@
 #include "macro.h"
 // #include "file.h"
 dir_node * new_directory_node(char* f_name, uint32_t size, uint16_t firstBlock, uint8_t type, uint8_t perm, time_t time) {
-    dir_node* res = (dir_node*)malloc(sizeof(directory_entry));
+    dir_node* res = (dir_node*)malloc(sizeof(dir_node));
     res->next = NULL;
     directory_entry* res_directory_entry = (directory_entry*)malloc(sizeof(directory_entry));
     res->dir_entry = res_directory_entry;

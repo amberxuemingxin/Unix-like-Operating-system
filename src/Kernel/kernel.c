@@ -43,7 +43,7 @@ void set_stack(stack_t *stack)
     *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ};
 }
 
-void make_context(ucontext_t *ucp, void (*func)(), char *argv[])
+void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
 {
     getcontext(ucp);
 
@@ -51,7 +51,21 @@ void make_context(ucontext_t *ucp, void (*func)(), char *argv[])
     set_stack(&ucp->uc_stack);
     ucp->uc_link = func == schedule ? &scheduler_context : NULL;
 
-    makecontext(ucp, func, 1, argv);
+    switch (argc)
+    {
+    case 0:
+        makecontext(ucp, func, 0);
+        break;
+    case 1:
+        makecontext(ucp, func, 1, argv[0]);
+        break;
+    case 2:
+        makecontext(ucp, func, 2, argv[0], argv[1]);
+        break;
+    default:
+        break;
+    }
+    // makecontext(ucp, func, argc, argv);
 }
 
 void k_foreground_process(pid_t pid)

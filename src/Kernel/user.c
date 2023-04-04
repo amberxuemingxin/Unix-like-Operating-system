@@ -9,10 +9,8 @@ extern pcb_t *active_process;
 extern ucontext_t idle_context;
 extern int ticks;
 
-pid_t p_spawn(void (*func)(), char **argv, int fd0, int fd1) {
+pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     bool is_shell = false;
-
-    // printf("%s\n", argv[0][1]);
 
     if (strcmp(argv[0], "shell") == 0) {
         is_shell = true;
@@ -28,9 +26,9 @@ pid_t p_spawn(void (*func)(), char **argv, int fd0, int fd1) {
     child->process = malloc(sizeof(char) * (strlen(argv[0]) + 1));
     strcpy(child->process, argv[0]);
 
-// tmp {"sleep", &num, NULL}
-
-    make_context(&(child->context), func, argv);
+// tmp {"sleep", "1", NULL}
+    
+    make_context(&(child->context), func, num_arg, &argv[1]);
 
     log_events(CREATE, ticks, child->pid, child->priority, child->process);
 

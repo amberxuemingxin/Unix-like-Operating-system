@@ -2,30 +2,30 @@
 #define PCB_HEADER
 
 #include <sys/types.h>
-#include "queue.h"
 #include "parser.h"
 
 #define RUNNING_J 0
 #define STOPPED_J 1
+#define FINISHED_J 2
 
 typedef struct jobs
 {
-    pid_t *pid;
+    pid_t *pids;
     pid_t pgid;
 
     char *cmd;
     bool background;
-    int (*pipes)[2];
     int fd0;
     int fd1;
 
     int jid;
     int status; /* RUNNING or STOPPED or FINISHED */
+    struct jobs *next;
 } job;
 
 typedef struct job_queue {
-    queue *queue_running;
-    queue *queue_stopped;
+    job *queue_running;
+    job *queue_stopped;
     int max_jid;
 } job_list;
 

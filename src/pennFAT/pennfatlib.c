@@ -11,7 +11,7 @@
 #include "FAT.h"
 // #include "file.h"
 
-bool f_opened = false;
+int curr_fd = -1;
 FAT* curr_fat;
 int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
     char* cmd = commands[0][0];
@@ -226,48 +226,73 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
 int f_open(const char *f_name, int mode){
     int fd = -1;
     // only one file can be opened at a time
-    if(f_opened){
-        return fd;
-    }
+    // if(f_opened){
+    //     return fd;
+    // }
     
     //search for file with f_name:
     dir_node* file_node = search_file((char*)f_name, curr_fat, NULL);
-    //no file found, then create file. 
-    if (file_node == NULL) {
-        uint16_t firstBlock = 1;
-        for (uint32_t i = 1; i < curr_fat->entry_size; i++){
-            if (curr_fat->block_arr[i] == ZERO){
-                firstBlock = (uint16_t) i;
-                break;
+
+    if(mode == F_READ) {
+        if(file_node == NULL || file_node->dir_entry->perm == 2) {
+            return FAILURE;
+        }
+
+        return (int)file_node->dir_entry->firstBlock;
+    } else if(mode == F_WRITE || mode == F_APPEND) {
+        //no file found, then create file. 
+        if(mode == F_WRITE && curr_fd != -1) {
+            return FAILURE;
+        }
+
+        if (file_node == NULL) {
+            uint16_t firstBlock = 12;
+            for (uint32_t i = 2; i < curr_fat->entry_size; i++){
+                if (curr_fat->block_arr[i] == ZERO){
+                    firstBlock = (uint16_t) i;
+                    break;
+                }
             }
+            // new a dir entry with 0 byte (empty file)
+            file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
+            // append this node to the FAT dir information. 
+            if (curr_fat->first_dir_node == NULL){
+                curr_fat->first_dir_node = file_node;
+                curr_fat->last_dir_node = file_node;
+            } else {
+                curr_fat->last_dir_node->next = file_node;
+                curr_fat->last_dir_node = file_node;
+            }
+            curr_fat->file_num++;
+            write_directory_to_block(*file_node->dir_entry, curr_fat);
+            if(mode == F_WRITE) {
+                curr_fd = (int) file_node->dir_entry->firstBlock;
+            }
+        } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
+            return FAILURE;
         }
-        // new a dir entry with 0 byte (empty file)
-        file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
-        // append this node to the FAT dir information. 
-        if (curr_fat->first_dir_node == NULL){
-            curr_fat->first_dir_node = file_node;
-            curr_fat->last_dir_node = file_node;
-        } else {
-            curr_fat->last_dir_node->next = file_node;
-            curr_fat->last_dir_node = file_node;
-        }
-        curr_fat->file_num++;
-        write_directory_to_block(*file_node->dir_entry, curr_fat);
-        f_opened = true;
-        fd = (int)file_node->dir_entry->firstBlock;
-        return fd;
+
+        return (int) file_node->dir_entry->firstBlock;
     }
 
-
-    //TODO: IMPLEMENT WHAT HAPPENS IF FILE IS NOT FOUND IN CURRFAT IN DIFFERNET MODE
-
-    f_opened = true;
-    return fd;
+    return FAILURE;
 }
 
 int f_read(int fd, int n, char *buf){
 
-
+    uint32_t byte_read = 0;
+    uint16_t index = fat->directory_starting_index + (fd - 2) * 32;
+    
+    while(byte_read < n) {
+        char ch = (char) fat->block_arr[index] >> 8;
+        if(ch == '/0')
+        buf[byte_read] = ch;
+        byte_read++;
+        if(byte_read < n) {
+            buf[byte_read] = (char) fat->block_arr[index] & 0x00FF;
+            byte_read++;
+        }
+    }
     return SUCCESS;
 }
 
@@ -277,6 +302,9 @@ int f_write(int fd, const char *str, int n){
 }
 
 int f_close(int fd) {
-    f_opened = false;
+    if(curr_fd == fd) {
+        curr_fd = -1;
+    }
+    
     return 0;
 }
