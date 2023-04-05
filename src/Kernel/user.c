@@ -38,7 +38,6 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
 
 void p_sleep(unsigned int ticks) {
     active_process->ticks = ticks;
-    printf("ticks = %d\n", ticks);
     pcb_t *parent = active_process->parent;
     k_block(parent);
     swapcontext(&active_process->context, &idle_context);

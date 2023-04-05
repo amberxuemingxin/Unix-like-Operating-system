@@ -12,7 +12,6 @@ pcb_t *active_process;
 queue *queue_high;
 queue *queue_mid;
 queue *queue_low;
-queue *queue_blocked;
 
 extern bool idle;
 extern ucontext_t scheduler_context;
@@ -24,7 +23,6 @@ void init_scheduler() {
     queue_high = init_queue();
     queue_mid = init_queue();
     queue_low = init_queue();
-    queue_blocked = init_queue();
 
     active_process = NULL;
 }
@@ -36,6 +34,7 @@ void alarm_handler(int signum) {
     if (idle) {
         setcontext(&scheduler_context);
     } else {
+        // printf("current active process: %s\n", active_process->process);
         swapcontext(&(active_process->context), &scheduler_context);
     }
 }
@@ -71,17 +70,14 @@ void add_to_scheduler(pcb_t *process) {
 }
 
 void remove_from_scheduler(pcb_t *process) {
-    pcb_t *tmp;
 
     if (process->priority == -1) {
-        tmp = remove_process(queue_high, process);
+        remove_process(queue_high, process);
     } else if (process->priority == 0) {
-        tmp = remove_process(queue_mid, process);
+        remove_process(queue_mid, process);
     } else {
-        tmp = remove_process(queue_low, process);
+        remove_process(queue_low, process);
     }
-
-    add_process(queue_blocked, tmp);
 }
 
 pcb_t *search_in_scheduler(pid_t pid) {
@@ -140,6 +136,7 @@ pcb_t *pick_next_process() {
         picked_process = queue_mid->head;
     } else {
         picked_process = queue_high->head;
+        // printf("picked high!\n");
     }
 
     return picked_process;
@@ -176,20 +173,23 @@ void schedule() {
     if (active_process) {
         // perror("here");
         if (active_process->ticks > 0) {
-            printf("ticks %d\n", active_process->ticks);
+            // printf("ticks %d\n", active_process->ticks);
             active_process->ticks--;
+            setcontext(&idle_context);
         } else if (active_process->ticks == 0) {
             k_unblock(active_process->parent);
             remove_from_scheduler(active_process);
-            remove_process(queue_blocked, active_process);
+            // printf("exit %s\n", active_process->process);
             log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
-            free(active_process);
+            free_pcb(active_process);
+            active_process = NULL;
         }
     }
 
     pcb_t *next_process = pick_next_process();
 
     if (next_process == NULL) {
+        // printf("idle process picked!\n");
         setcontext(&idle_context);
         perror("setcontext - idle");
         exit(EXIT_FAILURE);
@@ -197,7 +197,6 @@ void schedule() {
 
     if (active_process != next_process) {
         active_process = next_process;
-        // printf("Scheduled!! ticks = %d\n", ticks);
         log_events(SCHEDULE, ticks, active_process->pid, active_process->priority, active_process->process);
     }
 

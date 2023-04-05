@@ -91,6 +91,7 @@ void k_foreground_process(pid_t pid)
 void k_block(pcb_t *parent) {
     parent->status = BLOCKED_P;
     remove_from_scheduler(parent);
+    // printf("block %s\n", parent->process);
     log_events(BLOCKED, ticks, parent->pid, parent->priority, parent->process);
 }
 
@@ -103,6 +104,7 @@ void k_unblock(pcb_t *parent)
     {
         parent->status = RUNNING_P;
         add_to_scheduler(parent);
+        // printf("unblock %s\n", parent->process);
         log_events(UNBLOCKED, ticks, parent->pid, parent->priority, parent->process);
     } else {
         perror("Parent is not blocked!");
