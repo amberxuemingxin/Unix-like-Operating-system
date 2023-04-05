@@ -3,6 +3,8 @@
         "unistd.h": "c",
         "FAT.C": "cpp",
         "typeinfo": "cpp",
-        "fat.h": "c"
-    }
+        "fat.h": "c",
+        "type_traits": "c"
+    },
+    "C_Cpp.errorSquiggles": "disabled"
 }
