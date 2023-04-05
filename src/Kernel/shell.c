@@ -39,7 +39,11 @@ void shell_loop () {
             continue;
         }
 
-        execute(cmd);
+        if (cmd->num_commands >= 1) {
+            execute(cmd);
+        }
+        
+        // printf("%s\n", **cmd->commands);
         // perror("After execution");
         free(cmd);
     }
