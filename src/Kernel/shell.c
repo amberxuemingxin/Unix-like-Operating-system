@@ -2,8 +2,13 @@
 #include "parser.h"
 #include "kernel.h"
 #include "execute.h"
+#include "jobs.h"
+#include "handler.h"
+
+job_list *list;
 
 void shell_loop () {
+    list = init_job_list();
     
     while (1) {
         // prompt to the user
@@ -40,7 +45,7 @@ void shell_loop () {
         }
 
         if (cmd->num_commands >= 1) {
-            execute(cmd);
+            cmd_handler(cmd);
         }
         
         // printf("%s\n", **cmd->commands);
