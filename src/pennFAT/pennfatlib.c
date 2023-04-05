@@ -102,7 +102,12 @@ int pennfat_touch(char **files, FAT *fat){
                 file_name = files[index];
                 continue;
             }
-        int fd = f_open(file_name, WRITE_PERMS);
+        int fd = f_open(file_name, F_WRITE);
+        if(fd == -1) {
+            printf("open error\n");
+        } else {
+            printf("open successful\n");
+        }
         f_close(fd);
         index += 1;
         file_name = files[index];
@@ -224,7 +229,6 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
 } 
 
 int f_open(const char *f_name, int mode){
-    int fd = -1;
     // only one file can be opened at a time
     // if(f_opened){
     //     return fd;
@@ -244,7 +248,7 @@ int f_open(const char *f_name, int mode){
         if(mode == F_WRITE && curr_fd != -1) {
             return FAILURE;
         }
-
+        printf("Opening file\n");
         if (file_node == NULL) {
             uint16_t firstBlock = 12;
             for (uint32_t i = 2; i < curr_fat->entry_size; i++){
@@ -268,6 +272,11 @@ int f_open(const char *f_name, int mode){
             if(mode == F_WRITE) {
                 curr_fd = (int) file_node->dir_entry->firstBlock;
             }
+
+            printf("file node name : %s\n", file_node->dir_entry->name);
+            printf("file node size : %d\n", file_node->dir_entry->size);
+            printf("file node first block : %d\n", file_node->dir_entry->firstBlock);
+            printf("file node type : %d\n", file_node->dir_entry->type);
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
         }
@@ -281,24 +290,156 @@ int f_open(const char *f_name, int mode){
 int f_read(int fd, int n, char *buf){
 
     uint32_t byte_read = 0;
-    uint16_t index = fat->directory_starting_index + (fd - 2) * 32;
-    
+    int curr_block = fd;
+    uint16_t start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+    uint16_t index = start_index;
     while(byte_read < n) {
-        char ch = (char) fat->block_arr[index] >> 8;
-        if(ch == '/0')
+        char ch = (char) curr_fat->block_arr[index] >> 8; 
         buf[byte_read] = ch;
         byte_read++;
+        if(ch == '\0' && byte_read != n) return EOF;
         if(byte_read < n) {
-            buf[byte_read] = (char) fat->block_arr[index] & 0x00FF;
+            ch = (char) curr_fat->block_arr[index] & 0x00FF;
+            buf[byte_read] = ch;
             byte_read++;
+            if(ch == '\0' && byte_read != n) return EOF;
+        }
+        index++;
+        if(index == start_index + 32) {
+            if(curr_fat->block_arr[curr_block] != 0xFFFF) {
+                curr_block = curr_fat->block_arr[curr_block];
+                start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+                index = start_index;
+            }
         }
     }
-    return SUCCESS;
+    return byte_read;
 }
 
 int f_write(int fd, const char *str, int n){
+    uint32_t byte_write = 0;
+    int curr_block = fd;
+    uint16_t start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+    uint16_t index = start_index;
 
-    return SUCCESS;
+    //write mode
+    if(curr_fd == fd) {
+        while(byte_write < n) {
+            curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
+            byte_write++;
+            if(byte_write < n) {
+                curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                byte_write++;
+            }
+            index++;
+
+            //check if current data block is full
+            if(index == start_index + 32) {
+                //find next available data block
+                if(curr_fat->block_arr[curr_block] != 0xFFFF) {
+                    curr_block = curr_fat->block_arr[curr_block];
+                    start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+                    index = start_index;
+                } else {
+                    int free_entry_index = 2;
+                    // find unused data block
+                    while(free_entry_index < curr_fat->directory_starting_index && curr_fat->block_arr[free_entry_index] != 0x0000) {
+                        free_entry_index++;
+                    }
+
+                    if(free_entry_index < curr_fat->block_num) {
+                        curr_fat->block_arr[curr_block] = free_entry_index;
+                        curr_block = free_entry_index;
+                        start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+                        index = start_index;
+                    } else {
+                        return FAILURE;
+                    }
+                    
+                }
+            }
+        }
+
+        dir_node* curr_node = curr_fat->first_dir_node;
+        while(curr_node->dir_entry->firstBlock != fd) {
+            curr_node = curr_node->next;
+        }
+        directory_entry* curr_dir = curr_node->dir_entry;
+        curr_dir->size = byte_write;
+        
+
+        directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[curr_fat->directory_starting_index + curr_dir->firstBlock * 32];
+        *entry_ptr = *curr_dir;
+    } else {
+        dir_node* curr_node = curr_fat->first_dir_node;
+        while(curr_node->dir_entry->firstBlock != fd) {
+            curr_node = curr_node->next;
+        }
+        directory_entry* curr_dir = curr_node->dir_entry;
+        int curr_size = curr_dir->size;
+
+        if(curr_size != 0) {
+            while(curr_size >= 64) {
+                curr_block = curr_fat->block_arr[curr_block];
+                curr_size -= 64;
+            }
+            start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+            index = start_index;
+            while(curr_fat->block_arr[index] >> 8 != '\0' || (curr_fat->block_arr[index] & 0x00FF) != '\0') {
+                index++;
+            }
+
+            if((curr_fat->block_arr[index] & 0x00FF) == '\0' && byte_write < n) {
+                curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                index++;
+            }
+            
+        }
+
+        while(byte_write < n) {
+            //check if current data block is full
+            if(index == start_index + 32) {
+                //find next available data block
+                if(curr_fat->block_arr[curr_block] != 0xFFFF) {
+                    curr_block = curr_fat->block_arr[curr_block];
+                    start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+                    index = start_index;
+                } else {
+                    int free_entry_index = 2;
+                    // find unused data block
+                    while(free_entry_index < curr_fat->directory_starting_index && curr_fat->block_arr[free_entry_index] != 0x0000) {
+                        free_entry_index++;
+                    }
+
+                    if(free_entry_index < curr_fat->block_num) {
+                        curr_fat->block_arr[curr_block] = free_entry_index;
+                        curr_block = free_entry_index;
+                        start_index = curr_fat->directory_starting_index + (curr_block - 2) * 32;
+                        index = start_index;
+                    } else {
+                        return FAILURE;
+                    }
+                    
+                }
+            }
+
+            curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
+            byte_write++;
+            if(byte_write < n) {
+                curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                byte_write++;
+            }
+            index++;
+        }
+
+        curr_dir->size = curr_dir->size + byte_write;
+        directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[curr_fat->directory_starting_index + curr_dir->firstBlock * 32];
+        *entry_ptr = *curr_dir;
+    }
+    
+
+    
+    return byte_write;
 }
 
 int f_close(int fd) {
