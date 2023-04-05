@@ -103,17 +103,19 @@ int pennfat_touch(char **files, FAT *fat){
                 continue;
             }
         int fd = f_open(file_name, F_WRITE);
-        if(fd == -1) {
-            printf("open error\n");
-        } else {
-            printf("open successful\n");
-        }
-        char arr1[5] = "abcde";
-        int byte_write = f_write(fd, arr1, 5);
-        printf("byte write: %d\n", byte_write);
-        char arr2[5];
-        int byte_read = f_read(fd, 5, arr2);
-        printf("byte read: %d, value: %s\n", byte_read, arr2);
+        // testing code for f_read and f_write
+        //
+        // if(fd == -1) {
+        //     printf("open error\n");
+        // } else {
+        //     printf("open successful\n");
+        // }
+        // char arr1[5] = "abcde";
+        // int byte_write = f_write(fd, arr1, 5);
+        // printf("byte write: %d\n", byte_write);
+        // char arr2[5];
+        // int byte_read = f_read(fd, 5, arr2);
+        // printf("byte read: %d, value: %s\n", byte_read, arr2);
         f_close(fd);
         index += 1;
         file_name = files[index];
