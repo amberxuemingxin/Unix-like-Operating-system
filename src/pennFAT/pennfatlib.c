@@ -170,7 +170,60 @@ int pennfat_remove(char **commands, FAT *fat){
 }
 
 int pennfat_cat(char **commands, FAT *fat){
-    return 1;
+    int count = 0;
+    while (commands[count] != NULL) {
+        count++;
+    }
+
+    if (count < 2) {
+        printf("Insufficient argument for cat\n");
+        return FAILURE;
+    }
+    for (int i = 0; i < count; i++) {
+        if ((strcmp(commands[i], "-w") == 0 || strcmp(commands[i], "-a") == 0 )&& i != count - 2) {
+            printf("Wrong flag position\n");
+            return FAILURE;
+        }
+    bool writing = strcmp(commands[count - 2], "-w") == 0;
+    bool appending = strcmp(commands[count - 2], "-a") == 0;
+
+    //handle read from terminal cases:
+    // cat -a file
+    //cat -w file
+    if ((count == 3) && (writing || appending)) {
+        char *line = NULL;
+        size_t len = 0;
+        printf("Please enter here:\n");
+        if (getline(&line, &len, stdin) == - 1) {
+            perror("getline");
+            return FAILURE;
+        }
+        // writing line to the destiny file. 
+
+        char* f_name = commands[count-1];
+        if(writing) {
+            int fd = f_open(f_name, F_WRITE);
+            if(f_write(fd, line, len) == -1) {
+                f_close(fd);
+                return FAILURE;
+            }
+            f_close(fd);
+            return SUCCESS;
+        } else if (appending)
+        {
+            int fd = f_open(f_name, F_APPEND);
+            if(f_write(fd, line, len) == -1) {
+                f_close(fd);
+                return FAILURE;
+            }
+            f_close(fd);
+            return SUCCESS;
+        }
+    }
+
+
+    }
+    return SUCCESS;
 }
 
 int pennfat_cp(char **commands, FAT *fat){
@@ -362,7 +415,6 @@ int f_write(int fd, const char *str, int n){
                 }
             }
         }
-
         // find file node and update file size
         dir_node* curr_node = curr_fat->first_dir_node;
         while(curr_node->dir_entry->firstBlock != fd) {
@@ -370,8 +422,6 @@ int f_write(int fd, const char *str, int n){
         }
         directory_entry* curr_dir = curr_node->dir_entry;
         curr_dir->size = byte_write;
-        
-
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[curr_fat->directory_starting_index + (curr_dir->firstBlock - 2) * 32];
         *entry_ptr = *curr_dir;
     } else {
@@ -393,13 +443,11 @@ int f_write(int fd, const char *str, int n){
             while(curr_fat->block_arr[index] >> 8 != '\0' || (curr_fat->block_arr[index] & 0x00FF) != '\0') {
                 index++;
             }
-
             // if a free space available at the current index, write one char
             if((curr_fat->block_arr[index] & 0x00FF) == '\0' && byte_write < n) {
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
                 index++;
             }
-            
         }
 
         while(byte_write < n) {
