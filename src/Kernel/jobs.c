@@ -98,18 +98,16 @@ char *flatten(struct parsed_command *cmd)
     return string;
 }
 
-job *init_job(struct parsed_command *cmd, int jid, pid_t pid, pid_t pgid, int fd0, int fd1) {
+job *init_job(struct parsed_command *cmd, job_list *list) {
     job *j = malloc(sizeof(job));
-    j->jid = jid;
+    j->jid = list->max_jid + 1;
     j->pids = malloc(sizeof(pid_t) * cmd->num_commands);
-    j->pgid = pgid;
     j->cmd = flatten(cmd);
     j->background = cmd->is_background;
     j->status = RUNNING_J;
-    j->fd0 = fd0;
-    j->fd1 = fd1;
     j->next = NULL;
 
+    list->max_jid++;
     return j;
 }
 

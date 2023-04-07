@@ -7,7 +7,7 @@
 #include "user.h"
 #include "built-ins/sleep.h"
 
-void execute(struct parsed_command *cmd) {
+void execute(struct parsed_command *cmd, job *job) {
     char *buf;
     int size;
     
