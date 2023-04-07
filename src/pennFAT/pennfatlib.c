@@ -221,7 +221,41 @@ int pennfat_cat(char **commands, FAT *fat){
         }
     }
 
+    //handle redirection cases:
+    // cat file1 -w file2
+    // cat file1 -a file2
+    if(count == 4 && (writing || appending)) {
+         char* f1_name = commands[1];
+         char* f2_name = commands[3];
 
+         int f1_fd = f_open(f1_name, F_READ);
+         int f2_fd;
+         if(writing) {
+            f2_fd = f_open(f2_name, F_WRITE);
+         } else {
+            f2_fd = f_open(f2_name, F_APPEND);
+         }
+         dir_node* f1_node = search_file(f1_name,curr_fat,NULL);
+        char* buff = NULL;
+
+         if(f_read(f1_fd, f1_node->dir_entry->size, buff) == SUCCESS) {
+            if(f_write(f2_fd,buff, sizeof(buff))==SUCCESS) {
+                f_close(f1_fd);
+                f_close(f2_fd);
+                return SUCCESS;
+            } else {
+                f_close(f1_fd);
+                f_close(f2_fd);
+                return FAILURE;
+            }
+         } else {
+            printf("error: f_read\n");
+            f_close(f1_fd);
+                f_close(f2_fd);
+                return FAILURE;
+         }
+
+    }
     }
     return SUCCESS;
 }
@@ -345,6 +379,7 @@ int f_read(int fd, int n, char *buf){
     int curr_block = fd;
     uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * 32;
     uint16_t index = start_index;
+    printf("here\n");
     // read data into buf
     while(byte_read < n) {
         char ch = (char) (curr_fat->block_arr[index] >> 8);
