@@ -110,13 +110,16 @@ int pennfat_touch(char **files, FAT *fat){
         // } else {
         //     printf("open successful\n");
         // }
-        // char arr1[5] = "abcde";
-        // int byte_write = f_write(fd, arr1, 5);
+        // char arr1[6] = "abcdef";
+        // int byte_write = f_write(fd, arr1, 6);
         // printf("byte write: %d\n", byte_write);
         // char arr2[5];
         // int byte_read = f_read(fd, 5, arr2);
         // printf("byte read: %d, value: %s\n", byte_read, arr2);
         f_close(fd);
+        // char arr2[6] = "ghijkl";
+        // byte_write = f_write(fd, arr2, 6);
+        // printf("byte write: %d\n", byte_write);
         index += 1;
         file_name = files[index];
     }
@@ -440,12 +443,13 @@ int f_write(int fd, const char *str, int n){
             }
             start_index = curr_fat->dblock_starting_index + (curr_block - 2) * 32;
             index = start_index;
-            while(curr_fat->block_arr[index] >> 8 != '\0' || (curr_fat->block_arr[index] & 0x00FF) != '\0') {
+            while(curr_fat->block_arr[index] >> 8 != '\0' && (curr_fat->block_arr[index] & 0x00FF) != '\0') {
                 index++;
             }
             // if a free space available at the current index, write one char
-            if((curr_fat->block_arr[index] & 0x00FF) == '\0' && byte_write < n) {
+            if((curr_fat->block_arr[index] & 0x00FF) == '\0' && (curr_fat->block_arr[index] >> 8) != '\0' && byte_write < n) {
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                byte_write++;
                 index++;
             }
         }
@@ -476,7 +480,7 @@ int f_write(int fd, const char *str, int n){
                     
                 }
             }
-
+            
             curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
             byte_write++;
             if(byte_write < n) {
