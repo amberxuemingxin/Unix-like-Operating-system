@@ -13,7 +13,7 @@
 
 int curr_fd = -1;
 FAT* curr_fat;
-int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
+int parse_pennfat_command(char ***commands, int commandCount){
     char* cmd = commands[0][0];
 
     if(strcmp(cmd, "mkfs") == 0) {
@@ -21,40 +21,52 @@ int parse_pennfat_command(char ***commands, int commandCount, FAT **fat){
             printf("insuffcient arguement\n");
             return FAILURE;
         }
-        return pennfat_mkfs(commands[0][1], (char) atoi(commands[0][2]), (char) atoi(commands[0][3]), fat);
+        return pennfat_mkfs(commands[0][1], (char) atoi(commands[0][2]), (char) atoi(commands[0][3]), &curr_fat);
     } else if (strcmp(cmd, "mount") == 0) {
-        *fat = pennfat_mount(commands[0][1]);
-        if (*fat == NULL) return FAILURE;
+        printf("here in mount fract\n");
+
+        if(curr_fat != NULL) {
+            printf("A filesystem already mounted, please unmount first\n");
+            return FAILURE;
+        }
+        printf("here, before calling pennfat_mount\n");
+
+        curr_fat = pennfat_mount(commands[0][1]);
+        if (curr_fat == NULL) return FAILURE;
         return SUCCESS;
-    } else if (*fat == NULL) {
+    } else if (curr_fat == NULL) {
         printf("No filesystem mounted yet\n");
         return FAILURE;
     } else if (strcmp(cmd, "umount") == 0) {
-        free(*fat);
-        *fat = NULL;
+        free_fat(curr_fat);
         curr_fat = NULL;
         return SUCCESS;
     } else if (strcmp(cmd, "touch") == 0) {
-        return pennfat_touch(commands[0], *fat);
+        return pennfat_touch(commands[0], curr_fat);
     } else if (strcmp(cmd, "mv") == 0) {
-        return pennfat_mv(commands[0][1], commands[0][2], *fat);
+        return pennfat_mv(commands[0][1], commands[0][2], curr_fat);
     } else if (strcmp(cmd, "rm") == 0) {
-        return pennfat_remove(commands[0], *fat);
+        return pennfat_remove(commands[0], curr_fat);
     }  else if (strcmp(cmd, "cat") == 0) {
-        return pennfat_cat(commands[0], *fat);
+        return pennfat_cat(commands[0], curr_fat);
     } else if (strcmp(cmd, "cp") == 0) {
-        return pennfat_cp(commands[0], *fat);
+        return pennfat_cp(commands[0], curr_fat);
     } else if (strcmp(cmd, "ls") == 0) {
-        return pennfat_ls(*fat);
+        return pennfat_ls(curr_fat);
     } else if (strcmp(cmd, "chmod") == 0) {
-        return pennfat_chmod(commands[0], *fat);
+        return pennfat_chmod(commands[0], curr_fat);
     } else if (strcmp(cmd, "describe") == 0) {
-        printf("File system name : %s\n", (*fat)->f_name);
-        printf("Number of block in the filesystem : %d\n", (*fat)->block_num);
-        printf("Block size : %d\n", (*fat)->block_size);
-        printf("Number of entries: %d\n", (*fat)->entry_size);
-        printf("number of files : %d\n", (*fat)->file_num);
-        printf("available blocks: %d\n", (*fat)->free_entries);
+        printf("File system name : %s\n", (curr_fat)->f_name);
+        printf("Number of block in the filesystem : %d\n", (curr_fat)->block_num);
+        printf("Block size : %d\n", (curr_fat)->block_size);
+        printf("Number of entries: %d\n", (curr_fat)->entry_size);
+        printf("number of files : %d\n", (curr_fat)->file_num);
+        printf("available blocks: %d\n", (curr_fat)->free_entries);
+        if((curr_fat)->first_dir_node != NULL) {
+            printf("first file is : %s\n", (curr_fat)->first_dir_node->dir_entry->name);
+        }
+        printf("available blocks: %d\n", (curr_fat)->free_entries);
+
     }
     
      else {
@@ -80,6 +92,7 @@ FAT* pennfat_mount(char *f_name) {
         printf("no filename, please enter a filename\n");
         return NULL;
     }
+
     FAT* fat = mount_fat(f_name);
     curr_fat = fat;
 
@@ -103,6 +116,9 @@ int pennfat_touch(char **files, FAT *fat){
                 continue;
             }
         int fd = f_open(file_name, F_WRITE);
+        if(fd == FAILURE) {
+            return FAILURE;
+        }
         // testing code for f_read and f_write
         //
         // if(fd == -1) {
@@ -311,14 +327,14 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
     }
     dir_node* curr = fat->first_dir_node;
     while (curr != NULL){
-        printf("%s\n",curr->dir_entry->name);
-        printf("%s\n",file_name);
+        printf("1%s\n",curr->dir_entry->name);
 
         if (strcmp(curr->dir_entry->name, file_name) != 0){
-            curr = curr->next;
             if(prev != NULL) {
                 *prev = curr;
             }
+            curr = curr->next;
+
         } else{
             return curr;
         }
@@ -354,6 +370,11 @@ int f_open(const char *f_name, int mode){
             // new a dir entry with 0 byte (empty file)
             file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
             // append this node to the FAT dir information. 
+
+            if(write_directory_to_block(*file_node->dir_entry, curr_fat)==FAILURE) {
+                return FAILURE;
+            }
+
             if (curr_fat->first_dir_node == NULL){
                 curr_fat->first_dir_node = file_node;
                 curr_fat->last_dir_node = file_node;
@@ -362,7 +383,6 @@ int f_open(const char *f_name, int mode){
                 curr_fat->last_dir_node = file_node;
             }
             curr_fat->file_num++;
-            write_directory_to_block(*file_node->dir_entry, curr_fat);
             if(mode == F_WRITE) {
                 curr_fd = (int) file_node->dir_entry->firstBlock;
             }
@@ -382,7 +402,7 @@ int f_read(int fd, int n, char *buf){
     int curr_block = fd;
     uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * 32;
     uint16_t index = start_index;
-    printf("here\n");
+    printf("here in read systemcall\n");
     // read data into buf
     while(byte_read < n) {
         char ch = (char) (curr_fat->block_arr[index] >> 8);

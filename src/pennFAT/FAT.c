@@ -109,6 +109,7 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
 }   
 
 FAT* mount_fat(char* f_name) {
+    printf("here in mount_fat function\n");
     //file system file descriptor
     int fs_fd;
     if ((fs_fd = open(f_name, O_RDONLY, 0644)) == -1) {
@@ -129,11 +130,52 @@ FAT* mount_fat(char* f_name) {
         perror("read");
         return NULL;
     }
+    printf("here before the new content\n");
+
+    // TODO: read direcory entry information:
+    directory_entry* curr_entry = malloc(sizeof(directory_entry));
+    int count = 0;
+    printf("here before the new read\n");
+    //use lseek to set ptr to the beginning of directory index
+    printf("offset : %d\n", block_size*numBlocks);
+    lseek(fs_fd, numBlocks*block_size, SEEK_SET);
+    char* test_char = malloc(sizeof(char));
+    if (read(fs_fd, test_char, 1) == -1) {
+        printf("aintgonhappen");
+    }
+    printf("%s", test_char);
+    //read 64 bytes at a time
+    if (read(fs_fd, curr_entry, 64) == -1) {
+        perror("read");
+        return NULL;
+    }
+
+    printf("here after the first new read\n");
+
+    count++;
+    dir_node *dummy = NULL;
+    dir_node *iter =NULL;
+    dummy = iter;
+    printf("here before while loop\n");
+    printf("the first entry read: %s\n", curr_entry->name);
+    while(strcmp(iter->dir_entry->name, "") == 0 || count==block_size/64) {
+        memcpy(iter->dir_entry, curr_entry,64);
+        printf("here after first memcpy\n");
+        curr_entry = NULL;
+        if (read(fs_fd, &curr_entry, 64) == -1) {
+            perror("read");
+            return NULL;
+        }
+    }
+    printf("here after the all new read\n");
 
     if (close(fs_fd) == -1) {
         perror("close");
         return NULL;
     }
+    printf("here in before makefat\n");
+
+
     // make this fat table
     FAT *res = make_fat(f_name, numBlocks, block_size);
 
@@ -141,7 +183,15 @@ FAT* mount_fat(char* f_name) {
         printf("Failed to load FAT\n");
         return NULL;
     }
-
+    res->first_dir_node = dummy;
+    dir_node* curr = res->first_dir_node;
+    while(curr != NULL) {
+        if(write_directory_to_block(*curr->dir_entry,res)== FAILURE) {
+            printf("error: write directory entry to block");
+            return res;
+        }
+        curr = curr->next;
+    }
     return res;
 }
 
@@ -192,7 +242,6 @@ int delete_directory_from_block(directory_entry en, FAT* fat) {
         // thus increment by 32
         directory_entry* curr_entry = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
         if(strcmp(curr_entry->name, en.name) == 0) {
-            printf("found!\n");
             for (int i = 0; i<32; i++) {
                 fat->block_arr[fat->directory_starting_index + index + i] = ZERO;
             }
