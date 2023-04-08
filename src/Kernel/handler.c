@@ -5,6 +5,7 @@
 #include "handler.h"
 #include "jobs.h"
 #include "execute.h"
+#include "user.h"
 
 extern job_list *list;
 
@@ -104,6 +105,10 @@ void cmd_handler(struct parsed_command *cmd) {
 
         return;
         
+    } else if (strcmp(cmd->commands[0][0], "logout") == 0) {
+        free_all_jobs(list);
+        free(cmd);
+        p_exit();
     }
 
     // execute the cmd

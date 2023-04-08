@@ -1,12 +1,14 @@
-#include "stdio.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 
 #include "user.h"
 #include "kernel.h"
 #include "logger.h"
+#include "scheduler.h"
 
 extern pcb_t *active_process;
 extern ucontext_t idle_context;
+extern ucontext_t scheduler_context;
 extern int ticks;
 
 pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
@@ -43,18 +45,109 @@ void p_sleep(unsigned int ticks) {
     swapcontext(&active_process->context, &idle_context);
 }
 
-void p_exit() {
-    if (active_process == NULL) {
-        perror("no active_process\n");
-        return;
-    }
+int p_kill(pid_t pid, int sig) {
+    /* If pid is equal to 0, 
+    kill() sends its signal to all processes whose process group ID is equal to that of the sender. */
+    if (pid == 0) {
+        k_process_kill(active_process, sig);
+        return 0;
 
-    /* current process is shell */
-    if (active_process->pid == 1) {
-        exit(EXIT_SUCCESS);
-    }
+    } else {
+        pcb_t *p = search_in_scheduler(pid);
 
-    /* current process is not shell */
-    active_process->status = EXITED_P;
-    wait_for_processes(active_process);
+        if (p) {
+            k_process_kill(p, sig);
+            return 0;
+        } else { /* pid not found */
+            return -1;
+        }
+    }
 }
+
+pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
+    /* global as the caller */
+    if (nohang) { /* return the result immediately */
+        if (pid == -1) { /* wait for any children processes */
+            pcb_t *child = active_process->children;
+            
+            if (child == NULL) {
+                return 0;
+            }
+
+            while (child) {
+                if (W_WIFEXITED(child->status)) {
+                    return child->pid;
+                }
+                child = child->next;
+            }
+
+            return 0;
+        } else { /* wait for specific process */
+            pcb_t *p = search_in_scheduler(pid);
+
+            if (p == NULL) {
+                return 0;
+            }
+            if (W_WIFEXITED(p->status)) {
+                return pid;
+            } else {
+                return 0;
+            }
+        }
+    } else {
+
+        if (pid == -1) { /* wait for any children processes */
+            pcb_t *child = active_process->children;
+
+            if (child == NULL) {
+                return 0;
+            }
+
+            while (child) {
+                if (W_WIFEXITED(child->status)) {
+                    return child->pid;
+                }
+                child = child->next;
+            }
+
+            /* no child is finished */
+            /* block the caller */
+            k_block(active_process);
+            /* block queue:  */
+
+        } else { /* wait for specific process */
+
+            pcb_t *p = search_in_scheduler(pid);
+
+            if (p == NULL) {
+                return 0;
+            }
+            if (W_WIFEXITED(p->status)) {
+                return pid;
+            } else {
+                return 0;
+            }
+
+            k_block(active_process);
+        }
+    }
+    return 0;
+}
+
+void p_exit() {
+    pcb_t *shell_process = search_in_scheduler(1);
+    p_kill(1, S_SIGTERM);
+    k_process_cleanup(shell_process);
+
+    free(idle_context.uc_stack.ss_sp);
+    free(scheduler_context.uc_stack.ss_sp);
+
+    exit_scheduler();
+    free_logger();
+
+    exit(EXIT_SUCCESS);
+}
+
+/* p_exit : calling p_kill with sigkill */
+/* sigterm can be block but sigkill can not */
+/* k_kill: send the signal recursively; sigterm/sigkill - clean up by k_cleanup */

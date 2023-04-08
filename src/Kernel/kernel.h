@@ -4,6 +4,11 @@
 #include "scheduler.h"
 #include "PCB.h"
 
+// Define macros for signals
+#define S_SIGSTOP 0
+#define S_SIGCONT 1
+#define S_SIGTERM 2
+
 void idle_process();
 
 void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[]);

@@ -11,6 +11,7 @@
 #define STOPPED_P 2
 #define ZOMBIED_P 3
 #define EXITED_P 4
+#define SIGNALED_P 5
 
 typedef struct pcb_def
 {

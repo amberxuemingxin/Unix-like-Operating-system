@@ -8,11 +8,6 @@
 #include "logger.h"
 #include "scheduler.h"
 
-// Define macros for signals
-#define S_SIGSTOP 0
-#define S_SIGCONT 1
-#define S_SIGTERM 2
-
 // global variables
 int ticks = 0;
 pid_t max_pid = 0;
@@ -160,22 +155,47 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
  */
 int k_process_kill(pcb_t *process, int signal)
 {
-
     // stop the process
     if (signal == S_SIGSTOP)
     {
-        process->status = STOPPED;
+        process->status = STOPPED_P;
         log_events(STOPPED, ticks, process->pid, process->priority, process->process);
 
         if (process == active_process)
         {
+            active_process = NULL;
             k_unblock(process->parent);
         }
+
+        return 0;
+    } else if (signal == S_SIGTERM) 
+    {
+        pcb_t *child = process->children;
+
+        while (child) {
+            k_process_kill(child, S_SIGTERM);
+            child = child->next;
+        }
+
+        process->status = EXITED_P;
+        log_events(EXITED, ticks, process->pid, process->priority, process->process);
+
+
+        if (process == active_process && process->parent)
+        {
+            active_process = NULL;
+            k_unblock(process->parent);
+        }
+
+        return 0;
     }
+
     return 0;
 }
 
 void k_process_cleanup(pcb_t *process)
 {
+    remove_from_scheduler(process);
+    free_pcb(process);
     return;
 }

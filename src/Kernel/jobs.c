@@ -100,14 +100,19 @@ char *flatten(struct parsed_command *cmd)
 
 job *init_job(struct parsed_command *cmd, job_list *list) {
     job *j = malloc(sizeof(job));
-    j->jid = list->max_jid + 1;
     j->pids = malloc(sizeof(pid_t) * cmd->num_commands);
     j->cmd = flatten(cmd);
     j->background = cmd->is_background;
     j->status = RUNNING_J;
     j->next = NULL;
 
-    list->max_jid++;
+    if (cmd->is_background) {
+        j->jid = list->max_jid + 1;
+        list->max_jid++;
+    } else {
+        j->jid = 0;
+    }
+
     return j;
 }
 

@@ -79,3 +79,7 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
     }
     fclose(log_file);
 }
+
+void free_logger() {
+    free(log_name);
+}

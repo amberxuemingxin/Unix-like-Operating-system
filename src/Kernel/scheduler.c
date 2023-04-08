@@ -177,14 +177,15 @@ void schedule() {
             active_process->ticks--;
             setcontext(&idle_context);
         } else if (active_process->ticks == 0) {
-            k_unblock(active_process->parent);
-            remove_from_scheduler(active_process);
-            // printf("exit %s\n", active_process->process);
-            log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
-            free_pcb(active_process);
-            active_process = NULL;
+            pcb_t *sleep_process = active_process;
+            k_process_kill(sleep_process, S_SIGTERM);
+            k_process_cleanup(sleep_process);
         }
     }
+
+/*
+* if anything in block queue, check if any of the children is signaled
+*/
 
     pcb_t *next_process = pick_next_process();
 
@@ -208,4 +209,10 @@ void schedule() {
     exit(EXIT_FAILURE);
 
     // exit the current process / insert the node back to the queue - some other functions
+}
+
+void exit_scheduler() {
+    free(queue_high);
+    free(queue_mid);
+    free(queue_low);
 }

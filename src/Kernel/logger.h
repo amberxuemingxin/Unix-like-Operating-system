@@ -18,3 +18,5 @@
 char *time_stamp();
 
 void log_events(int type, int ticks, int pid, int priority, char *process);
+
+void free_logger();
