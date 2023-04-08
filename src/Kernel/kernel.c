@@ -177,6 +177,7 @@ int k_process_kill(pcb_t *process, int signal)
             child = child->next;
         }
 
+        // printf("kill %s\n", process->process);
         process->status = EXITED_P;
         log_events(EXITED, ticks, process->pid, process->priority, process->process);
 
@@ -196,6 +197,25 @@ int k_process_kill(pcb_t *process, int signal)
 void k_process_cleanup(pcb_t *process)
 {
     remove_from_scheduler(process);
+    if (process->parent) {
+        pcb_t *child = process->parent->children;
+        pcb_t *prev = NULL;
+
+        while (child) {
+            if (child == process) {
+                if (prev) {
+                    prev->next = process->next;
+                    break;
+                } else {
+                    process->parent->children = process->next;
+                    break;
+                }
+            }
+
+            prev = child;
+            child = child->next;
+        }
+    }
     free_pcb(process);
     return;
 }
