@@ -105,6 +105,31 @@ void cmd_handler(struct parsed_command *cmd) {
 
         return;
         
+    } else if (strcmp(cmd->commands[0][0], "nice") == 0) {
+        // TODO
+    } else if (strcmp(cmd->commands[0][0], "nice_pid") == 0) {
+        char *priority_string = cmd->commands[0][1];
+        char *pid_string = cmd->commands[0][2];
+        int priority;
+        int pid;
+
+        if (strcmp(priority_string, "-1") == 0) {
+            priority = -1;
+        } else if (strcmp(priority_string, "0") == 0) {
+            priority = 0;
+        } else if (strcmp(priority_string, "1") == 0) {
+            priority = 1;
+        } else {
+            fprintf(stderr, "Please enter the correct priority value\n");
+            return;
+        }
+
+        pid = atoi(pid_string);
+        if (pid == 0) {
+            fprintf(stderr, "Please enter the correct pid value\n");
+        }
+
+        p_nice(pid, priority);
     } else if (strcmp(cmd->commands[0][0], "logout") == 0) {
         free_all_jobs(list);
         free(cmd);

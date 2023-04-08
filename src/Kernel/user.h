@@ -25,6 +25,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang);
 
 void p_exit();
 
-// int p_nice(pid_t pid, int priority);
+int p_nice(pid_t pid, int priority);
 
 // void p_sleep(unsigned int ticks);

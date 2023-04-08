@@ -148,6 +148,21 @@ void p_exit() {
     exit(EXIT_SUCCESS);
 }
 
-/* p_exit : calling p_kill with sigkill */
-/* sigterm can be block but sigkill can not */
-/* k_kill: send the signal recursively; sigterm/sigkill - clean up by k_cleanup */
+int p_nice(pid_t pid, int priority) {
+    pcb_t *p = search_in_scheduler(pid);
+
+    if (p) {
+        if (p->priority != priority) {
+            int old_priority = p->priority;
+
+            remove_from_scheduler(p);
+            p->priority = priority;
+            add_to_scheduler(p);
+
+            log_nice(ticks, pid, old_priority, priority, p->process);
+            return 0;
+        }
+    }
+
+    return 1;
+}
