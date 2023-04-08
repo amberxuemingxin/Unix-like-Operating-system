@@ -17,8 +17,6 @@ void set_alarm_handler();
 
 pcb_t *search_in_scheduler(pid_t pid);
 
-void wait_for_processes(pcb_t *p);
-
 void schedule();
 
 void add_to_scheduler(pcb_t *p);

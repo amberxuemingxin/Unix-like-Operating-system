@@ -7,6 +7,7 @@
 #include "shell.h"
 #include "logger.h"
 #include "scheduler.h"
+#include "queue.h"
 
 // global variables
 int ticks = 0;
@@ -14,6 +15,7 @@ pid_t max_pid = 0;
 
 // extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
+extern queue *queue_block;
 extern pcb_t *active_process;
 extern bool idle;
 
@@ -86,6 +88,7 @@ void k_foreground_process(pid_t pid)
 void k_block(pcb_t *parent) {
     parent->status = BLOCKED_P;
     remove_from_scheduler(parent);
+    add_process(queue_block, parent);
     // printf("block %s\n", parent->process);
     log_events(BLOCKED, ticks, parent->pid, parent->priority, parent->process);
 }
@@ -99,6 +102,7 @@ void k_unblock(pcb_t *parent)
     {
         parent->status = RUNNING_P;
         add_to_scheduler(parent);
+        remove_process(queue_block, parent);
         // printf("unblock %s\n", parent->process);
         log_events(UNBLOCKED, ticks, parent->pid, parent->priority, parent->process);
     } else {
