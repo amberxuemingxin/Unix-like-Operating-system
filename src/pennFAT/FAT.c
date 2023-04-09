@@ -209,43 +209,6 @@ FAT* mount_fat(char* f_name) {
             curr_node = new_node; 
         }
     }
-
-
-
-
-    // printf("here after the first new read\n");
-    // count++;
-    // dir_node dummy = {NULL, NULL};
-    // dir_node iter = {NULL, NULL};
-    // iter.dir_entry = (directory_entry*)malloc(sizeof(directory_entry));
-    // dummy.next = &iter;
-    // Allocate memory for iter
-    // printf("here before while loop\n");
-    // printf("the first entry read: %s\n", curr_entry->name);
-    // memcpy(iter.dir_entry, curr_entry,sizeof(dir_node*));
-    // printf("here after memcpy\n");
-
-    // while(iter.dir_entry != NULL || count==block_size/64) {
-    //     printf("here before first memcpy\n");
-    //     memcpy(iter.dir_entry, curr_entry,64);
-    //     printf("here after first memcpy\n");
-    //     curr_entry = NULL;
-    //     if (read(fs_fd, &curr_entry, sizeof(directory_entry)) == -1) {
-    //         perror("read");
-    //         return NULL;
-    //     }
-    //     iter = *iter.next;
-    // }
-    // printf("here after the all new read\n");
-
-    // if (close(fs_fd) == -1) {
-    //     perror("close");
-    //     return NULL;
-    // }
-    // printf("here in before makefat\n");
-
-
-    // make this fat table
     FAT *res = make_fat(f_name, numBlocks, block_size);
 
     if (res == NULL) {
@@ -255,12 +218,17 @@ FAT* mount_fat(char* f_name) {
     res->first_dir_node = head;
     dir_node* curr = res->first_dir_node;
     while(curr != NULL) {
+        res->file_num += 1;
         if(write_directory_to_block(*curr->dir_entry,res)== FAILURE) {
             printf("error: write directory entry to block");
             return res;
         }
+        if(curr->next ==NULL) {
+            res->last_dir_node = curr;
+        }
         curr = curr->next;
     }
+
     return res;
 }
 
