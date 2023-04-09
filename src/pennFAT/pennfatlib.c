@@ -390,8 +390,9 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
 
 int f_open(const char *f_name, int mode){
     //search for file with f_name:
+    printf("%s\n", f_name);
+    printf("%s\n", curr_fat->f_name);
     dir_node* file_node = search_file((char*)f_name, curr_fat, NULL);
-
     if(mode == F_READ) {
         // file has to exist for mode F_READ
         if(file_node == NULL || file_node->dir_entry->perm == 2) {
