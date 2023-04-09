@@ -119,6 +119,7 @@ FAT* mount_fat(char* f_name) {
 
    //read the first bytes as blocksize
     uint8_t block_size = 0;
+    uint32_t actual_block_size= 0;
     if (read(fs_fd, &block_size, sizeof(uint8_t)) == -1) {
         perror("read");
         return NULL;
@@ -131,41 +132,66 @@ FAT* mount_fat(char* f_name) {
         return NULL;
     }
     printf("here before the new content\n");
+    
+    if (block_size == 0) {
+        actual_block_size = 256;
+    }
+    else if (block_size == 1) {
+        actual_block_size = 512;
+    } else if(block_size == 2) {
+        actual_block_size = 1024;
+    } else if(block_size == 3) {
+        actual_block_size = 2048;
+    } else if(block_size == 4) {
+        actual_block_size = 4096;
+    }
+    uint32_t entry_size = 0;
+    // # of FAT entries = block size * number of blocks in FAT / 2
+    printf("blocksize : %d\n", actual_block_size);
+    printf("numBlocks : %d\n", numBlocks);
+    entry_size = actual_block_size * numBlocks;
 
     // TODO: read direcory entry information:
     directory_entry* curr_entry = malloc(sizeof(directory_entry));
     int count = 0;
-    printf("here before the new read\n");
     //use lseek to set ptr to the beginning of directory index
-    printf("offset : %d\n", block_size*numBlocks);
-    lseek(fs_fd, numBlocks*block_size, SEEK_SET);
-    char* test_char = malloc(sizeof(char));
-    if (read(fs_fd, test_char, 1) == -1) {
-        printf("aintgonhappen");
-    }
-    printf("%s", test_char);
+    printf("offset : %d\n", entry_size);
+    lseek(fs_fd, entry_size, SEEK_SET);
     //read 64 bytes at a time
+    uint16_t currIndex = 1;
+    uint8_t buffer[sizeof(directoryEntry)];
+    for (int i = 0; i < sizeof(directoryEntry); i++){
+        buffer[i] = 0x00;
+    }
+    
     if (read(fs_fd, curr_entry, 64) == -1) {
         perror("read");
         return NULL;
     }
+    printf("here after the first new read. curr_entry = %s\n", curr_entry->name);
 
     printf("here after the first new read\n");
-
     count++;
-    dir_node *dummy = NULL;
-    dir_node *iter =NULL;
-    dummy = iter;
+    dir_node dummy = {NULL, NULL};
+    dir_node iter = {NULL, NULL};
+    iter.dir_entry = (directory_entry*)malloc(sizeof(directory_entry));
+    dummy.next = &iter;
+    // Allocate memory for iter
     printf("here before while loop\n");
     printf("the first entry read: %s\n", curr_entry->name);
-    while(strcmp(iter->dir_entry->name, "") == 0 || count==block_size/64) {
-        memcpy(iter->dir_entry, curr_entry,64);
+    memcpy(iter.dir_entry, curr_entry,sizeof(dir_node*));
+    printf("here after memcpy\n");
+
+    while(iter.dir_entry != NULL || count==block_size/64) {
+        printf("here before first memcpy\n");
+        memcpy(iter.dir_entry, curr_entry,64);
         printf("here after first memcpy\n");
         curr_entry = NULL;
-        if (read(fs_fd, &curr_entry, 64) == -1) {
+        if (read(fs_fd, &curr_entry, sizeof(directory_entry)) == -1) {
             perror("read");
             return NULL;
         }
+        iter = *iter.next;
     }
     printf("here after the all new read\n");
 
@@ -183,7 +209,7 @@ FAT* mount_fat(char* f_name) {
         printf("Failed to load FAT\n");
         return NULL;
     }
-    res->first_dir_node = dummy;
+    res->first_dir_node = dummy.next;
     dir_node* curr = res->first_dir_node;
     while(curr != NULL) {
         if(write_directory_to_block(*curr->dir_entry,res)== FAILURE) {
