@@ -30,8 +30,6 @@ int main(int argc, char *argv[])
     // create the context for scheduler
     char *scheduler_args[2] = {"schedule", NULL};
 
-    // void func(int a, int b)
-    // args = {"2", "a b"}
     make_context(&scheduler_context, &schedule, 0, scheduler_args);
 
     // init the context for the idle process

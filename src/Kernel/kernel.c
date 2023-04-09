@@ -7,11 +7,7 @@
 #include "shell.h"
 #include "logger.h"
 #include "scheduler.h"
-
-// Define macros for signals
-#define S_SIGSTOP 0
-#define S_SIGCONT 1
-#define S_SIGTERM 2
+#include "queue.h"
 
 // global variables
 int ticks = 0;
@@ -19,6 +15,7 @@ pid_t max_pid = 0;
 
 // extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
+extern queue *queue_block;
 extern pcb_t *active_process;
 extern bool idle;
 
@@ -91,6 +88,7 @@ void k_foreground_process(pid_t pid)
 void k_block(pcb_t *parent) {
     parent->status = BLOCKED_P;
     remove_from_scheduler(parent);
+    add_process(queue_block, parent);
     // printf("block %s\n", parent->process);
     log_events(BLOCKED, ticks, parent->pid, parent->priority, parent->process);
 }
@@ -104,6 +102,7 @@ void k_unblock(pcb_t *parent)
     {
         parent->status = RUNNING_P;
         add_to_scheduler(parent);
+        remove_process(queue_block, parent);
         // printf("unblock %s\n", parent->process);
         log_events(UNBLOCKED, ticks, parent->pid, parent->priority, parent->process);
     } else {
@@ -160,22 +159,67 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
  */
 int k_process_kill(pcb_t *process, int signal)
 {
-
     // stop the process
     if (signal == S_SIGSTOP)
     {
-        process->status = STOPPED;
+        process->status = STOPPED_P;
         log_events(STOPPED, ticks, process->pid, process->priority, process->process);
 
         if (process == active_process)
         {
+            active_process = NULL;
             k_unblock(process->parent);
         }
+
+        return 0;
+    } else if (signal == S_SIGTERM) 
+    {
+        pcb_t *child = process->children;
+
+        while (child) {
+            k_process_kill(child, S_SIGTERM);
+            child = child->next;
+        }
+
+        // printf("kill %s\n", process->process);
+        process->status = EXITED_P;
+        log_events(EXITED, ticks, process->pid, process->priority, process->process);
+
+
+        if (process == active_process && process->parent)
+        {
+            active_process = NULL;
+            k_unblock(process->parent);
+        }
+
+        return 0;
     }
+
     return 0;
 }
 
 void k_process_cleanup(pcb_t *process)
 {
+    remove_from_scheduler(process);
+    if (process->parent) {
+        pcb_t *child = process->parent->children;
+        pcb_t *prev = NULL;
+
+        while (child) {
+            if (child == process) {
+                if (prev) {
+                    prev->next = process->next;
+                    break;
+                } else {
+                    process->parent->children = process->next;
+                    break;
+                }
+            }
+
+            prev = child;
+            child = child->next;
+        }
+    }
+    free_pcb(process);
     return;
 }

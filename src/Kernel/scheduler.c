@@ -6,12 +6,14 @@
 #include "kernel.h"
 #include "logger.h"
 #include "PCB.h"
+#include "user.h"
 
 pcb_t *active_process;
 
 queue *queue_high;
 queue *queue_mid;
 queue *queue_low;
+queue *queue_block;
 
 extern bool idle;
 extern ucontext_t scheduler_context;
@@ -23,6 +25,7 @@ void init_scheduler() {
     queue_high = init_queue();
     queue_mid = init_queue();
     queue_low = init_queue();
+    queue_block = init_queue();
 
     active_process = NULL;
 }
@@ -142,30 +145,6 @@ pcb_t *pick_next_process() {
     return picked_process;
 }
 
-void wait_for_processes(pcb_t *p) {
-    remove_from_scheduler(p);
-
-    /* insert the node into the zombie queue */
-    pcb_t *parent = p->parent;
-    
-    pcb_t *zombie = parent->zombies;
-    while (zombie) {
-        zombie = zombie->next;
-    }
-
-    if (zombie != NULL) {
-        zombie->next = p;
-    } else {
-        parent->zombies = p;
-    }
-    
-    if (!p->waited) {
-        log_events(ZOMBIE, ticks, p->pid, p->priority, p->process);
-    }
-
-    // TODO: clean zombies & children
-}
-
 void schedule() {
 /*
 * Check the sleeping nodes here!
@@ -177,12 +156,21 @@ void schedule() {
             active_process->ticks--;
             setcontext(&idle_context);
         } else if (active_process->ticks == 0) {
-            k_unblock(active_process->parent);
-            remove_from_scheduler(active_process);
-            // printf("exit %s\n", active_process->process);
-            log_events(EXITED, ticks, active_process->pid, active_process->priority, active_process->process);
-            free_pcb(active_process);
-            active_process = NULL;
+            pcb_t *sleep_process = active_process;
+            k_process_kill(sleep_process, S_SIGTERM);
+            k_process_cleanup(sleep_process);
+        }
+    }
+
+/*
+* if anything in block queue, check if any of the children is signaled
+*/
+    pcb_t *blocked_process = queue_block->head;
+    while (blocked_process) {
+
+        pid_t return_value = p_waitpid(blocked_process->pid, &blocked_process->status, false);
+        if (return_value > 0) {
+            k_unblock(blocked_process);
         }
     }
 
@@ -208,4 +196,11 @@ void schedule() {
     exit(EXIT_FAILURE);
 
     // exit the current process / insert the node back to the queue - some other functions
+}
+
+void exit_scheduler() {
+    free(queue_high);
+    free(queue_mid);
+    free(queue_low);
+    free(queue_block);
 }

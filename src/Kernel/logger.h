@@ -9,12 +9,15 @@
 #define ORPHAN 4
 #define WAITED 5
 #define SCHEDULE 6
-#define NICE 7
-#define BLOCKED 8
-#define UNBLOCKED 9
-#define STOPPED 10
-#define CONTINUED 11
+#define BLOCKED 7
+#define UNBLOCKED 8
+#define STOPPED 9
+#define CONTINUED 10
 
 char *time_stamp();
 
 void log_events(int type, int ticks, int pid, int priority, char *process);
+
+void log_nice(int ticks, int pid, int old_priority, int new_priority, char *process);
+
+void free_logger();

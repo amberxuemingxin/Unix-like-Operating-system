@@ -43,18 +43,15 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         log_type = "SCHEDULE";
         break;
     case 7:
-        log_type = "NICE";
-        break;
-    case 8:
         log_type = "BLOCKED";
         break;
-    case 9:
+    case 8:
         log_type = "UNBLOCKED";
         break;
-    case 10:
+    case 9:
         log_type = "STOPPED";
         break;
-    case 11:
+    case 10:
         log_type = "CONTINUED";
         break;
     default:
@@ -64,7 +61,6 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
 
     char buffer[32]; // The filename buffer
     snprintf(buffer, sizeof(char) * 32, "log/log%s.txt", log_name);
-
 
     // output file for log
     FILE *log_file = fopen(buffer, "a+");
@@ -78,4 +74,26 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         exit(EXIT_FAILURE);
     }
     fclose(log_file);
+}
+
+void log_nice(int ticks, int pid, int old_priority, int new_priority, char *process) {
+    char buffer[32]; // The filename buffer
+    snprintf(buffer, sizeof(char) * 32, "log/log%s.txt", log_name);
+
+    // output file for log
+    FILE *log_file = fopen(buffer, "a+");
+    if (log_file== NULL) {
+        perror("Fail to create the log file.\n");
+        exit(EXIT_FAILURE);
+    }
+    int return_value = fprintf(log_file, "[%d]\tNICE\t%d\t%d\t%d\t%s\n", ticks, pid, old_priority, new_priority,process);
+    if (return_value < 0) {
+        perror("Fail to create the log file.\n");
+        exit(EXIT_FAILURE);
+    }
+    fclose(log_file);
+}
+
+void free_logger() {
+    free(log_name);
 }

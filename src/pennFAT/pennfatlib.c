@@ -433,10 +433,11 @@ int f_write(int fd, const char *str, int n){
 
     //write mode
     if(curr_fd == fd) {
-        while(byte_write < n) {
+        while(byte_write < n && str[byte_write] != '\0') {
             curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
             byte_write++;
-            if(byte_write < n) {
+            
+            if(byte_write < n && str[byte_write] != '\0') {
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
                 byte_write++;
             }
@@ -484,7 +485,6 @@ int f_write(int fd, const char *str, int n){
         }
         directory_entry* curr_dir = curr_node->dir_entry;
         int curr_size = curr_dir->size;
-
         // find the end of the file
         if(curr_size != 0) {
             while(curr_size >= 64) {
@@ -504,7 +504,7 @@ int f_write(int fd, const char *str, int n){
             }
         }
 
-        while(byte_write < n) {
+        while(byte_write < n && str[byte_write] != '\0') {
             //check if current data block is full
             if(index == start_index + 32) {
                 //find next available data block
@@ -533,7 +533,7 @@ int f_write(int fd, const char *str, int n){
             
             curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
             byte_write++;
-            if(byte_write < n) {
+            if(byte_write < n && str[byte_write] != '\0') {
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
                 byte_write++;
             }

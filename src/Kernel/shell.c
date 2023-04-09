@@ -20,12 +20,11 @@ void shell_loop () {
         size_t size = 0;
         ssize_t chars_read;
 
-        // exit
         chars_read = getline(&user_input, &size, stdin);
         if (chars_read <= 0)
         {
             free(user_input);
-            break;
+            continue;
         }
         // parse user input
         struct parsed_command *cmd;
