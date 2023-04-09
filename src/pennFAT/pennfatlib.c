@@ -277,9 +277,6 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
     }
     dir_node* curr = fat->first_dir_node;
     while (curr != NULL){
-        printf("%s\n",curr->dir_entry->name);
-        printf("%s\n",file_name);
-
         if (strcmp(curr->dir_entry->name, file_name) != 0){
             curr = curr->next;
             if(prev != NULL) {
@@ -310,13 +307,15 @@ int f_open(const char *f_name, int mode){
         }
         //create new file
         if (file_node == NULL) {
-            uint16_t firstBlock = 12;
+            uint16_t firstBlock = 0;
             for (uint32_t i = 2; i < curr_fat->entry_size; i++){
                 if (curr_fat->block_arr[i] == ZERO){
                     firstBlock = (uint16_t) i;
+                    curr_fat->block_arr[i] = 0xffff;
                     break;
                 }
             }
+            if(firstBlock == 0) return FAILURE;
             // new a dir entry with 0 byte (empty file)
             file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
             // append this node to the FAT dir information. 
@@ -329,12 +328,11 @@ int f_open(const char *f_name, int mode){
             }
             curr_fat->file_num++;
             write_directory_to_block(*file_node->dir_entry, curr_fat);
-            if(mode == F_WRITE) {
-                curr_fd = (int) file_node->dir_entry->firstBlock;
-            }
-
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
+        }
+        if(mode == F_WRITE) {
+            curr_fd = (int) file_node->dir_entry->firstBlock;
         }
         return (int) file_node->dir_entry->firstBlock;
     }
@@ -383,10 +381,11 @@ int f_write(int fd, const char *str, int n){
 
     //write mode
     if(curr_fd == fd) {
-        while(byte_write < n) {
+        while(byte_write < n && str[byte_write] != '\0') {
             curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
             byte_write++;
-            if(byte_write < n) {
+            
+            if(byte_write < n && str[byte_write] != '\0') {
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
                 byte_write++;
             }
@@ -434,7 +433,6 @@ int f_write(int fd, const char *str, int n){
         }
         directory_entry* curr_dir = curr_node->dir_entry;
         int curr_size = curr_dir->size;
-
         // find the end of the file
         if(curr_size != 0) {
             while(curr_size >= 64) {
@@ -454,7 +452,7 @@ int f_write(int fd, const char *str, int n){
             }
         }
 
-        while(byte_write < n) {
+        while(byte_write < n && str[byte_write] != '\0') {
             //check if current data block is full
             if(index == start_index + 32) {
                 //find next available data block
@@ -483,7 +481,7 @@ int f_write(int fd, const char *str, int n){
             
             curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
             byte_write++;
-            if(byte_write < n) {
+            if(byte_write < n && str[byte_write] != '\0') {
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
                 byte_write++;
             }
