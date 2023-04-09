@@ -23,8 +23,6 @@ void signalHandler(int sigNum) {
 }
 
 int main(int argc, char *argv[]) {
-    FAT *currFat = NULL;
-
     // bind signal handler for sigint
     if (signal(SIGINT, signalHandler) == SIG_ERR) {
         perror("signal");
@@ -52,12 +50,13 @@ int main(int argc, char *argv[]) {
         if (n == 1 && line[n - 1] == '\n') {
             if (line != NULL) {
             free(line);
+            continue;
             }
         } else {
             struct parsed_command* parsed_cmd = NULL;
             parse_command(line, &parsed_cmd);
             int num_command = parsed_cmd->num_commands;
-            parse_pennfat_command(parsed_cmd->commands, num_command, &currFat);
+            parse_pennfat_command(parsed_cmd->commands, num_command);
         }
         free(line);
     }
