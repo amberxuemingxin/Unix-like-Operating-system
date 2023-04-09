@@ -144,8 +144,21 @@ int pennfat_touch(char **files, FAT *fat){
 }
 
 int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
-    printf("this is mv\n");
-    return 1;
+    dir_node* old_f = search_file(oldFileName, curr_fat, NULL);
+    if(old_f == NULL) {
+        printf("error mv: the original file does not exist\n");
+        return FAILURE;
+    }
+    if (delete_directory_from_block(*old_f->dir_entry,curr_fat) ==FAILURE) {
+        return FAILURE;
+    }
+    memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
+    memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
+    if (write_directory_to_block(*old_f->dir_entry,curr_fat)== -1 ) {
+        printf("error: failed to write directory entry to block\n");
+        return FAILURE;
+    }   
+    return SUCCESS;
 }
 
 int pennfat_remove(char **commands, FAT *fat){
@@ -318,7 +331,41 @@ int pennfat_ls(FAT *fat){
 }
 
 int pennfat_chmod(char **commands, FAT *fat){
-    return 1;
+    if (commands[1] == NULL) {
+        printf("error: No file name entered\n");
+        return FAILURE;
+    }
+
+    if (commands[2] == NULL) {
+        printf("error: No permission specified\n");
+        return FAILURE;
+    }
+
+    int perm = 0;
+
+    if (strcmp(commands[2], "-w") == 0) {
+        perm = WRITE_PERMS;
+    } else if (strcmp(commands[2], "r-") == 0) {
+        perm = READ_PERMS;
+    } else if (strcmp(commands[2], "rw") == 0) {
+        perm = READ_WRITE_PERMS;
+    } else if (strcmp(commands[2], "--") == 0) {
+        perm = NO_PERMS;
+    } else {
+        printf("Permission type must be one of -w, r-, rw, and --\n");
+    }
+
+    dir_node* file_node = search_file(commands[1], curr_fat, NULL);
+    file_node->dir_entry->perm = perm;
+    if(delete_directory_from_block(*file_node->dir_entry, curr_fat) == FAILURE) {
+        printf("error: delte entry from block");
+        return FAILURE;
+    }
+    if(write_directory_to_block(*file_node->dir_entry, curr_fat)) {
+        printf("error: write entry to block");
+        return FAILURE;
+    }
+    return SUCCESS;
 }
 
 dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
@@ -339,6 +386,7 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
     }
     return NULL;
 } 
+
 
 int f_open(const char *f_name, int mode){
     //search for file with f_name:
