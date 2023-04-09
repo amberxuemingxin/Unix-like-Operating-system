@@ -381,7 +381,7 @@ int f_open(const char *f_name, int mode){
                 curr_fat->last_dir_node = file_node;
             }
             curr_fat->file_num++;
-            write_directory_to_block(*file_node->dir_entry, curr_fat)==FAILURE
+            write_directory_to_block(*file_node->dir_entry, curr_fat);
 
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
