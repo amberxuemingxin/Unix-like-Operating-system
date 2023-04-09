@@ -358,21 +358,18 @@ int f_open(const char *f_name, int mode){
         }
         //create new file
         if (file_node == NULL) {
-            uint16_t firstBlock = 12;
+            uint16_t firstBlock = 0;
             for (uint32_t i = 2; i < curr_fat->entry_size; i++){
                 if (curr_fat->block_arr[i] == ZERO){
                     firstBlock = (uint16_t) i;
+                    curr_fat->block_arr[i] = 0xffff;
                     break;
                 }
             }
+            if(firstBlock == 0) return FAILURE;
             // new a dir entry with 0 byte (empty file)
             file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
             // append this node to the FAT dir information. 
-
-            if(write_directory_to_block(*file_node->dir_entry, curr_fat)==FAILURE) {
-                return FAILURE;
-            }
-
             if (curr_fat->first_dir_node == NULL){
                 curr_fat->first_dir_node = file_node;
                 curr_fat->last_dir_node = file_node;
@@ -382,9 +379,11 @@ int f_open(const char *f_name, int mode){
             }
             curr_fat->file_num++;
             write_directory_to_block(*file_node->dir_entry, curr_fat);
-
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
+        }
+        if(mode == F_WRITE) {
+            curr_fd = (int) file_node->dir_entry->firstBlock;
         }
         return (int) file_node->dir_entry->firstBlock;
     }
