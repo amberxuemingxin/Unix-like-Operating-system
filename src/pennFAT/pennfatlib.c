@@ -327,8 +327,6 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
     }
     dir_node* curr = fat->first_dir_node;
     while (curr != NULL){
-        printf("1%s\n",curr->dir_entry->name);
-
         if (strcmp(curr->dir_entry->name, file_name) != 0){
             if(prev != NULL) {
                 *prev = curr;
@@ -383,10 +381,7 @@ int f_open(const char *f_name, int mode){
                 curr_fat->last_dir_node = file_node;
             }
             curr_fat->file_num++;
-            if(mode == F_WRITE) {
-                curr_fd = (int) file_node->dir_entry->firstBlock;
-            }
-
+            
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
         }
