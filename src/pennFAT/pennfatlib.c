@@ -384,7 +384,7 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
             return curr;
         }
     }
-    return NULL;
+    return NULL;    
 } 
 
 
