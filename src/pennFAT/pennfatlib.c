@@ -247,9 +247,9 @@ int pennfat_cat(char **commands, FAT *fat){
                 f_close(fd);
                 return FAILURE;
             }
-            char* buff = NULL;
-            f_read(fd, 5, buff);
-            printf("buff: %s\n", buff);
+            // char* buff = NULL;
+            // f_read(fd, 5, buff);
+            // printf("buff: %s\n", buff);
             f_close(fd);
             return SUCCESS;
         } else if (appending)
@@ -473,13 +473,10 @@ int f_open(const char *f_name, int mode){
         if(mode == F_WRITE) {
             curr_fd = (int) file_node->dir_entry->firstBlock;
         }
-        printf("here1\n");
         int fd = (int) file_node->dir_entry->firstBlock;
         int index = file_d_search(fd, 1);
-        printf("file index: %d\n", index);
         file_d[index] = fd;
         file_d[index] = 0;
-        printf("here2\n");
         return fd;
     }
 
@@ -521,6 +518,7 @@ int f_read(int fd, int n, char *buf){
     printf("here in read systemcall\n");
     // read data into buf
     while(byte_read < n) {
+
         char ch = (char) (curr_fat->block_arr[index] >> 8);
         // EOF reached
         if(ch == '\0') return EOF;
@@ -537,6 +535,7 @@ int f_read(int fd, int n, char *buf){
             pos++;
             
         }
+
         index++;
         // find next data block to read
         if(index == start_index + 32) {
