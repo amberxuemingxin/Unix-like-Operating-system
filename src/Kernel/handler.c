@@ -54,7 +54,7 @@ void cmd_handler(struct parsed_command *cmd) {
         // tcsetpgrp(STDIN_FILENO, job->pgid);
 
         // if the job is stopped, resume it
-        if (job->status == STOPPED_J)
+        if (job->status == STOPPED_P)
         {
             // TODO resume_job(job);
             fprintf(stderr, "Restarting: %s\n", job->cmd);
@@ -94,7 +94,7 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        if (job->status != STOPPED_J)
+        if (job->status != STOPPED_P)
         {
             fprintf(stderr, "Job is running already!\n");
             return;
@@ -142,5 +142,10 @@ void cmd_handler(struct parsed_command *cmd) {
         // init job here
         job *job = init_job(cmd, list);
         execute(cmd, job);
+
+        if (p_waitpid(job->pid, &job->status, true) == job->pid) {
+            
+        };
+        // k_cleanup
     }
 }

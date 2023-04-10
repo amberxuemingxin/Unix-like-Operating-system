@@ -40,4 +40,6 @@ int f_write(int fd, const char *str, int n);
 
 int f_close(int fd);
 
+int f_lseek(int fd, int offset, int whence);
+
 #endif

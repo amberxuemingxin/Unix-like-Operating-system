@@ -100,10 +100,9 @@ char *flatten(struct parsed_command *cmd)
 
 job *init_job(struct parsed_command *cmd, job_list *list) {
     job *j = malloc(sizeof(job));
-    j->pids = malloc(sizeof(pid_t) * cmd->num_commands);
     j->cmd = flatten(cmd);
     j->background = cmd->is_background;
-    j->status = RUNNING_J;
+    j->status = RUNNING_P;
     j->next = NULL;
 
     if (cmd->is_background) {
@@ -127,7 +126,6 @@ job_list *init_job_list() {
 
 void free_job(job *j) {
     free(j->cmd);
-    free(j->pids);
     free(j);
 }
 

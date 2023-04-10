@@ -9,6 +9,7 @@
 
 ucontext_t scheduler_context;
 ucontext_t idle_context;
+ucontext_t exit_context;
 bool idle;
 
 extern char *log_name;
@@ -25,6 +26,7 @@ int main(int argc, char *argv[])
 
     log_name = time_stamp();
 
+    // getcontext(&main_context);
     getcontext(&scheduler_context);
 
     // create the context for scheduler
@@ -35,6 +37,9 @@ int main(int argc, char *argv[])
     // init the context for the idle process
     char *idle_args[2] = {"idle", NULL};
     make_context(&idle_context, &idle_process, 0, idle_args);
+
+    char *exit_args[2] = {"exit", NULL};
+    make_context(&exit_context, &exit_process, 0, exit_args);
 
     set_alarm_handler();
     // set timer

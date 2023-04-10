@@ -156,9 +156,7 @@ void schedule() {
             active_process->ticks--;
             setcontext(&idle_context);
         } else if (active_process->ticks == 0) {
-            pcb_t *sleep_process = active_process;
-            k_process_kill(sleep_process, S_SIGTERM);
-            k_process_cleanup(sleep_process);
+            active_process->status = EXITED_P;
         }
     }
 
@@ -167,8 +165,8 @@ void schedule() {
 */
     pcb_t *blocked_process = queue_block->head;
     while (blocked_process) {
-
-        pid_t return_value = p_waitpid(blocked_process->pid, &blocked_process->status, false);
+        pid_t return_value = p_waitpid(0, &blocked_process->status, false);
+        printf("return value = %d\n", return_value);
         if (return_value > 0) {
             k_unblock(blocked_process);
         }
