@@ -302,9 +302,21 @@ int pennfat_cat(char **commands, FAT *fat){
 }
 
 int pennfat_cp(char **commands, FAT *fat){
-    printf("this is cp\n");
-    return 1;
+    int count = 0;
+    while (commands[count] != NULL) {
+        count++;
+    }
+
+    if (count < 3) {
+        printf("error: cp command insufficient argument\n");
+        return FAILURE;
+    }
+
+    bool copyingFromHost = false;
+    bool copyingToHost = false;
+    return SUCCESS;
 }
+
 
 int pennfat_ls(FAT *fat){
     dir_node *node = fat->first_dir_node;
@@ -422,8 +434,6 @@ int file_d_search(int fd, int mode) {
     return -1;
 }
 
-
-
 int f_open(const char *f_name, int mode){
     //search for file with f_name:
     dir_node* file_node = search_file((char*)f_name, curr_fat, NULL);
@@ -469,6 +479,7 @@ int f_open(const char *f_name, int mode){
             return FAILURE;
         }
         if(mode == F_WRITE) {
+            //TODO: REMOVE ORIGINAL CONTENT FIRST.
             curr_fd = (int) file_node->dir_entry->firstBlock;
         }
         // printf("here1\n");
@@ -578,10 +589,10 @@ int f_write(int fd, const char *str, int n){
             byte_write++;
             
             if(byte_write < n && str[byte_write] != '\0') {
-                // curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
-                curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
+                curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
                 byte_write++;
             }
+            byte_write++;
             index++;
 
             //check if current data block is full
@@ -590,7 +601,7 @@ int f_write(int fd, const char *str, int n){
                 if(curr_fat->block_arr[curr_block] != 0xFFFF) {
                     curr_block = curr_fat->block_arr[curr_block];
                     start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
-                    index = start_index;
+                    index = start_index;`
                 } else {
                     int free_entry_index = 2;
                     // find unused data block
