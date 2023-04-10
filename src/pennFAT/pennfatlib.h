@@ -3,7 +3,7 @@
 
 #include "FAT.h"
 
-int parse_pennfat_command(char ***commands, int commandCount, FAT **fat);
+int parse_pennfat_command(char ***commands, int commandCount);
 
 int pennfat_mkfs(char *f_name, uint8_t numBlocks, uint8_t blockSizeIndicator, FAT **fat);
 
@@ -39,5 +39,7 @@ int f_read(int fd, int n, char *buf);
 int f_write(int fd, const char *str, int n);
 
 int f_close(int fd);
+
+int f_lseek(int fd, int offset, int whence);
 
 #endif

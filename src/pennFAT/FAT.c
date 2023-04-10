@@ -109,6 +109,7 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
 }   
 
 FAT* mount_fat(char* f_name) {
+    printf("here in mount_fat function\n");
     //file system file descriptor
     int fs_fd;
     if ((fs_fd = open(f_name, O_RDONLY, 0644)) == -1) {
@@ -118,6 +119,7 @@ FAT* mount_fat(char* f_name) {
 
    //read the first bytes as blocksize
     uint8_t block_size = 0;
+    uint32_t actual_block_size= 0;
     if (read(fs_fd, &block_size, sizeof(uint8_t)) == -1) {
         perror("read");
         return NULL;
@@ -129,17 +131,102 @@ FAT* mount_fat(char* f_name) {
         perror("read");
         return NULL;
     }
-
-    if (close(fs_fd) == -1) {
-        perror("close");
-        return NULL;
+    printf("here before the new content\n");
+    
+    if (block_size == 0) {
+        actual_block_size = 256;
     }
-    // make this fat table
+    else if (block_size == 1) {
+        actual_block_size = 512;
+    } else if(block_size == 2) {
+        actual_block_size = 1024;
+    } else if(block_size == 3) {
+        actual_block_size = 2048;
+    } else if(block_size == 4) {
+        actual_block_size = 4096;
+    }
+
+
+    // TODO: read direcory entry information:
+    uint32_t entry_size = 0;
+    // # of FAT entries = block size * number of blocks in FAT / 2
+    printf("blocksize : %d\n", actual_block_size);
+    printf("numBlocks : %d\n", numBlocks);
+    entry_size = actual_block_size * numBlocks;
+    int max_filenum = (int)actual_block_size/SIZE_DIRECTORY_ENTRY;
+    //get how many entries are in the directory block:
+    int count = 0;
+    for(int i = 0 ; i < max_filenum; i++) {
+        lseek(fs_fd, entry_size + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
+        uint8_t* buf = malloc(sizeof(uint8_t));
+        if (read(fs_fd, buf, 1) == -1) {
+            perror("read");
+            return NULL;
+        }
+        if((uint8_t)buf[0] == 0){
+            free(buf);
+            break;
+        }
+        printf("%d\n", (uint8_t)buf[0]);
+        count++;
+        free(buf);
+    }
+
+    printf("checking %d\n", count);
+    directory_entry **entry_arr = malloc(count * sizeof(directory_entry*));
+    printf("here before the first for loop for creating entry array\n");
+
+    for(int i = 0 ; i < count; i++) {
+        printf("%d\n",i);
+        entry_arr[i] = malloc(sizeof(directory_entry));
+        lseek(fs_fd, entry_size + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
+        uint8_t buffer[sizeof(directory_entry)];
+        for (int j = 0; j < sizeof(directory_entry); j++){
+            buffer[j] = 0x00;
+        }
+        
+        if (read(fs_fd, buffer, SIZE_DIRECTORY_ENTRY) == -1) {
+            perror("read");
+            return NULL;
+        }
+        memcpy(entry_arr[i], buffer, sizeof(buffer));
+    }
+    printf("here after the first for loop for creating entry array\n");
+    dir_node* head = NULL; 
+    dir_node* curr_node = NULL; 
+    for (size_t i = 0; i < count; i++) {
+        if (entry_arr[i] == NULL) {
+            break;
+        }
+        dir_node* new_node = malloc(sizeof(dir_node));
+        new_node->dir_entry = entry_arr[i];
+        new_node->next = NULL;
+        if (head == NULL) { 
+            head = new_node; 
+            curr_node = head;
+        } else {
+            curr_node->next = new_node; 
+            curr_node = new_node; 
+        }
+    }
     FAT *res = make_fat(f_name, numBlocks, block_size);
 
     if (res == NULL) {
-        printf("Failed to load FAT\n");
+        printf("error: Failed to load FAT\n");
         return NULL;
+    }
+    res->first_dir_node = head;
+    dir_node* curr = res->first_dir_node;
+    while(curr != NULL) {
+        res->file_num += 1;
+        if(write_directory_to_block(*curr->dir_entry,res)== FAILURE) {
+            printf("error: write directory entry to block");
+            return res;
+        }
+        if(curr->next ==NULL) {
+            res->last_dir_node = curr;
+        }
+        curr = curr->next;
     }
 
     return res;
@@ -192,7 +279,6 @@ int delete_directory_from_block(directory_entry en, FAT* fat) {
         // thus increment by 32
         directory_entry* curr_entry = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
         if(strcmp(curr_entry->name, en.name) == 0) {
-            printf("found!\n");
             for (int i = 0; i<32; i++) {
                 fat->block_arr[fat->directory_starting_index + index + i] = ZERO;
             }
