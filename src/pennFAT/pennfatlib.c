@@ -477,7 +477,6 @@ int f_open(const char *f_name, int mode){
         // printf("file index: %d\n", index);
         file_d[index] = fd;
         file_pos[index] = 0;
-        // printf("here2\n");
         return fd;
     }
 
@@ -527,6 +526,7 @@ int f_read(int fd, int n, char *buf){
     // printf("here in read systemcall\n");
     // read data into buf
     while(byte_read < n) {
+
         char ch = (char) (curr_fat->block_arr[index] >> 8);
         // EOF reached
         // printf("reading ch1: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
@@ -546,6 +546,7 @@ int f_read(int fd, int n, char *buf){
             pos++;
             
         }
+
         index++;
         // find next data block to read
         if(index == start_index + 32) {
