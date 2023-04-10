@@ -7,6 +7,10 @@
 
 job_list *list;
 
+void change_state(int sig) {
+    
+}
+
 void shell_loop () {
     list = init_job_list();
     

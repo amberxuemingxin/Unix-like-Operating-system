@@ -4,13 +4,15 @@
 #include "user.h"
 #include "kernel.h"
 #include "logger.h"
-#include "scheduler.h"
 
 extern pcb_t *active_process;
 extern ucontext_t idle_context;
 extern ucontext_t scheduler_context;
 extern int ticks;
 
+/* fork a new process
+* return = the pid of the new process
+*/
 pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     bool is_shell = false;
 
@@ -27,8 +29,6 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
 
     child->process = malloc(sizeof(char) * (strlen(argv[0]) + 1));
     strcpy(child->process, argv[0]);
-
-// tmp {"sleep", "1", NULL}
     
     make_context(&(child->context), func, num_arg, &argv[1]);
 
@@ -38,6 +38,8 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     return child->pid;
 }
 
+/* suspend the process for a specific amount of seconds
+*/
 void p_sleep(unsigned int ticks) {
     active_process->ticks = ticks;
     pcb_t *parent = active_process->parent;
@@ -45,6 +47,13 @@ void p_sleep(unsigned int ticks) {
     swapcontext(&active_process->context, &idle_context);
 }
 
+/* send a signal to a process group
+* - pid > 0, send the signal to the specified pid
+* - pid = 0, send the signal to all processes that the pgid = the active process's pgid (sender)
+* return:
+* - 0 -> success
+* - -1 -> failure
+*/
 int p_kill(pid_t pid, int sig) {
     /* If pid is equal to 0, 
     kill() sends its signal to all processes whose process group ID is equal to that of the sender. */
@@ -64,6 +73,12 @@ int p_kill(pid_t pid, int sig) {
     }
 }
 
+/* suspend the caller until a child ends/stops
+* - pid > 0, wait for the specified pid
+* - pid = -1, wait for any child
+* - nohang = true, return immediately
+* - nohang = false, block the caller until any children change the state
+*/
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
     /* global as the caller */
     if (nohang) { /* return the result immediately */
@@ -134,18 +149,22 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
     return 0;
 }
 
+/* end the caller process
+*/
 void p_exit() {
-    pcb_t *shell_process = search_in_scheduler(1);
-    p_kill(1, S_SIGTERM);
-    k_process_cleanup(shell_process);
+    pid_t cur_pid = active_process->pid;
+    p_kill(cur_pid, S_SIGTERM);
+    k_process_cleanup(active_process);
+    // check zombie & orphan everytime after p_kill
+    if (cur_pid == 1) {
+        free(idle_context.uc_stack.ss_sp);
+        free(scheduler_context.uc_stack.ss_sp);
 
-    free(idle_context.uc_stack.ss_sp);
-    free(scheduler_context.uc_stack.ss_sp);
+        exit_scheduler();
+        free_logger();
 
-    exit_scheduler();
-    free_logger();
-
-    exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS);
+    }
 }
 
 int p_nice(pid_t pid, int priority) {

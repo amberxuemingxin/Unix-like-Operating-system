@@ -13,11 +13,24 @@
 int ticks = 0;
 pid_t max_pid = 0;
 
-// extern ucontext_t main_context;
 extern ucontext_t scheduler_context;
+extern ucontext_t exit_context;
 extern queue *queue_block;
 extern pcb_t *active_process;
 extern bool idle;
+
+void orphan_check(pcb_t *process) {
+    pcb_t *child = process->children;
+
+    while (child) {
+        if (child->status != EXITED_P) {
+            log_events(ORPHAN, ticks, child->pid, child->priority, child->process);
+            child->status = ORPHANED_P;
+            remove_from_scheduler(child);
+        }
+        child = child->next;
+    }
+}
 
 void idle_process()
 {
@@ -25,6 +38,14 @@ void idle_process()
         sigset_t mask;
         sigemptyset(&mask);
         sigsuspend(&mask);
+    }
+}
+
+void exit_process() {
+    if (active_process) {
+        k_process_kill(active_process, S_SIGTERM);
+        remove_from_scheduler(active_process);
+        orphan_check(active_process);
     }
 }
 
@@ -46,7 +67,13 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
 
     sigemptyset(&ucp->uc_sigmask);
     set_stack(&ucp->uc_stack);
-    ucp->uc_link = func == schedule ? &scheduler_context : NULL;
+    if (func == schedule) {
+        ucp->uc_link = NULL;
+    } else if (func == exit_process || func == idle_process) {
+        ucp->uc_link = &scheduler_context;
+    } else {
+        ucp->uc_link = &exit_context;
+    }
 
     switch (argc)
     {
@@ -62,7 +89,6 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
     default:
         break;
     }
-    // makecontext(ucp, func, argc, argv);
 }
 
 void k_foreground_process(pid_t pid)
@@ -174,23 +200,8 @@ int k_process_kill(pcb_t *process, int signal)
         return 0;
     } else if (signal == S_SIGTERM) 
     {
-        pcb_t *child = process->children;
-
-        while (child) {
-            k_process_kill(child, S_SIGTERM);
-            child = child->next;
-        }
-
-        // printf("kill %s\n", process->process);
         process->status = EXITED_P;
         log_events(EXITED, ticks, process->pid, process->priority, process->process);
-
-
-        if (process == active_process && process->parent)
-        {
-            active_process = NULL;
-            k_unblock(process->parent);
-        }
 
         return 0;
     }
@@ -198,7 +209,7 @@ int k_process_kill(pcb_t *process, int signal)
     return 0;
 }
 
-void k_process_cleanup(pcb_t *process)
+void k_process_cleanup(pcb_t *process) /*recursive!*/
 {
     remove_from_scheduler(process);
     if (process->parent) {

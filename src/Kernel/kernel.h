@@ -11,6 +11,8 @@
 
 void idle_process();
 
+void exit_process();
+
 void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[]);
 
 // kernel level

@@ -4,13 +4,9 @@
 #include <sys/types.h>
 #include "parser.h"
 
-#define RUNNING_J 0
-#define STOPPED_J 1
-#define FINISHED_J 2
-
 typedef struct jobs
 {
-    pid_t *pids;
+    pid_t pid;
     pid_t pgid;
 
     char *cmd;
@@ -19,7 +15,7 @@ typedef struct jobs
     int fd1;
 
     int jid;
-    int status; /* RUNNING or STOPPED or FINISHED */
+    int status;
     struct jobs *next;
 } job;
 
