@@ -10,7 +10,7 @@
 #include "queue.h"
 
 // global variables
-int ticks = 0;
+int global_ticks = 0;
 pid_t max_pid = 0;
 
 extern ucontext_t scheduler_context;
@@ -24,7 +24,7 @@ void orphan_check(pcb_t *process) {
 
     while (child) {
         if (child->status != EXITED_P) {
-            log_events(ORPHAN, ticks, child->pid, child->priority, child->process);
+            log_events(ORPHAN, global_ticks, child->pid, child->priority, child->process);
             child->status = ORPHANED_P;
             remove_from_scheduler(child);
         }
@@ -44,8 +44,12 @@ void idle_process()
 void exit_process() {
     if (active_process) {
         k_process_kill(active_process, S_SIGTERM);
+        // log zombie
+        log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
+        // unblock parent here (make sure don't unblock if it's bg)
+        k_unblock(active_process->parent);
         remove_from_scheduler(active_process);
-        orphan_check(active_process);
+        orphan_check(active_process); 
     }
 }
 
@@ -107,16 +111,17 @@ void k_foreground_process(pid_t pid)
     if (p->pid != 1)
     {
         p->parent->status = BLOCKED_P;
-        log_events(BLOCKED, ticks, p->parent->pid, p->parent->priority, p->parent->process);
+        log_events(BLOCKED, global_ticks, p->parent->pid, p->parent->priority, p->parent->process);
     }
 }
 
 void k_block(pcb_t *parent) {
-    parent->status = BLOCKED_P;
-    remove_from_scheduler(parent);
-    add_process(queue_block, parent);
-    // printf("block %s\n", parent->process);
-    log_events(BLOCKED, ticks, parent->pid, parent->priority, parent->process);
+    if (parent->status != BLOCKED_P) {
+        parent->status = BLOCKED_P;
+        ready_to_block(parent);
+        // printf("block %s\n", parent->process);
+        log_events(BLOCKED, global_ticks, parent->pid, parent->priority, parent->process);
+    }
 }
 
 /*
@@ -130,9 +135,7 @@ void k_unblock(pcb_t *parent)
         add_to_scheduler(parent);
         remove_process(queue_block, parent);
         // printf("unblock %s\n", parent->process);
-        log_events(UNBLOCKED, ticks, parent->pid, parent->priority, parent->process);
-    } else {
-        perror("Parent is not blocked!");
+        log_events(UNBLOCKED, global_ticks, parent->pid, parent->priority, parent->process);
     }
 }
 
@@ -189,7 +192,7 @@ int k_process_kill(pcb_t *process, int signal)
     if (signal == S_SIGSTOP)
     {
         process->status = STOPPED_P;
-        log_events(STOPPED, ticks, process->pid, process->priority, process->process);
+        log_events(STOPPED, global_ticks, process->pid, process->priority, process->process);
 
         if (process == active_process)
         {
@@ -201,7 +204,7 @@ int k_process_kill(pcb_t *process, int signal)
     } else if (signal == S_SIGTERM) 
     {
         process->status = EXITED_P;
-        log_events(EXITED, ticks, process->pid, process->priority, process->process);
+        log_events(EXITED, global_ticks, process->pid, process->priority, process->process);
 
         return 0;
     }

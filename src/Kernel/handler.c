@@ -6,6 +6,7 @@
 #include "jobs.h"
 #include "execute.h"
 #include "user.h"
+#include "kernel.h"
 
 extern job_list *list;
 
@@ -143,9 +144,11 @@ void cmd_handler(struct parsed_command *cmd) {
         job *job = init_job(cmd, list);
         execute(cmd, job);
 
-        if (p_waitpid(job->pid, &job->status, true) == job->pid) {
-            
+        if (p_waitpid(job->pid, &job->status, false) == job->pid) {
+            pcb_t *process = search_in_scheduler(job->pid);
+            free_job(job);
+            // If we can should call cleanup here?
+            k_process_cleanup(process);
         };
-        // k_cleanup
     }
 }

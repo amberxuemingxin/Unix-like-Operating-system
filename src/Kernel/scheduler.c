@@ -18,7 +18,7 @@ queue *queue_block;
 extern bool idle;
 extern ucontext_t scheduler_context;
 extern ucontext_t idle_context;
-extern int ticks;
+extern int global_ticks;
 
 // TODO: remove sleep queue
 void init_scheduler() {
@@ -32,7 +32,7 @@ void init_scheduler() {
 
 void alarm_handler(int signum) {
     if (signum == SIGALRM) {
-        ticks++;
+        global_ticks++;
     }
     if (idle) {
         setcontext(&scheduler_context);
@@ -81,6 +81,11 @@ void remove_from_scheduler(pcb_t *process) {
     } else {
         remove_process(queue_low, process);
     }
+}
+
+void ready_to_block(pcb_t *process) {
+    remove_from_scheduler(process);
+    add_process(queue_block, process);
 }
 
 pcb_t *search_in_scheduler(pid_t pid) {
@@ -146,31 +151,6 @@ pcb_t *pick_next_process() {
 }
 
 void schedule() {
-/*
-* Check the sleeping nodes here!
-*/
-    if (active_process) {
-        // perror("here");
-        if (active_process->ticks > 0) {
-            // printf("ticks %d\n", active_process->ticks);
-            active_process->ticks--;
-            setcontext(&idle_context);
-        } else if (active_process->ticks == 0) {
-            active_process->status = EXITED_P;
-        }
-    }
-
-/*
-* if anything in block queue, check if any of the children is signaled
-*/
-    pcb_t *blocked_process = queue_block->head;
-    while (blocked_process) {
-        pid_t return_value = p_waitpid(0, &blocked_process->status, false);
-        printf("return value = %d\n", return_value);
-        if (return_value > 0) {
-            k_unblock(blocked_process);
-        }
-    }
 
     pcb_t *next_process = pick_next_process();
 
@@ -183,7 +163,7 @@ void schedule() {
 
     if (active_process != next_process) {
         active_process = next_process;
-        log_events(SCHEDULE, ticks, active_process->pid, active_process->priority, active_process->process);
+        log_events(SCHEDULE, global_ticks, active_process->pid, active_process->priority, active_process->process);
     }
 
     // setcontext process->context

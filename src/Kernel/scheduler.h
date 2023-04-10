@@ -23,6 +23,8 @@ void add_to_scheduler(pcb_t *p);
 
 void remove_from_scheduler(pcb_t *p);
 
+void ready_to_block(pcb_t *p);
+
 void exit_scheduler();
 
  #endif

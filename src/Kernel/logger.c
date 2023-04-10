@@ -68,7 +68,7 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);
     }
-    int return_value = fprintf(log_file, "[%d]\t%s\t%d\t%d\t%s\n", ticks, log_type, pid, priority, process);
+    int return_value = fprintf(log_file, "[\t%5d]\t%10s\t%5d\t%5d\t%10s\n", ticks, log_type, pid, priority, process);
     if (return_value < 0) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);

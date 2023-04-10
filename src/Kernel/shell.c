@@ -8,7 +8,7 @@
 job_list *list;
 
 void change_state(int sig) {
-    
+
 }
 
 void shell_loop () {
@@ -51,8 +51,6 @@ void shell_loop () {
             cmd_handler(cmd);
         }
         
-        // printf("%s\n", **cmd->commands);
-        // perror("After execution");
         free(cmd);
     }
 }
