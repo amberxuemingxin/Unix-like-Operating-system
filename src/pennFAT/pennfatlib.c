@@ -514,7 +514,7 @@ int f_read(int fd, int n, char *buf){
     }
 
     if(curr_pos % 2 == 1) {
-        char ch = (char) (curr_fat->block_arr[index] & 0x00FF);
+        char ch = (char) (curr_fat->block_arr[index] >> 8); // & 0x00FF);
         if(ch == '\0') return EOF;
         buf[byte_read] = ch;
         byte_read++;
@@ -527,7 +527,7 @@ int f_read(int fd, int n, char *buf){
     // read data into buf
     while(byte_read < n) {
 
-        char ch = (char) (curr_fat->block_arr[index] >> 8);
+        char ch = (char) curr_fat->block_arr[index] & 0x00FF;//(char) (curr_fat->block_arr[index] >> 8);
         // EOF reached
         // printf("reading ch1: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
         if(ch == '\0') return EOF;
@@ -538,7 +538,7 @@ int f_read(int fd, int n, char *buf){
         
         // read another char at the same index
         if(byte_read < n) {
-            ch = (char) curr_fat->block_arr[index] & 0x00FF;
+            ch = (char) (curr_fat->block_arr[index] >> 8); // (char) curr_fat->block_arr[index] & 0x00FF;
             // printf("reading ch2: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
             if(ch == '\0') return EOF;
             buf[byte_read] = ch;
@@ -573,11 +573,13 @@ int f_write(int fd, const char *str, int n){
     //write mode
     if(curr_fd == fd) {
         while(byte_write < n && str[byte_write] != '\0') {
-            curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
+            // curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
+            curr_fat->block_arr[index] = str[byte_write];
             byte_write++;
             
             if(byte_write < n && str[byte_write] != '\0') {
-                curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                // curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
                 byte_write++;
             }
             index++;
@@ -636,8 +638,8 @@ int f_write(int fd, const char *str, int n){
                 index++;
             }
             // if a free space available at the current index, write one char
-            if((curr_fat->block_arr[index] & 0x00FF) == '\0' && (curr_fat->block_arr[index] >> 8) != '\0' && byte_write < n) {
-                curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+            if((curr_fat->block_arr[index] & 0x00FF) != '\0' && (curr_fat->block_arr[index] >> 8) == '\0' && byte_write < n) {
+                curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
                 byte_write++;
                 index++;
             }
@@ -670,10 +672,10 @@ int f_write(int fd, const char *str, int n){
                 }
             }
             
-            curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
+            curr_fat->block_arr[index] = str[byte_write]; // << 8 | '\0';
             byte_write++;
             if(byte_write < n && str[byte_write] != '\0') {
-                curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
                 byte_write++;
             }
             index++;
