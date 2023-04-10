@@ -605,3 +605,7 @@ int f_close(int fd) {
     
     return 0;
 }
+
+int f_lseek(int fd, int offset, int whence){
+    return 0;
+}
