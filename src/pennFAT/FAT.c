@@ -42,12 +42,19 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
         return NULL;
     }
     FAT* res = (FAT*) malloc(sizeof(FAT));
+
     res->file_num = 0;
+    printf("here after 53 fat\n");
+
     // res->first_dir_node =NULL;
     // res->last_dir_node =NULL;
-
+    
+    printf("first time accessing f_name%s\n", f_name);
+    res->f_name = f_name;
     int len = strlen(f_name);
+
     res->f_name = (char*) malloc(len * sizeof(char) + 1);
+
     strcpy(res->f_name, f_name);
     res->f_name[len] =  '\0';
     res->block_num = block_num;
@@ -105,11 +112,11 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
 
     //second block is the root directory
     res->block_arr[1] = ROOT;
+    close(fs_fd);
     return res;
 }   
 
 FAT* mount_fat(char* f_name) {
-    printf("here in mount_fat function\n");
     //file system file descriptor
     int fs_fd;
     if ((fs_fd = open(f_name, O_RDONLY, 0644)) == -1) {
@@ -130,9 +137,7 @@ FAT* mount_fat(char* f_name) {
     if (read(fs_fd, &numBlocks, sizeof(uint8_t)) == -1) {
         perror("read");
         return NULL;
-    }
-    printf("here before the new content\n");
-    
+    }    
     if (block_size == 0) {
         actual_block_size = 256;
     }
@@ -150,8 +155,6 @@ FAT* mount_fat(char* f_name) {
     // TODO: read direcory entry information:
     uint32_t entry_size = 0;
     // # of FAT entries = block size * number of blocks in FAT / 2
-    printf("blocksize : %d\n", actual_block_size);
-    printf("numBlocks : %d\n", numBlocks);
     entry_size = actual_block_size * numBlocks;
     int max_filenum = (int)actual_block_size/SIZE_DIRECTORY_ENTRY;
     //get how many entries are in the directory block:
@@ -167,17 +170,13 @@ FAT* mount_fat(char* f_name) {
             free(buf);
             break;
         }
-        printf("%d\n", (uint8_t)buf[0]);
         count++;
         free(buf);
     }
 
-    printf("checking %d\n", count);
     directory_entry **entry_arr = malloc(count * sizeof(directory_entry*));
-    printf("here before the first for loop for creating entry array\n");
 
     for(int i = 0 ; i < count; i++) {
-        printf("%d\n",i);
         entry_arr[i] = malloc(sizeof(directory_entry));
         lseek(fs_fd, entry_size + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
         uint8_t buffer[sizeof(directory_entry)];
@@ -209,8 +208,18 @@ FAT* mount_fat(char* f_name) {
             curr_node = new_node; 
         }
     }
-    FAT *res = make_fat(f_name, numBlocks, block_size);
+    // printf("%s\n", f_name);
 
+    printf("here, before new content\n");
+    // TODO: WRITE DATA REGION TO FAT
+    uint32_t size =(uint32_t)lseek(fs_fd, 0, SEEK_END);
+    uint16_t* data_buffer = malloc(sizeof(uint16_t));
+    lseek(fs_fd, 0, SEEK_SET);
+    lseek(fs_fd, (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum), SEEK_SET);
+    read(fs_fd, &data_buffer, (size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
+    close(fs_fd);
+
+    FAT *res = make_fat(f_name, numBlocks, block_size);
     if (res == NULL) {
         printf("error: Failed to load FAT\n");
         return NULL;
@@ -228,7 +237,9 @@ FAT* mount_fat(char* f_name) {
         }
         curr = curr->next;
     }
-
+    printf("hello\n");
+    printf("size of curr buffer is %d\n", (int)(size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
+    memcpy(res->block_arr + res->dblock_starting_index, data_buffer, sizeof(uint16_t) * (size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
     return res;
 }
 

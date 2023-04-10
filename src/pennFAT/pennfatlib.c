@@ -426,7 +426,6 @@ int file_d_search(int fd, int mode) {
 
 
 
-
 int f_open(const char *f_name, int mode){
     //search for file with f_name:
     dir_node* file_node = search_file((char*)f_name, curr_fat, NULL);
