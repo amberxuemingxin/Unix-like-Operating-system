@@ -90,7 +90,7 @@ int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **fat)
     curr_fat = *fat;
     file_d = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
     file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
-    printf("curr_fat->block_size: %d\n", curr_fat->block_size);
+    // printf("curr_fat->block_size: %d\n", curr_fat->block_size);
     file_d_size = curr_fat->block_size / 64;
     return SUCCESS;
 }
@@ -240,48 +240,46 @@ int pennfat_cat(char **commands, FAT *fat){
         }
         // writing line to the destiny file. 
 
-        char* f_name = commands[count-1];
-        if(writing) {
-            int fd = f_open(f_name, F_WRITE);
-            if(f_write(fd, line, len) == -1) {
+            char* f_name = commands[count-1];
+            if(writing) {
+                int fd = f_open(f_name, F_WRITE);
+                if(f_write(fd, line, len) == -1) {
+                    f_close(fd);
+                    return FAILURE;
+                }
                 f_close(fd);
-                return FAILURE;
-            }
-            char* buff = NULL;
-            f_read(fd, 5, buff);
-            printf("buff: %s\n", buff);
-            f_close(fd);
-            return SUCCESS;
-        } else if (appending)
-        {
-            int fd = f_open(f_name, F_APPEND);
-            if(f_write(fd, line, len) == -1) {
+                return SUCCESS;
+            } else if (appending)
+            {
+                int fd = f_open(f_name, F_APPEND);
+                if(f_write(fd, line, len) == -1) {
+                    f_close(fd);
+                    return FAILURE;
+                }
                 f_close(fd);
-                return FAILURE;
+                return SUCCESS;
             }
-            f_close(fd);
-            return SUCCESS;
         }
-    }
 
     //handle redirection cases:
     // cat file1 -w file2
     // cat file1 -a file2
     if(count == 4 && (writing || appending)) {
-         char* f1_name = commands[1];
-         char* f2_name = commands[3];
+        char* f1_name = commands[1];
+        char* f2_name = commands[3];
 
-         int f1_fd = f_open(f1_name, F_READ);
-         int f2_fd;
-         if(writing) {
-            f2_fd = f_open(f2_name, F_WRITE);
-         } else {
-            f2_fd = f_open(f2_name, F_APPEND);
-         }
-         dir_node* f1_node = search_file(f1_name,curr_fat,NULL);
-        char* buff = NULL;
-
-         if(f_read(f1_fd, f1_node->dir_entry->size, buff) == SUCCESS) {
+        int f1_fd = f_open(f1_name, F_READ);
+        int f2_fd;
+        if(writing) {
+        f2_fd = f_open(f2_name, F_WRITE);
+        } else {
+        f2_fd = f_open(f2_name, F_APPEND);
+        }
+        dir_node* f1_node = search_file(f1_name,curr_fat,NULL);
+        char buff[f1_node->dir_entry->size];
+        int status = f_read(f1_fd, f1_node->dir_entry->size, buff);
+        // printf("status: %d, buff: %s\n", status, buff);
+        if(status >= 0 || status == EOF) {
             if(f_write(f2_fd,buff, sizeof(buff))==SUCCESS) {
                 f_close(f1_fd);
                 f_close(f2_fd);
@@ -291,12 +289,12 @@ int pennfat_cat(char **commands, FAT *fat){
                 f_close(f2_fd);
                 return FAILURE;
             }
-         } else {
+        } else {
             printf("error: f_read\n");
             f_close(f1_fd);
-                f_close(f2_fd);
-                return FAILURE;
-         }
+            f_close(f2_fd);
+            return FAILURE;
+        }
 
     }
     }
@@ -408,9 +406,9 @@ int file_d_search(int fd, int mode) {
     if(mode == 0 || mode == 2) {
         target = fd;
     }
-    printf("i: %d, file_d_size: %d, target: %d\n", i, file_d_size, target);
+    // printf("i: %d, file_d_size: %d, target: %d\n", i, file_d_size, target);
     while(i < file_d_size) {
-        printf("file_d value: %d, i: %d\n", file_d[i], i);
+        // printf("file_d value: %d, i: %d\n", file_d[i], i);
         if(file_d[i] == target) {
             if(mode == 2) {
                 file_d[i] = 0;
@@ -426,7 +424,6 @@ int file_d_search(int fd, int mode) {
 
 
 
-
 int f_open(const char *f_name, int mode){
     //search for file with f_name:
     dir_node* file_node = search_file((char*)f_name, curr_fat, NULL);
@@ -438,7 +435,7 @@ int f_open(const char *f_name, int mode){
         int fd = (int) file_node->dir_entry->firstBlock;
         int index = file_d_search(fd, 1);
         file_d[index] = fd;
-        file_d[index] = 0;
+        file_pos[index] = 0;
         return fd;
     } else if(mode == F_WRITE || mode == F_APPEND) {
         //no file found, then create file. 
@@ -474,13 +471,13 @@ int f_open(const char *f_name, int mode){
         if(mode == F_WRITE) {
             curr_fd = (int) file_node->dir_entry->firstBlock;
         }
-        printf("here1\n");
+        // printf("here1\n");
         int fd = (int) file_node->dir_entry->firstBlock;
         int index = file_d_search(fd, 1);
-        printf("file index: %d\n", index);
+        // printf("file index: %d\n", index);
         file_d[index] = fd;
-        file_d[index] = 0;
-        printf("here2\n");
+        file_pos[index] = 0;
+        // printf("here2\n");
         return fd;
     }
 
@@ -497,6 +494,8 @@ int f_read(int fd, int n, char *buf){
     uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
     uint16_t index = start_index;
     int curr_pos = pos;
+
+    // printf("i: %d, curr_pos: %d, start_index: %d\n", i, curr_pos, start_index);
     while(curr_pos / 2 >= curr_fat->block_size) {
         if(curr_fat->block_arr[curr_block] != 0xFFFF) {
             curr_block = curr_fat->block_arr[curr_block];
@@ -508,8 +507,14 @@ int f_read(int fd, int n, char *buf){
             return 0;
         }
     }
+    // printf("curr_block: %d, curr_pos: %d, start_index: %d\n", curr_block, curr_pos, start_index);
 
-    if(pos % 2 == 1) {
+    while(curr_pos > 1) {
+        curr_pos -= 2;
+        index++;
+    }
+
+    if(curr_pos % 2 == 1) {
         char ch = (char) (curr_fat->block_arr[index] & 0x00FF);
         if(ch == '\0') return EOF;
         buf[byte_read] = ch;
@@ -519,19 +524,22 @@ int f_read(int fd, int n, char *buf){
     }
     
     
-    printf("here in read systemcall\n");
+    // printf("here in read systemcall\n");
     // read data into buf
     while(byte_read < n) {
         char ch = (char) (curr_fat->block_arr[index] >> 8);
         // EOF reached
+        // printf("reading ch1: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
         if(ch == '\0') return EOF;
         buf[byte_read] = ch;
         byte_read++;
         pos++;
         
+        
         // read another char at the same index
         if(byte_read < n) {
             ch = (char) curr_fat->block_arr[index] & 0x00FF;
+            // printf("reading ch2: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
             if(ch == '\0') return EOF;
             buf[byte_read] = ch;
             byte_read++;
@@ -559,7 +567,7 @@ int f_write(int fd, const char *str, int n){
     int curr_block = fd;
     uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
     uint16_t index = start_index;
-    printf("start_index: %d, fd: %d\n", start_index, fd);
+    // printf("start_index: %d, fd: %d\n", start_index, fd);
 
     //write mode
     if(curr_fd == fd) {
