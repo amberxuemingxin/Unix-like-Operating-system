@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <signal.h> // sigalrm ...
 
 #include "user.h"
 #include "kernel.h"
@@ -8,7 +9,7 @@
 extern pcb_t *active_process;
 extern ucontext_t idle_context;
 extern ucontext_t scheduler_context;
-extern int ticks;
+extern int global_ticks;
 
 /* fork a new process
 * return = the pid of the new process
@@ -32,7 +33,7 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     
     make_context(&(child->context), func, num_arg, &argv[1]);
 
-    log_events(CREATE, ticks, child->pid, child->priority, child->process);
+    log_events(CREATE, global_ticks, child->pid, child->priority, child->process);
 
     add_to_scheduler(child);
     return child->pid;
@@ -41,10 +42,24 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
 /* suspend the process for a specific amount of seconds
 */
 void p_sleep(unsigned int ticks) {
-    active_process->ticks = ticks;
-    pcb_t *parent = active_process->parent;
+    sigset_t intmask;
+    sigemptyset(&intmask);
+    sigaddset(&intmask, SIGINT);
+    sigaddset(&intmask, SIGSTOP);
+
+    pcb_t *sleep_process = active_process;
+    sleep_process->ticks = global_ticks + ticks;
+    pcb_t *parent = sleep_process->parent;
     k_block(parent);
-    swapcontext(&active_process->context, &idle_context);
+    k_block(active_process);
+
+    while (1)
+    {
+        printf("target ticks: %d, cur ticks: %d\n", active_process->ticks, global_ticks);
+        if (global_ticks == sleep_process->ticks) {
+            break;
+        }
+    };
 }
 
 /* send a signal to a process group
@@ -75,11 +90,15 @@ int p_kill(pid_t pid, int sig) {
 
 /* suspend the caller until a child ends/stops
 * - pid > 0, wait for the specified pid
-* - pid = -1, wait for any child
+* - pid = -1, wait for any child of the caller
 * - nohang = true, return immediately
 * - nohang = false, block the caller until any children change the state
 */
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
+    pcb_t *process = search_in_scheduler(pid);
+
+    log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
+
     /* global as the caller */
     if (nohang) { /* return the result immediately */
         if (pid == -1) { /* wait for any children processes */
@@ -110,6 +129,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
             }
         }
     } else {
+        k_block(active_process);
 
         if (pid == -1) { /* wait for any children processes */
             pcb_t *child = active_process->children;
@@ -124,11 +144,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
                 }
                 child = child->next;
             }
-
-            /* no child is finished */
-            /* block the caller */
-            k_block(active_process);
-            /* block queue:  */
 
         } else { /* wait for specific process */
 
@@ -178,7 +193,7 @@ int p_nice(pid_t pid, int priority) {
             p->priority = priority;
             add_to_scheduler(p);
 
-            log_nice(ticks, pid, old_priority, priority, p->process);
+            log_nice(global_ticks, pid, old_priority, priority, p->process);
             return 0;
         }
     }

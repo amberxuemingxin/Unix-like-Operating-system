@@ -7,11 +7,11 @@
 #include "parser.h"
 
 #define RUNNING_P 0
-#define BLOCKED_P 1
-#define STOPPED_P 2
+#define STOPPED_P 1
+#define EXITED_P 2
 #define ZOMBIED_P 3
 #define ORPHANED_P 4
-#define EXITED_P 5
+#define BLOCKED_P 5
 
 typedef struct pcb_def
 {
