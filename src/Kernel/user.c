@@ -44,8 +44,9 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
 void p_sleep(unsigned int ticks) {
     pcb_t *sleep_process = active_process;
     sleep_process->ticks = global_ticks + ticks;
-    pcb_t *parent = sleep_process->parent;
-    k_block(parent);
+    // pcb_t *parent = sleep_process->parent;
+    // k_block(parent);
+    /* block itself */
     k_block(active_process);
 
     setcontext(&idle_context);

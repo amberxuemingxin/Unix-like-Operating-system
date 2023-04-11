@@ -6,6 +6,7 @@
 #include "execute.h"
 #include "user.h"
 #include "builtins.h"
+#include "scheduler.h"
 
 extern job_list *list;
 
@@ -30,7 +31,7 @@ int execute(struct parsed_command *cmd, job *job) {
     } else if (strcmp(cmd->commands[0][0], "zombify") == 0) {
         char *zombie_arg[2] = {"zombify", NULL};
         child = p_spawn(zombify, zombie_arg, 0, STDIN_FILENO, STDOUT_FILENO);
-
+    
     } else if (strcmp(cmd->commands[0][0], "orphanify") == 0) {
         char *orphan_arg[2] = {"orphanify", NULL};
         child = p_spawn(orphanify, orphan_arg, 0, STDIN_FILENO, STDOUT_FILENO);

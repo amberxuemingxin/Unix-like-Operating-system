@@ -183,3 +183,54 @@ void print_all_jobs(job_list *list) {
         }
     }
 }
+
+/* remove a job from list
+* if stopped = true, remove from the stopped Q
+* else, remove from the curr Q
+*/ 
+void remove_job(job *j, job_list *list, bool stopped)
+{
+    job *prev = NULL;
+    job *tmp;
+    if (stopped) {
+        tmp = list->queue_stopped;
+    } else {
+        tmp = list->queue_running;
+    }
+
+    while (tmp) {
+        if (tmp == j) {
+            if (prev) {
+                prev->next = j->next;
+            } else {
+                if (stopped) {
+                    list->queue_stopped = j->next;
+                } else {
+                    list->queue_running = j->next;
+                }
+            }
+            j->next = NULL;
+            return;
+        }
+        prev = tmp;
+        tmp = tmp->next;
+    }
+}
+
+/* add a job into the head of the Q
+* if stopped, add it as the head of stopped Q
+* if !stopped, add it as the head of curr Q
+*/
+void add_to_head(job *j, job_list *list, bool stopped) {
+    job *prev;
+
+    if (stopped) {
+        prev = list->queue_stopped;
+        list->queue_stopped = j;
+    } else {
+        prev = list->queue_running;
+        list->queue_running = j;
+    }
+
+    j->next = prev;
+}

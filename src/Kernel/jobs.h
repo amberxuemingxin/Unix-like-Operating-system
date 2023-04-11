@@ -20,9 +20,9 @@ typedef struct jobs
 } job;
 
 typedef struct job_queue {
-    job *queue_running;
-    job *queue_stopped;
-    job *fg_job;
+    struct jobs *queue_running;
+    struct jobs *queue_stopped;
+    struct jobs *fg_job;
     int max_jid;
 } job_list;
 
@@ -37,5 +37,9 @@ void free_job(job *j);
 void free_all_jobs(job_list *list);
 
 void print_all_jobs(job_list *list);
+
+void remove_job(job *j, job_list *list, bool stopped);
+
+void add_to_head(job *j, job_list *list, bool stopped);
 
 #endif
