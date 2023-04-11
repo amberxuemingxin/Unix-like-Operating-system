@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 
 #include "kernel.h"
 #include "scheduler.h"
@@ -12,7 +13,20 @@ ucontext_t idle_context;
 ucontext_t exit_context;
 bool idle;
 
+extern pcb_t *active_process;
 extern char *log_name;
+
+void sigint_handler(int signo) {
+    if (active_process && active_process->pid != 1) {
+        k_process_kill(active_process, S_SIGNALED);
+    }
+}
+
+void sigtstp_handler(int signo) {
+    if (active_process && active_process->pid != 1) {
+        k_process_kill(active_process, S_SIGSTOP);
+    }
+}
 
 // set up signals handling exit ctrl c
 /*
@@ -41,6 +55,19 @@ int main(int argc, char *argv[])
     char *exit_args[2] = {"exit", NULL};
     make_context(&exit_context, &exit_process, 0, exit_args);
 
+    // ctrl+C behavior
+    if (signal(SIGINT, sigint_handler) == SIG_ERR)
+    {
+        perror("Fail to catch SIGINT!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // ctrl+Z behavior
+    if (signal(SIGTSTP, sigtstp_handler) == SIG_ERR)
+    {
+        perror("Fail to catch SIGTSTP!\n");
+        exit(EXIT_FAILURE);
+    }
     set_alarm_handler();
     // set timer
     set_timer();

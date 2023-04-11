@@ -54,7 +54,6 @@ void exit_process() {
         // unblock parent here (make sure don't unblock if it's bg)
         k_unblock(active_process->parent);
         remove_from_scheduler(active_process);
-        orphan_check(active_process); 
     }
 }
 
@@ -134,7 +133,7 @@ void k_block(pcb_t *parent) {
  */
 void k_unblock(pcb_t *parent)
 {
-    if (parent->status == BLOCKED_P)
+    if (parent && parent->status == BLOCKED_P)
     {
         parent->status = RUNNING_P;
         add_to_scheduler(parent);
@@ -210,6 +209,26 @@ int k_process_kill(pcb_t *process, int signal)
     {
         process->status = EXITED_P;
         log_events(EXITED, global_ticks, process->pid, process->priority, process->process);
+        remove_from_scheduler(process);
+        k_unblock(process->parent);
+        orphan_check(process); 
+
+        return 0;
+    } else if (signal == S_SIGCONT)
+    {
+        if (process->status == EXITED_P) {
+            perror("Can't continue a dead process");
+            return -1;
+        } else if (process->status != RUNNING_P) {
+            process->status = RUNNING_P;
+            log_events(CONTINUED, global_ticks, process->pid, process->priority, process->process);
+        }  
+    } else if (signal == S_SIGNALED) {
+        process->status = EXITED_P;
+        log_events(SIGNALED, global_ticks, process->pid, process->priority, process->process);
+        remove_from_scheduler(process);
+        k_unblock(process->parent);
+        orphan_check(process); 
 
         return 0;
     }
@@ -219,7 +238,6 @@ int k_process_kill(pcb_t *process, int signal)
 
 void k_process_cleanup(pcb_t *process) /*recursive!*/
 {
-    remove_from_scheduler(process);
     if (process->parent) {
         pcb_t *child = process->parent->children;
         pcb_t *prev = NULL;
