@@ -8,6 +8,7 @@
 #include "logger.h"
 #include "scheduler.h"
 #include "queue.h"
+#include "builtins.h"
 
 // global variables
 int global_ticks = 0;
@@ -45,7 +46,11 @@ void exit_process() {
     if (active_process) {
         k_process_kill(active_process, S_SIGTERM);
         // log zombie
-        log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
+
+        if (!active_process->waited) {
+            log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
+        }
+        
         // unblock parent here (make sure don't unblock if it's bg)
         k_unblock(active_process->parent);
         remove_from_scheduler(active_process);
@@ -73,7 +78,7 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
     set_stack(&ucp->uc_stack);
     if (func == schedule) {
         ucp->uc_link = NULL;
-    } else if (func == exit_process || func == idle_process) {
+    } else if (func == exit_process || func == idle_process || func == my_sleep) {
         ucp->uc_link = &scheduler_context;
     } else {
         ucp->uc_link = &exit_context;

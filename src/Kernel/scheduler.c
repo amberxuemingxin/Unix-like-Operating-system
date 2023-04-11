@@ -140,17 +140,34 @@ pcb_t *pick_next_process() {
     
     if (picked_queue < low_length && low_queue_existed) {
         picked_process = queue_low->head;
+        remove_process(queue_low, picked_process);
+        add_process(queue_low, picked_process);
     } else if (picked_queue < low_length + mid_length && mid_queue_existed) {
         picked_process = queue_mid->head;
+        remove_process(queue_mid, picked_process);
+        add_process(queue_mid, picked_process);
     } else {
         picked_process = queue_high->head;
-        // printf("picked high!\n");
+        remove_process(queue_high, picked_process);
+        add_process(queue_high, picked_process);
     }
 
     return picked_process;
 }
 
 void schedule() {
+    // decrement for all sleeps
+    pcb_t *sleep_process = queue_block->head;
+    while (sleep_process) {
+        if (sleep_process->ticks == global_ticks) {
+            k_process_kill(sleep_process, S_SIGTERM);
+            k_unblock(sleep_process->parent);
+        }
+        sleep_process = sleep_process->next;
+    }
+
+    // sleep queue: check which is finished
+    // finish sleep 
 
     pcb_t *next_process = pick_next_process();
 

@@ -146,6 +146,7 @@ void cmd_handler(struct parsed_command *cmd) {
 
         if (p_waitpid(job->pid, &job->status, false) == job->pid) {
             pcb_t *process = search_in_scheduler(job->pid);
+            process->waited = true;
             free_job(job);
             // If we can should call cleanup here?
             k_process_cleanup(process);

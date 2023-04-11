@@ -42,24 +42,13 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
 /* suspend the process for a specific amount of seconds
 */
 void p_sleep(unsigned int ticks) {
-    sigset_t intmask;
-    sigemptyset(&intmask);
-    sigaddset(&intmask, SIGINT);
-    sigaddset(&intmask, SIGSTOP);
-
     pcb_t *sleep_process = active_process;
     sleep_process->ticks = global_ticks + ticks;
     pcb_t *parent = sleep_process->parent;
     k_block(parent);
     k_block(active_process);
 
-    while (1)
-    {
-        printf("target ticks: %d, cur ticks: %d\n", active_process->ticks, global_ticks);
-        if (global_ticks == sleep_process->ticks) {
-            break;
-        }
-    };
+    setcontext(&idle_context);
 }
 
 /* send a signal to a process group
