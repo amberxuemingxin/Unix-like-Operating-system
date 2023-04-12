@@ -238,11 +238,13 @@ int pennfat_cat(char **commands, FAT *fat){
             perror("getline");
             return FAILURE;
         }
-        // writing line to the destiny file. 
+        // writing line to the destination file. 
 
             char* f_name = commands[count-1];
             if(writing) {
+                printf("debugging: writing mode......");
                 int fd = f_open(f_name, F_WRITE);
+                printf("current fd: %d\n", fd);
                 if(f_write(fd, line, len) == -1) {
                     f_close(fd);
                     return FAILURE;
@@ -251,8 +253,23 @@ int pennfat_cat(char **commands, FAT *fat){
                 return SUCCESS;
             } else if (appending)
             {
+                printf("debugging: appending mode......");
                 int fd = f_open(f_name, F_APPEND);
-                if(f_write(fd, line, len) == -1) {
+                printf("current fd: %d\n", fd);
+                printf("current line: %s\n", line);
+                printf("current len: %zu\n", len);
+                printf("file_d[0]: %d\n", file_d[0]);
+                printf("file_d[1]: %d\n", file_d[1]);
+                printf("file_d[2]: %d\n", file_d[2]);
+                printf("file_d[3]: %d\n", file_d[3]);
+                printf("file_pos[0]: %d\n", file_pos[0]);
+                printf("file_pos[1]: %d\n", file_pos[1]);
+                printf("file_pos[2]: %d\n", file_pos[2]);
+                printf("file_pos[3]: %d\n", file_pos[3]);
+                printf("file_d_size: %d\n", file_d_size);
+                int status = f_write(fd, line, len);
+                printf("current status: %d\n", status);
+                if(status == -1) {
                     f_close(fd);
                     return FAILURE;
                 }
@@ -425,6 +442,7 @@ int file_d_search(int fd, int mode) {
 
 
 int f_open(const char *f_name, int mode){
+    printf("now in f_open......");
     //search for file with f_name:
     dir_node* file_node = search_file((char*)f_name, curr_fat, NULL);
     if(mode == F_READ) {
@@ -438,12 +456,15 @@ int f_open(const char *f_name, int mode){
         file_pos[index] = 0;
         return fd;
     } else if(mode == F_WRITE || mode == F_APPEND) {
+        printf("mode is writing/appending");
         //no file found, then create file. 
         if(mode == F_WRITE && curr_fd != -1) {
+            printf("debugging: already a file with writing mode is opened! invalid");
             return FAILURE;
         }
         //create new file
         if (file_node == NULL) {
+            printf("creating a new file in f_open");
             uint16_t firstBlock = 0;
             for (uint32_t i = 2; i < curr_fat->entry_size; i++){
                 if (curr_fat->block_arr[i] == ZERO){
@@ -469,9 +490,11 @@ int f_open(const char *f_name, int mode){
             return FAILURE;
         }
         if(mode == F_WRITE) {
+            printf("f_open: F_WRITE");
             curr_fd = (int) file_node->dir_entry->firstBlock;
         }
         // printf("here1\n");
+        printf("f_open: append mode will be here......");
         int fd = (int) file_node->dir_entry->firstBlock;
         int index = file_d_search(fd, 1);
         // printf("file index: %d\n", index);
@@ -490,16 +513,16 @@ int f_read(int fd, int n, char *buf){
     int i = file_d_search(fd, 0);
     int pos = file_pos[i];
 
-    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
     uint16_t index = start_index;
     int curr_pos = pos;
 
     // printf("i: %d, curr_pos: %d, start_index: %d\n", i, curr_pos, start_index);
-    while(curr_pos / 2 >= curr_fat->block_size) {
+    while(curr_pos / 2 >= curr_fat->block_size / 2) {
         if(curr_fat->block_arr[curr_block] != 0xFFFF) {
             curr_block = curr_fat->block_arr[curr_block];
-            start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
-            curr_pos = curr_pos / 2 - curr_fat->block_size;
+            start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
+            curr_pos = curr_pos / 2 - curr_fat->block_size / 2;
             index = start_index + curr_pos / 2;
             
         } else {
@@ -552,7 +575,7 @@ int f_read(int fd, int n, char *buf){
         if(index == start_index + 32) {
             if(curr_fat->block_arr[curr_block] != 0xFFFF) {
                 curr_block = curr_fat->block_arr[curr_block];
-                start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+                start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
                 index = start_index;
             } else {
                 return EOF;
@@ -564,18 +587,23 @@ int f_read(int fd, int n, char *buf){
 }
 
 int f_write(int fd, const char *str, int n){
+    printf("\n now in f_write...");
     uint32_t byte_write = 0;
     int curr_block = fd;
-    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
     uint16_t index = start_index;
-    // printf("start_index: %d, fd: %d\n", start_index, fd);
+    printf("f_write start_index: %d, curr_block: %d\n", start_index, curr_block);
+    printf("f_write directory_starting_index: %d\n", curr_fat->directory_starting_index);
+    printf("f_write dblock_starting_index: %d\n", curr_fat->dblock_starting_index);
 
     //write mode
     if(curr_fd == fd) {
+        printf("f_write mode");
         while(byte_write < n && str[byte_write] != '\0') {
             // curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
             curr_fat->block_arr[index] = str[byte_write];
             byte_write++;
+            printf("byte_write: %d\n", byte_write);
             
             if(byte_write < n && str[byte_write] != '\0') {
                 // curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
@@ -583,26 +611,35 @@ int f_write(int fd, const char *str, int n){
                 byte_write++;
             }
             index++;
+            printf("index: %d\n", index);
 
             //check if current data block is full
-            if(index == start_index + curr_fat->block_size) {
+            if(index == start_index + curr_fat->block_size / 2) {
+                printf("index now is 384");
                 //find next available data block
                 if(curr_fat->block_arr[curr_block] != 0xFFFF) {
                     curr_block = curr_fat->block_arr[curr_block];
-                    start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+                    start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
                     index = start_index;
                 } else {
+                    printf("the current entry is ffff\n");
                     int free_entry_index = 2;
                     // find unused data block
                     while(free_entry_index < curr_fat->directory_starting_index && curr_fat->block_arr[free_entry_index] != 0x0000) {
                         free_entry_index++;
                     }
-
-                    if(free_entry_index < curr_fat->block_num) {
+                    printf("free_entry_index: %d\n", free_entry_index);
+                    printf("curr_fat->block_num: %d\n", curr_fat->block_num);
+                    
+                    if(free_entry_index < curr_fat->directory_starting_index) {
                         curr_fat->block_arr[curr_block] = free_entry_index;
                         curr_block = free_entry_index;
-                        start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+                        start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
                         index = start_index;
+                        printf("curr_fat->block_arr[curr_block]: %d\n", curr_fat->block_arr[curr_block]);
+                        printf("curr_block: %d\n", curr_block);
+                        printf("start_index: %d\n", start_index);
+                        printf("index: %d\n", index);
                     } else {
                         return FAILURE;
                     }
@@ -619,7 +656,12 @@ int f_write(int fd, const char *str, int n){
         curr_dir->size = byte_write;
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[curr_fat->directory_starting_index + (curr_dir->firstBlock - 2) * 32];
         *entry_ptr = *curr_dir;
+        printf("write mode: curr_dir->size: %d\n", curr_dir->size);
+        printf("write mode: entry_ptr size: %d\n", entry_ptr->size);
+        printf("write mode: entry_ptr firstBlock: %d\n", entry_ptr->firstBlock);
     } else {
+        // append mode
+        printf("debugging: currently in f_write append mode");
         dir_node* curr_node = curr_fat->first_dir_node;
         while(curr_node->dir_entry->firstBlock != fd) {
             curr_node = curr_node->next;
@@ -628,63 +670,80 @@ int f_write(int fd, const char *str, int n){
         int curr_size = curr_dir->size;
         // find the end of the file
         if(curr_size != 0) {
+            printf("position 1");
             while(curr_size >= 64) {
+                printf("position 2");
                 curr_block = curr_fat->block_arr[curr_block];
                 curr_size -= 64;
             }
-            start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+            printf("position 3");
+            start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
             index = start_index;
             while(curr_fat->block_arr[index] >> 8 != '\0' && (curr_fat->block_arr[index] & 0x00FF) != '\0') {
+                printf("position 4");
                 index++;
             }
             // if a free space available at the current index, write one char
             if((curr_fat->block_arr[index] & 0x00FF) != '\0' && (curr_fat->block_arr[index] >> 8) == '\0' && byte_write < n) {
+                printf("position 5");
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
                 byte_write++;
                 index++;
             }
         }
-
+        printf("position 6");
         while(byte_write < n && str[byte_write] != '\0') {
+            printf("position 7");
             //check if current data block is full
-            if(index == start_index + curr_fat->block_size) {
+            if(index == start_index + curr_fat->block_size / 2) {
+                printf("position 8");
                 //find next available data block
                 if(curr_fat->block_arr[curr_block] != 0xFFFF) {
+                    printf("position 9");
                     curr_block = curr_fat->block_arr[curr_block];
-                    start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+                    start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
                     index = start_index;
+
                 } else {
+                    printf("position 10");
                     int free_entry_index = 2;
                     // find unused data block
                     while(free_entry_index < curr_fat->directory_starting_index && curr_fat->block_arr[free_entry_index] != 0x0000) {
+                        printf("position 11");
                         free_entry_index++;
                     }
 
-                    if(free_entry_index < curr_fat->block_num) {
+                    if(free_entry_index < curr_fat->directory_starting_index) {
+                        printf("position 12");
                         curr_fat->block_arr[curr_block] = free_entry_index;
                         curr_block = free_entry_index;
-                        start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size;
+                        start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
                         index = start_index;
                     } else {
+                        printf("position 13");
                         return FAILURE;
                     }
                     
                 }
             }
-            
+            printf("position 14");
             curr_fat->block_arr[index] = str[byte_write]; // << 8 | '\0';
             byte_write++;
             if(byte_write < n && str[byte_write] != '\0') {
+                printf("position 15");
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
                 byte_write++;
             }
             index++;
         }
-
+        printf("position 16");
         // find file node and update file size
         curr_dir->size = curr_dir->size + byte_write;
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[curr_fat->directory_starting_index + (curr_dir->firstBlock - 2) * 32];
         *entry_ptr = *curr_dir;
+        printf("after position 16: curr_dir->size: %d\n", curr_dir->size);
+        printf("after position 16: entry_ptr size: %d\n", entry_ptr->size);
+        printf("after position 16: entry_ptr firstBlock: %d\n", entry_ptr->firstBlock);
     }
     
     return byte_write;
