@@ -197,8 +197,10 @@ int pennfat_remove(char **commands, FAT *fat){
                 prev_node->next = filenode->next;
             }
             file* curr_file = read_file_from_fat(filenode, curr_fat);
+            delete_file_bytes(filenode->dir_entry->firstBlock, filenode->dir_entry->size, curr_fat);
+            free(curr_file);
 
-            printf("start idx: %d, end idx: %d\n",curr_file->block_arr_start,curr_file->block_arr_end);
+            // printf("start idx: %d, end idx: %d\n",curr_file->block_arr_start,curr_file->block_arr_end);
             // int fd = open(curr_fat->f_name, O_RDWR); // open the file for read/write
             // if (fd == -1) {
             //     perror("open");
@@ -224,13 +226,17 @@ int pennfat_remove(char **commands, FAT *fat){
             
             //remove a file that takes up a single block: 
             //TODO: figure out how to wipe a file with multiple blocks. 
-            uint16_t wipe = 0X0000;
+//-------------------------------------------------------------------
+            /*
+            // uint16_t wipe = 0X0000;
 
-            for(int i = curr_file->block_arr_start; i<curr_file->block_arr_end; i+=2) {
-                curr_fat->block_arr[i/2] = wipe;
-            }
+            // for(int i = curr_file->block_arr_start; i<curr_file->block_arr_end; i+=2) {
+            //     curr_fat->block_arr[i/2] = wipe;
+            // }
             //TODO: REMOVE FILE FROM DIRECTORY BLOCK
             // close(fd);
+            */
+//----------------------------------------------------------------------
             curr_fat->block_arr[filenode->dir_entry->firstBlock] =0X0000;
 
             delete_directory_from_block(*filenode->dir_entry, fat);

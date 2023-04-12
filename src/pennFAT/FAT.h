@@ -43,7 +43,7 @@ typedef struct FAT {
 
 typedef struct file {
     int block_arr_start;
-    int block_arr_end;
+    uint8_t* file_bytes;
 } file;
 
 dir_node * new_directory_node(char* f_name, uint32_t size, uint16_t firstBlock, uint8_t type, uint8_t perm, time_t time);
@@ -68,6 +68,10 @@ file* read_file_from_fat(dir_node* f_node, FAT* fat);
 // void write_file_to_fat()
 
 uint8_t *read_file_bytes(uint16_t start_index, uint32_t length, FAT* fat); 
+
+void delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat);
+
+int free_file(file* file);
 
 dir_node* search_file(char* file_name, FAT* fat, dir_node** prev);
 
