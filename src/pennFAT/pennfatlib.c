@@ -164,8 +164,10 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
     if (write_directory_to_block(*old_f->dir_entry,curr_fat)== -1 ) {
         printf("error: failed to write directory entry to block\n");
+        free_directory_node(old_f);
         return FAILURE;
     }   
+    free_directory_node(old_f);
     return SUCCESS;
 }
 
@@ -181,7 +183,7 @@ int pennfat_remove(char **commands, FAT *fat){
     }
     index = 1;
     char *file_name = commands[index];
-    while (file_name != NULL) {
+    while (index < count) {
         dir_node* prev_node;
         dir_node* filenode = search_file(file_name, fat, &prev_node);
         if (filenode != NULL){    
@@ -194,19 +196,53 @@ int pennfat_remove(char **commands, FAT *fat){
             else{
                 prev_node->next = filenode->next;
             }
+            file* curr_file = read_file_from_fat(filenode, curr_fat);
 
+            printf("start idx: %d, end idx: %d\n",curr_file->block_arr_start,curr_file->block_arr_end);
+            // int fd = open(curr_fat->f_name, O_RDWR); // open the file for read/write
+            // if (fd == -1) {
+            //     perror("open");
+            //     exit(1);
+            // }
+
+            // off_t offset = (off_t) curr_file->block_arr_start; // 512 decimal
+            // if (lseek(fd, offset, SEEK_SET) == -1) { // set the file offset to 0x200
+            //     perror("lseek");
+            //     exit(1);
+            // }
+
+            // char empty_string = (char)0X00; // empty string
+            // printf("empty char: %c", empty_string);
+            // if (write(fd, &empty_string, 1) != 1) { // overwrite with the empty string
+            //     perror("write");
+            //     exit(1);
+            // }
+            // if (fsync(fd) == -1) { // sync changes to disk
+            //     perror("fsync");
+            //     exit(1);
+            // }
+            
+            //remove a file that takes up a single block: 
+            //TODO: figure out how to wipe a file with multiple blocks. 
+            uint16_t wipe = 0X0000;
+
+            for(int i = curr_file->block_arr_start; i<curr_file->block_arr_end; i+=2) {
+                curr_fat->block_arr[i/2] = wipe;
+            }
             //TODO: REMOVE FILE FROM DIRECTORY BLOCK
+            // close(fd);
+            curr_fat->block_arr[filenode->dir_entry->firstBlock] =0X0000;
+
             delete_directory_from_block(*filenode->dir_entry, fat);
             // set last node pointer to the prev entry if this entry is the last entry
-            if (filenode == fat->last_dir_node)
-                fat->last_dir_node = prev_node;
+            //TODO: REMOVE FAT ENTRY INFOMATION
+            if (filenode == fat->last_dir_node) fat->last_dir_node = prev_node;
         }else {
             printf("%s file not found", file_name);
             index += 1;
         }
     }
     return SUCCESS;
-    
 }
 
 int pennfat_cat(char **commands, FAT *fat){
@@ -221,7 +257,7 @@ int pennfat_cat(char **commands, FAT *fat){
     }
     for (int i = 0; i < count; i++) {
         if ((strcmp(commands[i], "-w") == 0 || strcmp(commands[i], "-a") == 0 )&& i != count - 2) {
-            printf("Wrong flag position\n");
+            printf("cat error: Wrong flag position\n");
             return FAILURE;
         }
     bool writing = strcmp(commands[count - 2], "-w") == 0;
@@ -319,8 +355,57 @@ int pennfat_cat(char **commands, FAT *fat){
 }
 
 int pennfat_cp(char **commands, FAT *fat){
-    printf("this is cp\n");
-    return 1;
+    int count = 0;
+    // bool host = false;
+    while (commands[count] != NULL) {
+        count++;
+    }
+
+    if (count < 3) {
+        printf("error: Insufficient argument for cp\n");
+        return FAILURE;
+    }
+    if(count > 4) {
+        printf("error: too many arguments for cp\n");
+        return FAILURE;
+    }
+
+    if (count == 3) {
+        // non_host = true;
+        for (int i = 0; i<count;i++){
+            if (strcmp(commands[i], "-h") == 0) {
+                printf("error: wrong location for flag\n");
+                return FAILURE;
+            }
+        }
+    }
+    if (count == 4) {
+        // non_host = true;
+        for (int i = 0; i<count;i++){
+            if (strcmp(commands[i], "-h") == 0) {
+                if(i != 1 && i != 2) {
+                    printf("error: wrong location for flag\n");
+                }
+                return FAILURE;
+            }
+        }
+        // host = true;
+    }
+    exit(EXIT_FAILURE);
+    // if (!host) {
+    //     file *file = read_file_from_fat(commands[1], fat);
+    //     if (file == NULL)
+    //         return FAILURE;
+    // }
+    //     if (writeFileToFAT(commands[2], file->bytes, 0, file->len, REGULAR_FILETYPE, READWRITE_PERMS, fat, false, false, false) == FAILURE) {
+    //         return FAILURE;
+    //     }
+
+    //     // free the file
+    //     freeFile(file);
+    //     saveFat(fat);
+    // }
+    // return SUCCESS;
 }
 
 int pennfat_ls(FAT *fat){
@@ -394,24 +479,6 @@ int pennfat_chmod(char **commands, FAT *fat){
     return SUCCESS;
 }
 
-dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
-    if (fat->file_num == 0){
-        return NULL;
-    }
-    dir_node* curr = fat->first_dir_node;
-    while (curr != NULL){
-        if (strcmp(curr->dir_entry->name, file_name) != 0){
-            if(prev != NULL) {
-                *prev = curr;
-            }
-            curr = curr->next;
-
-        } else{
-            return curr;
-        }
-    }
-    return NULL;
-}
 
 // mode 0: search file_d, find fd location
 // mode 1: search file_d, find empty spot
