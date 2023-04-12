@@ -190,7 +190,6 @@ FAT* mount_fat(char* f_name) {
         }
         memcpy(entry_arr[i], buffer, sizeof(buffer));
     }
-    printf("here after the first for loop for creating entry array\n");
     dir_node* head = NULL; 
     dir_node* curr_node = NULL; 
     for (size_t i = 0; i < count; i++) {
@@ -212,12 +211,12 @@ FAT* mount_fat(char* f_name) {
 
     printf("here, before new content\n");
     // TODO: WRITE DATA REGION TO FAT
-    uint32_t size =(uint32_t)lseek(fs_fd, 0, SEEK_END);
-    uint16_t* data_buffer = malloc(sizeof(uint16_t));
-    lseek(fs_fd, 0, SEEK_SET);
-    lseek(fs_fd, (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum), SEEK_SET);
-    read(fs_fd, &data_buffer, (size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
-    close(fs_fd);
+    // uint32_t size =(uint32_t)lseek(fs_fd, 0, SEEK_END);
+    // uint16_t* data_buffer = malloc(sizeof(uint16_t));
+    // lseek(fs_fd, 0, SEEK_SET);
+    // lseek(fs_fd, (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum), SEEK_SET);
+    // read(fs_fd, &data_buffer, (size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
+    // close(fs_fd);
 
     FAT *res = make_fat(f_name, numBlocks, block_size);
     if (res == NULL) {
@@ -237,9 +236,9 @@ FAT* mount_fat(char* f_name) {
         }
         curr = curr->next;
     }
-    printf("hello\n");
-    printf("size of curr buffer is %d\n", (int)(size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
-    memcpy(res->block_arr + res->dblock_starting_index, data_buffer, sizeof(uint16_t) * (size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
+    // printf("hello\n");
+    // printf("size of curr buffer is %d\n", (int)(size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
+    // memcpy(res->block_arr + res->dblock_starting_index, data_buffer, sizeof(uint16_t) * (size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
     return res;
 }
 
