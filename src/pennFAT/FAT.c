@@ -307,15 +307,120 @@ file* read_file_from_fat(dir_node *f_node, FAT* fat) {
     }
 
     file *res = malloc(sizeof(file));
+    res->file_bytes = read_file_bytes(f_node->dir_entry->firstBlock, f_node->dir_entry->size, fat);
     if (res == NULL)
         return NULL;
-    
-    res->block_arr_start = (fat->block_size *fat->block_num) + (f_node->dir_entry->firstBlock-1)*(fat->block_size);
-    res->block_arr_end = res->block_arr_start + f_node->dir_entry->size; 
 
     return res;
 }
 
+uint8_t *read_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
+    uint8_t *result = malloc(length * sizeof(uint8_t) + 1);
+    if (result == NULL) {
+        perror("malloc");
+        return NULL;
+    }
+    result[length] = '\0';
+
+    // read bytes from FAT storage for each block of this file
+    // open the file to read from and check for errors
+    int fd;
+    if ((fd = open(fat->f_name, O_RDONLY, 0644)) == -1) {
+        perror("open");
+        free(result);
+        return NULL;
+    }
+
+    // seek to the first empty block
+    uint32_t fatSize = fat->block_num * fat->block_size;
+    uint16_t currIndex = startIndex;
+
+    if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
+        perror("lseek");
+        free(result);
+        return NULL;
+    }
+
+    // read all (length) bytes, finding a new block every time we read (blockSize) bytes
+    for (int i = 0; i < length; i = i + fat->block_size) {
+        if (i != 0 && i % fat->block_size == 0) {
+            // get next block to start reading from
+            currIndex = fat->block_arr[currIndex];
+            if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
+                perror("lseek");
+                free(result);
+                return NULL;
+            }
+        }
+
+        // If we are at the last block;
+        int bytesToRead = fat->block_size;
+        if (bytesToRead > length - i) {
+            bytesToRead = length - i;
+        }
+
+        if (read(fd, &result[i], bytesToRead) == -1) {
+            perror("read");
+            free(result);
+            return NULL;
+        }
+    }
+    // close the file
+    if (close(fd) == -1) {
+        perror("close");
+        free(result);
+        return NULL;
+        }
+
+    return result;
+}
+
+void delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
+    int fd;
+    if ((fd = open(fat->f_name, O_WRONLY, 0644)) == -1) {
+        perror("open");
+    }
+
+    // seek to the first empty block
+    uint32_t fatSize = fat->block_num * fat->block_size;
+    uint16_t currIndex = startIndex;
+
+    if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
+        perror("lseek");
+    }
+
+    // read all (length) bytes, finding a new block every time we read (blockSize) bytes
+    for (int i = 0; i < length; i += fat->block_size) {
+        if (i != 0 && i % fat->block_size == 0) {
+            // get next block to start reading from
+            currIndex = fat->block_arr[currIndex];
+            if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
+                perror("lseek");
+            }
+        }
+
+        // If we are at the last block;
+        int bytes_to_write = fat->block_size;
+        if (bytes_to_write > length - i) {
+            bytes_to_write = length - i;
+        }
+        
+        // delete the content 
+        uint8_t wipe = 0X00;
+        int index = 0;
+        while (index <= bytes_to_write) {
+            if (write(fd, &wipe, 1) == -1) {
+                perror("write");
+            }
+            index ++;
+        }
+
+    }
+    // close the file
+    if (close(fd) == -1) {
+        perror("close");
+        }
+}
 
 
 dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
@@ -335,4 +440,17 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
         }
     }
     return NULL;
+}
+
+int free_file(file* file) {
+    if(file->file_bytes!=NULL && file != NULL) {
+        free(file->file_bytes);
+        free(file);
+        return SUCCESS;
+    } else {
+        printf("error: free_file, unable to free a NULL pointer");
+        return FAILURE;
+    }
+
+
 }
