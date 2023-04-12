@@ -89,17 +89,19 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
     /* global as the caller */
     if (nohang) { /* return the result immediately */
         if (pid == -1) { /* wait for any children processes */
-            pcb_t *child = active_process->children;
+            pcb_t *p = active_process->children;
             
-            if (child == NULL) {
+            if (p == NULL) {
                 return 0;
             }
 
-            while (child) {
-                if (W_WIFEXITED(child->status)) {
-                    return child->pid;
+            while (p) {
+                if (W_WIFEXITED(p->status)) {
+                    p->waited = true;
+                    log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                    return p->pid;
                 }
-                child = child->next;
+                p = p->next;
             }
 
             return 0;
@@ -115,14 +117,15 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
                 return 0;
             }
         }
-    } else {
+    } else { /* hanging */
         k_block(active_process);
+        printf("cur active process being blocked by wait %s\n", active_process->process);
 
         if (pid == -1) { /* wait for any children processes */
             pcb_t *p = active_process->children;
 
-            if (p == NULL) {
-                return 0;
+            if (p == NULL) { /* no child */
+                return -1;
             }
 
             while (p) {
@@ -138,18 +141,20 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         } else { /* wait for specific process */
 
             pcb_t *p = search_in_scheduler(pid);
+            printf("%s being waited!\n", p->process);
 
             if (p == NULL) {
-                return 0;
+                return -1;
             }
-
-            if (W_WIFEXITED(p->status)) {
+            
+            // if (W_WIFEXITED(p->status)) {
+            printf("status = %d\n", p->status);
+            if (p->status == EXITED_P) {
+                printf("yay\n");
                 p->waited = true;
                 log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
                 k_unblock(p->parent);
                 return pid;
-            } else {
-                return 0;
             }
         }
     }

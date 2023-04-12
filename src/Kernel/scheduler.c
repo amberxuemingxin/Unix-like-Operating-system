@@ -193,11 +193,15 @@ void schedule() {
     pcb_t *next_process = pick_next_process();
 
     if (next_process == NULL) {
-        // printf("idle process picked!\n");
+        printf("idle process picked!\n");
         setcontext(&idle_context);
         perror("setcontext - idle");
         exit(EXIT_FAILURE);
     }
+
+    // if (active_process) {
+    //     printf("cur active process = %s\n", active_process->process);
+    // }
 
     if (active_process != next_process) {
         active_process = next_process;
@@ -230,18 +234,14 @@ void print_all_process() {
 
         if (p) {
             char *status = malloc(2 * sizeof(char));
-            if (strcmp(p->process, "sleep") == 0) {
-                status = "R"; /* RUNNING */
+            if (p->status == STOPPED_P) {
+                status = "S"; /* STOPPED */
+            } else if (p->status == BLOCKED_P && strcmp(p->process, "sleep") != 0) {
+                status = "B"; /* BLOCKED */
+            } else if (p->status == ZOMBIED_P) {
+                status = "Z"; /* ZOMBIED */
             } else {
-                if (p->status == STOPPED_P) {
-                    status = "S"; /* STOPPED */
-                } else if (p->status == BLOCKED_P) {
-                    status = "B"; /* BLOCKED */
-                } else if (p->status == ZOMBIED_P) {
-                    status = "Z"; /* ZOMBIED */
-                } else {
-                    status = "R"; /* RUNNING */
-                }
+                status = "R"; /* RUNNING */
             }
             printf("%8d%8d%8d%8s\t%s\n", p->pid, p->ppid, p->priority, status, p->process);
         }

@@ -7,6 +7,7 @@
 #include "user.h"
 #include "builtins.h"
 #include "scheduler.h"
+#include "stress.h"
 
 extern job_list *list;
 
@@ -38,6 +39,15 @@ int execute(struct parsed_command *cmd, job *job) {
     } else if (strcmp(cmd->commands[0][0], "ps") == 0) {
         char *ps_arg[2] = {"ps", NULL};
         child = p_spawn(ps, ps_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    } else if (strcmp(cmd->commands[0][0], "hang") == 0) {
+        char *hang_arg[2] = {"hang", NULL};
+        child = p_spawn(hang, hang_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    } else if (strcmp(cmd->commands[0][0], "nohang") == 0) {
+        char *nh_arg[2] = {"nohang", NULL};
+        child = p_spawn(nohang, nh_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    } else if (strcmp(cmd->commands[0][0], "recur") == 0) {
+        char *recur_arg[2] = {"recur", NULL};
+        child = p_spawn(recur, recur_arg, 0, STDIN_FILENO, STDOUT_FILENO);
     } else {
         /* invalid input */
         free_job(job);
