@@ -85,8 +85,6 @@ int p_kill(pid_t pid, int sig) {
 * - nohang = false, block the caller until any children change the state
 */
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
-    pcb_t *process = search_in_scheduler(pid);
-    process->waited = true;
 
     /* global as the caller */
     if (nohang) { /* return the result immediately */
@@ -111,6 +109,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
                 return 0;
             }
             if (W_WIFEXITED(p->status)) {
+                log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
                 return pid;
             } else {
                 return 0;
@@ -120,18 +119,20 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         k_block(active_process);
 
         if (pid == -1) { /* wait for any children processes */
-            pcb_t *child = active_process->children;
+            pcb_t *p = active_process->children;
 
-            if (child == NULL) {
+            if (p == NULL) {
                 return 0;
             }
 
-            while (child) {
-                if (W_WIFEXITED(child->status)) {
-                    log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
-                    return child->pid;
+            while (p) {
+                p->waited = true;
+                if (W_WIFEXITED(p->status)) {
+                    log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                    k_unblock(p->parent);
+                    return p->pid;
                 }
-                child = child->next;
+                p = p->next;
             }
 
         } else { /* wait for specific process */
@@ -141,14 +142,15 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
             if (p == NULL) {
                 return 0;
             }
+
             if (W_WIFEXITED(p->status)) {
-                log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
+                p->waited = true;
+                log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                k_unblock(p->parent);
                 return pid;
             } else {
                 return 0;
             }
-
-            k_block(active_process);
         }
     }
     return 0;

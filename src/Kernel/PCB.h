@@ -43,8 +43,6 @@ typedef struct pcb_def
 
     // child process management
     struct pcb_def *children;
-    // zombie process management
-    struct pcb_def *zombies;
     // after exiting the process, if it's being waited on
     bool waited;
 

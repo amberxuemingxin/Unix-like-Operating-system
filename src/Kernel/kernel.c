@@ -51,12 +51,12 @@ void exit_process() {
         if (!active_process->waited) {
             active_process->status = ZOMBIED_P;
             log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
+            add_process(queue_zombie, active_process);
         }
         
         // unblock parent here (make sure don't unblock if it's bg)
         k_unblock(active_process->parent);
         remove_from_scheduler(active_process);
-        add_process(queue_zombie, active_process);
     }
 }
 
@@ -156,14 +156,13 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
     p->fd0 = STDIN_FILENO;
     p->fd1 = STDOUT_FILENO;
     p->pid = is_shell ? 1 : max_pid + 1;
-    p->ppid = is_shell ? 1 : parent->pid;
+    p->ppid = is_shell ? 0 : parent->pid;
     p->pgid = is_shell ? 1: parent->pgid;
     p->parent = parent;
     p->status = RUNNING_P;
     p->priority = is_shell ? -1 : 0;
     p->ticks = -1;
     p->children = NULL;
-    p->zombies = NULL;
     p->next = NULL;
     p->waited = false;
 
@@ -201,7 +200,7 @@ int k_process_kill(pcb_t *process, int signal)
 
         if (process == active_process)
         {
-            active_process = NULL;
+            // active_process = NULL;
             k_unblock(process->parent);
         }
 
@@ -227,9 +226,12 @@ int k_process_kill(pcb_t *process, int signal)
     } else if (signal == S_SIGNALED) {
         process->status = EXITED_P;
         log_events(SIGNALED, global_ticks, process->pid, process->priority, process->process);
+        process->status = ZOMBIED_P;
+        log_events(ZOMBIE, global_ticks, process->pid, process->priority, process->process);
         remove_from_scheduler(process);
         k_unblock(process->parent);
         orphan_check(process); 
+        k_process_cleanup(process);
 
         return 0;
     }
