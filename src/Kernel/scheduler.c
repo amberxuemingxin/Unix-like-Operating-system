@@ -37,7 +37,6 @@ void alarm_handler(int signum) {
     if (idle) {
         setcontext(&scheduler_context);
     } else {
-        // printf("current active process: %s\n", active_process->process);
         swapcontext(&(active_process->context), &scheduler_context);
     }
 }
@@ -116,6 +115,15 @@ pcb_t *search_in_scheduler(pid_t pid) {
         tmp = tmp->next;
     }
 
+    tmp = queue_block->head;
+    while (tmp) {
+        if (tmp->pid == pid) {
+            return tmp;
+        }
+
+        tmp = tmp->next;
+    }
+
     return NULL;
 }
 
@@ -161,13 +169,9 @@ void schedule() {
     while (sleep_process) {
         if (sleep_process->ticks == global_ticks) {
             k_process_kill(sleep_process, S_SIGTERM);
-            k_unblock(sleep_process->parent);
         }
         sleep_process = sleep_process->next;
     }
-
-    // sleep queue: check which is finished
-    // finish sleep 
 
     pcb_t *next_process = pick_next_process();
 

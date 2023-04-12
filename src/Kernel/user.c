@@ -22,6 +22,9 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     }
 
     pcb_t *parent = is_shell ? NULL : active_process;
+    // if (parent) {
+    //     printf("new process = %s, parent = %s\n", argv[0], parent->process);
+    // }
 
     pcb_t *child = k_process_create(parent, is_shell);
 
@@ -86,8 +89,7 @@ int p_kill(pid_t pid, int sig) {
 */
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
     pcb_t *process = search_in_scheduler(pid);
-
-    log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
+    process->waited = true;
 
     /* global as the caller */
     if (nohang) { /* return the result immediately */
@@ -108,7 +110,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
             return 0;
         } else { /* wait for specific process */
             pcb_t *p = search_in_scheduler(pid);
-
             if (p == NULL) {
                 return 0;
             }
@@ -130,6 +131,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
             while (child) {
                 if (W_WIFEXITED(child->status)) {
+                    log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
                     return child->pid;
                 }
                 child = child->next;
@@ -143,6 +145,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
                 return 0;
             }
             if (W_WIFEXITED(p->status)) {
+                log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
                 return pid;
             } else {
                 return 0;
@@ -160,6 +163,7 @@ void p_exit() {
     pid_t cur_pid = active_process->pid;
     p_kill(cur_pid, S_SIGTERM);
     k_process_cleanup(active_process);
+
     // check zombie & orphan everytime after p_kill
     if (cur_pid == 1) {
         free(idle_context.uc_stack.ss_sp);

@@ -24,12 +24,12 @@ void orphan_check(pcb_t *process) {
     pcb_t *child = process->children;
 
     while (child) {
-        if (child->status != EXITED_P) {
-            log_events(ORPHAN, global_ticks, child->pid, child->priority, child->process);
-            child->status = ORPHANED_P;
-            remove_from_scheduler(child);
-        }
-        child = child->next;
+        pcb_t *tmp = child->next;
+        log_events(ORPHAN, global_ticks, child->pid, child->priority, child->process);
+        child->status = ORPHANED_P;
+        remove_from_scheduler(child);
+        k_process_cleanup(child);
+        child = tmp;
     }
 }
 
@@ -43,9 +43,9 @@ void idle_process()
 }
 
 void exit_process() {
+    /*  */
     if (active_process) {
         k_process_kill(active_process, S_SIGTERM);
-        // log zombie
 
         if (!active_process->waited) {
             log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
@@ -108,8 +108,6 @@ void k_foreground_process(pid_t pid)
         perror("Pid not found\n");
         exit(EXIT_FAILURE);
     }
-
-    active_process = p;
 
     /* block the shell if it's not shell */
     if (p->pid != 1)
@@ -257,6 +255,7 @@ void k_process_cleanup(pcb_t *process) /*recursive!*/
             child = child->next;
         }
     }
+
     free_pcb(process);
     return;
 }
