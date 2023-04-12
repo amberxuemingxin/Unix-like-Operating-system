@@ -3,6 +3,7 @@
 #include "shell.h"
 #include "parser.h"
 #include "kernel.h"
+#include "user.h"
 #include "execute.h"
 #include "jobs.h"
 #include "handler.h"
@@ -52,15 +53,26 @@ void shell_loop () {
     while (1) {
         /* checking for bg */
         job *j = list->queue_running;
-        pid_t fg_pid = list->fg_job->pid;
-        while (j) {
-            if (j->pid == fg_pid) {
+        pid_t fg_pid = list->fg_job ? list->fg_job->pid : 0;
 
+        while (j) {
+            job *tmp = j->next;
+            if (j->pid != fg_pid && j->background) {
+                int return_value = p_waitpid(j->pid, &j->status, true);
+                if (return_value == j->pid) {
+                    pcb_t *process = search_in_scheduler(j->pid);
+
+                    remove_job(j, list, false);
+                    printf("Finished: %s\n", j->cmd);
+                    free_job(j);
+
+                    k_process_cleanup(process);
+                }
             }
+            j = tmp;
         }
 
-        // prompt to the user
-        // perror("before execution");
+        // first prompt to the user
         shell_prompt();
 
         // get user input

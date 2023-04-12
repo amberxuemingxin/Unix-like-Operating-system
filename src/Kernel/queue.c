@@ -46,15 +46,3 @@ pcb_t *remove_process(queue *q, pcb_t *p) {
     }
     return p;
 }
-
-void free_queue(queue *q) {
-    pcb_t *tmp;
-
-    while (q->head) {
-        tmp = q->head;
-        q->head = tmp->next;
-        free_pcb(tmp);
-    }
-
-    free(q);
-}
