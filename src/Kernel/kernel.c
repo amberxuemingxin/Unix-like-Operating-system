@@ -17,6 +17,7 @@ pid_t max_pid = 0;
 extern ucontext_t scheduler_context;
 extern ucontext_t exit_context;
 extern queue *queue_block;
+extern queue *queue_zombie;
 extern pcb_t *active_process;
 extern bool idle;
 
@@ -48,12 +49,14 @@ void exit_process() {
         k_process_kill(active_process, S_SIGTERM);
 
         if (!active_process->waited) {
+            active_process->status = ZOMBIED_P;
             log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
         }
         
         // unblock parent here (make sure don't unblock if it's bg)
         k_unblock(active_process->parent);
         remove_from_scheduler(active_process);
+        add_process(queue_zombie, active_process);
     }
 }
 

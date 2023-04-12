@@ -22,9 +22,6 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     }
 
     pcb_t *parent = is_shell ? NULL : active_process;
-    // if (parent) {
-    //     printf("new process = %s, parent = %s\n", argv[0], parent->process);
-    // }
 
     pcb_t *child = k_process_create(parent, is_shell);
 

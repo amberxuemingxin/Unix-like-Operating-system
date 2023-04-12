@@ -35,6 +35,9 @@ int execute(struct parsed_command *cmd, job *job) {
     } else if (strcmp(cmd->commands[0][0], "orphanify") == 0) {
         char *orphan_arg[2] = {"orphanify", NULL};
         child = p_spawn(orphanify, orphan_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    } else if (strcmp(cmd->commands[0][0], "ps") == 0) {
+        char *ps_arg[2] = {"ps", NULL};
+        child = p_spawn(ps, ps_arg, 0, STDIN_FILENO, STDOUT_FILENO);
     } else {
         /* invalid input */
         free_job(job);

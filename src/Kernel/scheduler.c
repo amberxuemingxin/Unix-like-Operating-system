@@ -1,6 +1,7 @@
 #include <sys/time.h>  // setitimer
 #include <stdlib.h> // rand
 #include <signal.h> // sigaction, sigemptyset, sigfillset, signal
+#include <string.h> // strcmp
 
 #include "scheduler.h"
 #include "kernel.h"
@@ -14,11 +15,13 @@ queue *queue_high;
 queue *queue_mid;
 queue *queue_low;
 queue *queue_block;
+queue *queue_zombie;
 
 extern bool idle;
 extern ucontext_t scheduler_context;
 extern ucontext_t idle_context;
 extern int global_ticks;
+extern int max_pid;
 
 // TODO: remove sleep queue
 void init_scheduler() {
@@ -26,6 +29,7 @@ void init_scheduler() {
     queue_mid = init_queue();
     queue_low = init_queue();
     queue_block = init_queue();
+    queue_zombie = init_queue();
 
     active_process = NULL;
 }
@@ -127,6 +131,19 @@ pcb_t *search_in_scheduler(pid_t pid) {
     return NULL;
 }
 
+pcb_t *search_in_zombies(pid_t pid) {
+    pcb_t *tmp = queue_zombie->head;
+    while (tmp) {
+        if (tmp->pid == pid) {
+            return tmp;
+        }
+
+        tmp = tmp->next;
+    }
+
+    return NULL;
+}
+
 pcb_t *pick_next_process() {
     pcb_t *picked_process;
 
@@ -202,4 +219,31 @@ void exit_scheduler() {
     free(queue_mid);
     free(queue_low);
     free(queue_block);
+    free(queue_zombie);
+}
+
+void print_all_process() {
+    printf("%8s%8s%8s%8s\t%s\n", "PID", "PPID", "PRI", "STAT", "CMD");
+
+    for (pid_t i = 0; i <= max_pid; i++) {
+        pcb_t *p = search_in_scheduler(i) ? search_in_scheduler(i) : search_in_zombies(i);
+
+        if (p) {
+            char *status = malloc(2 * sizeof(char));
+            if (strcmp(p->process, "sleep") == 0) {
+                status = "R"; /* RUNNING */
+            } else {
+                if (p->status == STOPPED_P) {
+                    status = "S"; /* STOPPED */
+                } else if (p->status == BLOCKED_P) {
+                    status = "B"; /* BLOCKED */
+                } else if (p->status == ZOMBIED_P) {
+                    status = "Z"; /* ZOMBIED */
+                } else {
+                    status = "R"; /* RUNNING */
+                }
+            }
+            printf("%8d%8d%8d%8s\t%s\n", p->pid, p->ppid, p->priority, status, p->process);
+        }
+    }
 }

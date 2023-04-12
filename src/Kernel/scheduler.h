@@ -27,4 +27,6 @@ void ready_to_block(pcb_t *p);
 
 void exit_scheduler();
 
+void print_all_process();
+
  #endif

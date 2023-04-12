@@ -2,6 +2,7 @@
 #include <unistd.h> 
 
 #include "user.h"
+#include "scheduler.h"
 
 void my_sleep(void *arg) {
     char *ticks = (char *)arg;
@@ -33,4 +34,8 @@ void orphanify() {
     char *orphan_arg[2] = {"orphan", NULL};
     p_spawn(orphan_child, orphan_arg, 0, STDIN_FILENO, STDOUT_FILENO);
     return;
+}
+
+void ps() {
+    print_all_process();
 }
