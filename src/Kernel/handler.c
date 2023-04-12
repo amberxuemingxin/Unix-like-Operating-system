@@ -142,13 +142,26 @@ void cmd_handler(struct parsed_command *cmd) {
     {
         // init job here
         job *job = init_job(cmd, list);
-        execute(cmd, job);
+        int return_value = execute(cmd, job);
 
-        if (p_waitpid(job->pid, &job->status, false) == job->pid) {
-            pcb_t *process = search_in_scheduler(job->pid);
-            free_job(job);
-            // If we can should call cleanup here?
-            k_process_cleanup(process);
-        };
+        /* if execution success */
+        if (return_value == 0) {
+            /* block the parent if it's a fg job */
+            if (!job->background) {
+                list->fg_job = job;
+                if (p_waitpid(job->pid, &job->status, false) == job->pid) {
+                    pcb_t *process = search_in_scheduler(job->pid);
+                    process->waited = true;
+
+                    remove_job(job, list, false);
+                    free_job(job);
+                    list->fg_job = NULL;
+
+                    k_process_cleanup(process);
+                }
+            } else { /* else, won't block the parent */
+                printf("Running: %s\n", job->cmd);
+            }
+        }
     }
 }
