@@ -300,3 +300,40 @@ int delete_directory_from_block(directory_entry en, FAT* fat) {
     printf("file not found\n");
     return FAILURE;
 }
+
+file* read_file_from_fat(dir_node *f_node, FAT* fat) {
+    if (f_node == NULL) {
+        printf("error: %s not found\n", f_node->dir_entry->name);
+        return NULL;
+    }
+
+    file *res = malloc(sizeof(file));
+    if (res == NULL)
+        return NULL;
+    
+    res->block_arr_start = (fat->block_size *fat->block_num) + (f_node->dir_entry->firstBlock-1)*(fat->block_size);
+    res->block_arr_end = res->block_arr_start + f_node->dir_entry->size; 
+
+    return res;
+}
+
+
+
+dir_node* search_file(char* file_name, FAT* fat, dir_node** prev){
+    if (fat->file_num == 0){
+        return NULL;
+    }
+    dir_node* curr = fat->first_dir_node;
+    while (curr != NULL){
+        if (strcmp(curr->dir_entry->name, file_name) != 0){
+            if(prev != NULL) {
+                *prev = curr;
+            }
+            curr = curr->next;
+
+        } else{
+            return curr;
+        }
+    }
+    return NULL;
+}
