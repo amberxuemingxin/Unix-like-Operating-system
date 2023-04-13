@@ -222,7 +222,8 @@ FAT* mount_fat(char* f_name) {
     dir_node* curr = res->first_dir_node;
     while(curr != NULL) {
         res->file_num += 1;
-        if(write_directory_to_block(*curr->dir_entry,res)== FAILURE) {
+        int* reside_index = malloc(sizeof(int));
+        if(write_directory_to_block(*curr->dir_entry,res,reside_index)== FAILURE) {
             printf("error: write directory entry to block");
             return res;
         }
@@ -264,20 +265,70 @@ void free_fat(FAT* fat){
 
 int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     *reside_block = 1;
-    bool dir_full = false;
+    //block_len in bytes
     uint16_t block_len = fat->block_size * fat->block_num;
-    // find a spot in file system
+    //block len in 2 bytes
+    block_len /= 2;
+    if(fat->block_arr[1] == 0XFFFF) {
+        bool dir_full = false; 
+        // find a spot in file system
+        uint16_t index = 0;
+        //increment 32 at a time
+         while(fat->block_arr[fat->directory_starting_index + index] != ZERO && index < block_len) {
+            //if the index is non-zero, jump to the next directory block
+            //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
+            // thus increment by 32
+            index += 32;
+         }
+          // find the first empty data block
+        if (index >= block_len) {
+            dir_full = true;
+            index = 2;
+            while(fat->block_arr[index] != 0X0000 && index < block_len) {
+                index++;
+            } 
+            if(index >= fat->directory_starting_index) {
+                printf("error: fat entry are all occupied");
+                return FAILURE;
+            }
+            
+        }
+        // if directory block is available:
+        if(!dir_full) {
+            // writing the directory entry struct into the directory block
+            directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+            *entry_ptr = en;
+            return SUCCESS;
+        }
+        // if we are using another block:
+        fat->block_arr[1] = (uint16_t) index;
+        *reside_block = index;
+        index = index*block_len + fat->directory_starting_index;
+        directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+        *entry_ptr = en;
+        return SUCCESS;
+    }
+    // if directory block was already extended
+    int curr_block = fat->block_arr[1];
+    while(curr_block!=0XFFFF) {
+        curr_block = fat->block_arr[(int)curr_block];
+    }
+    *reside_block = curr_block;
     uint16_t index = 0;
-    while(fat->block_arr[fat->directory_starting_index + index] != ZERO && index < block_len) {
+    bool dir_full = false; 
+    int start_index = fat->directory_starting_index + curr_block*block_len;
+    //increment 32 at a time
+    while(fat->block_arr[start_index + index] != ZERO && index < block_len) {
         //if the index is non-zero, jump to the next directory block
         //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
         // thus increment by 32
         index += 32;
     }
-    // find the first empty data block
-    if (fat->directory_starting_index + index >= fat->dblock_starting_index) {
+
+    if (index >= block_len) {
         dir_full = true;
         index = 2;
+        //find the next free block
         while(fat->block_arr[index] != 0X0000 && index < block_len/2) {
             index++;
         } 
@@ -285,9 +336,8 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
             printf("error: fat entry are all occupied");
             return FAILURE;
         }
-        
+            
     }
-    // if directory block is available:
     if(!dir_full) {
         // writing the directory entry struct into the directory block
         directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
@@ -300,10 +350,8 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     index = index*block_len + fat->directory_starting_index;
     directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
     *entry_ptr = en;
-
     return SUCCESS;
-    
-
+   
 }
 
 int delete_directory_from_block(directory_entry en, FAT* fat) {

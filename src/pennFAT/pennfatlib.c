@@ -162,7 +162,9 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     }
     memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
     memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
-    if (write_directory_to_block(*old_f->dir_entry,curr_fat)== -1 ) {
+    int* reside_index = malloc(sizeof(int));
+    if (write_directory_to_block(*old_f->dir_entry,curr_fat,reside_index)== -1 ) {
+        free(reside_index);
         printf("error: failed to write directory entry to block\n");
         free_directory_node(old_f);
         return FAILURE;
@@ -200,9 +202,13 @@ int pennfat_remove(char **commands, FAT *fat){
             delete_file_bytes(filenode->dir_entry->firstBlock, filenode->dir_entry->size, curr_fat);
             free(curr_file);
 //----------------------------------------------------------------------
+            uint16_t file_block = filenode->dir_entry->firstBlock;
             do {
-                curr_fat->block_arr[filenode->dir_entry->firstBlock] =0X0000;
-            } while (/* condition */);
+                uint16_t prev = file_block;
+                file_block = curr_fat->block_arr[file_block];
+                curr_fat->block_arr[prev] =0X0000;
+                
+            } while (file_block!=0XFFFF);
 
             delete_directory_from_block(*filenode->dir_entry, fat);
             // set last node pointer to the prev entry if this entry is the last entry
@@ -443,7 +449,9 @@ int pennfat_chmod(char **commands, FAT *fat){
         printf("error: delte entry from block");
         return FAILURE;
     }
-    if(write_directory_to_block(*file_node->dir_entry, curr_fat)) {
+    int* index = malloc(sizeof(int));
+    if(write_directory_to_block(*file_node->dir_entry, curr_fat,index)) {
+        free(index);
         printf("error: write entry to block");
         return FAILURE;
     }
@@ -521,7 +529,13 @@ int f_open(const char *f_name, int mode){
                 curr_fat->last_dir_node = file_node;
             }
             curr_fat->file_num++;
-            write_directory_to_block(*file_node->dir_entry, curr_fat);
+            /*
+                Shufan Added content:
+            */
+            int* reside_index = malloc(sizeof(int));
+            write_directory_to_block(*file_node->dir_entry, curr_fat, reside_index);
+            printf("%s resides in %dth block in fat entry", f_name, *reside_index);
+            free(reside_index);
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
         }
