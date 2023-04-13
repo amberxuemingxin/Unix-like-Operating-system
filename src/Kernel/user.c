@@ -22,9 +22,6 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
     }
 
     pcb_t *parent = is_shell ? NULL : active_process;
-    // if (parent) {
-    //     printf("new process = %s, parent = %s\n", argv[0], parent->process);
-    // }
 
     pcb_t *child = k_process_create(parent, is_shell);
 
@@ -88,70 +85,82 @@ int p_kill(pid_t pid, int sig) {
 * - nohang = false, block the caller until any children change the state
 */
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
-    pcb_t *process = search_in_scheduler(pid);
-    process->waited = true;
 
     /* global as the caller */
     if (nohang) { /* return the result immediately */
         if (pid == -1) { /* wait for any children processes */
-            pcb_t *child = active_process->children;
+            pcb_t *p = active_process->children;
             
-            if (child == NULL) {
-                return 0;
-            }
-
-            while (child) {
-                if (W_WIFEXITED(child->status)) {
-                    return child->pid;
-                }
-                child = child->next;
-            }
-
-            return 0;
-        } else { /* wait for specific process */
-            pcb_t *p = search_in_scheduler(pid);
             if (p == NULL) {
                 return 0;
             }
+
+            while (p) {
+                if (W_WIFEXITED(p->status)) {
+                    pid_t return_value = p->pid;
+                    p->waited = true;
+                    log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                    k_process_cleanup(p);
+                    return return_value;
+                }
+                p = p->next;
+            }
+
+            return -1;
+
+        } else { /* wait for specific process */
+            pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
+
+            if (p == NULL) {
+                return 0;
+            }
+
             if (W_WIFEXITED(p->status)) {
+                log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                k_process_cleanup(p);
                 return pid;
             } else {
                 return 0;
             }
+
         }
-    } else {
+    } else { /* hanging */
         k_block(active_process);
 
         if (pid == -1) { /* wait for any children processes */
-            pcb_t *child = active_process->children;
+            pcb_t *p = active_process->children;
 
-            if (child == NULL) {
-                return 0;
+            if (p == NULL) { /* no child */
+                return -1;
             }
 
-            while (child) {
-                if (W_WIFEXITED(child->status)) {
-                    log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
-                    return child->pid;
+            while (p) {
+                p->waited = true;
+                if (W_WIFEXITED(p->status)) {
+                    pid_t return_value = p->pid;
+                    log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                    k_process_cleanup(p);
+                    return return_value;
                 }
-                child = child->next;
+                p = p->next;
             }
 
         } else { /* wait for specific process */
 
-            pcb_t *p = search_in_scheduler(pid);
+            pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
 
             if (p == NULL) {
-                return 0;
+                return -1;
             }
+            
             if (W_WIFEXITED(p->status)) {
-                log_events(WAITED, global_ticks, process->pid, process->priority, process->process);
+                p->waited = true;
+                log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                k_process_cleanup(p);
                 return pid;
-            } else {
-                return 0;
             }
 
-            k_block(active_process);
+            return -1;
         }
     }
     return 0;

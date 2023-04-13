@@ -4,8 +4,8 @@
 #define S_SIGCONT 1
 #define S_SIGTERM 2
 
-#define W_WIFEXITED(wstatus) (wstatus == EXITED_P)
-#define W_WIFSIGNALED(wstatus) (wstatus == SIGNALED_P)
+#define W_WIFEXITED(wstatus) (wstatus == EXITED_P || wstatus == ZOMBIED_P)
+#define W_WIFSIGNALED(wstatus) (wstatus == EXITED_P)
 #define W_WIFSTOPPED(wstatus) (wstatus == STOPPED_P)
 
 // // user level

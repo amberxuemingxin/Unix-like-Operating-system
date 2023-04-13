@@ -59,8 +59,8 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         break;
     }
 
-    char buffer[32]; // The filename buffer
-    snprintf(buffer, sizeof(char) * 32, "log/log%s.txt", log_name);
+    char buffer[26]; // The filename buffer
+    snprintf(buffer, sizeof(char) * 26, "log/log%s.txt", log_name);
 
     // output file for log
     FILE *log_file = fopen(buffer, "a+");
@@ -68,7 +68,7 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);
     }
-    int return_value = fprintf(log_file, "[\t%5d]\t%10s\t%5d\t%5d\t%10s\n", ticks, log_type, pid, priority, process);
+    int return_value = fprintf(log_file, "[\t%5d]\t%10s\t%5d\t%5d\t%s\n", ticks, log_type, pid, priority, process);
     if (return_value < 0) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);

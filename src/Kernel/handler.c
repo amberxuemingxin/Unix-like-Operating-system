@@ -150,13 +150,9 @@ void cmd_handler(struct parsed_command *cmd) {
             if (!job->background) {
                 list->fg_job = job;
                 if (p_waitpid(job->pid, &job->status, false) == job->pid) {
-                    pcb_t *process = search_in_scheduler(job->pid);
-
                     remove_job(job, list, false);
                     free_job(job);
                     list->fg_job = NULL;
-
-                    k_process_cleanup(process);
                 }
             } else { /* else, won't block the parent */
                 printf("Running: %s\n", job->cmd);
