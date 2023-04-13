@@ -68,10 +68,10 @@ void exit_process() {
  */
 void set_stack(stack_t *stack)
 {
-    void *sp = malloc(SIGSTKSZ);
-    VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ);
+    void *sp = malloc(SIGSTKSZ * 2);
+    VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ * 2);
 
-    *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ};
+    *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ * 2};
 }
 
 void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
@@ -123,10 +123,8 @@ void k_foreground_process(pid_t pid)
 }
 
 void k_block(pcb_t *parent) {
-    parent->num_blocks++;
-    // printf("process %s being blocked by %d processes\n", parent->process, parent->num_blocks);
-    if (parent->num_blocks == 1) {
-        //printf("process %s being blocked\n", parent->process);
+    if (parent->status == RUNNING_P) {
+        printf("process %s being blocked\n", parent->process);
         parent->status = BLOCKED_P;
         ready_to_block(parent);
 
@@ -140,9 +138,7 @@ void k_block(pcb_t *parent) {
  */
 void k_unblock(pcb_t *parent)
 {
-    parent->num_blocks--;
-    // printf("process %s being blocked by %d processes\n", parent->process, parent->num_blocks);
-    if (parent->num_blocks == 0)
+    if (parent->status == BLOCKED_P)
     {
         // printf("process %s getting unblocked\n", parent->process);
         parent->status = RUNNING_P;
@@ -170,7 +166,6 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
     p->status = RUNNING_P;
     p->priority = is_shell ? -1 : 0;
     p->ticks = -1;
-    p->num_blocks = 0;
     p->children = NULL;
     p->next = NULL;
     p->waited = false;
@@ -178,15 +173,18 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
     // add this process to the children queue
     if (!is_shell) {
         pcb_t *child = parent->children;
+        pcb_t *prev = NULL;
         while (child) {
+            prev = child;
             child = child->next;
         }
 
-        if (child != NULL) {
-            child->next = p;
+        if (prev != NULL) {
+            prev->next = p;
         } else {
             parent->children = p;
         }
+
     }
 
     // update max pid
@@ -255,6 +253,7 @@ void k_process_cleanup(pcb_t *process)
         while (child) {
             if (child == process) {
                 if (prev) {
+                    printf("prev siblings %s\n", prev->process);
                     prev->next = process->next;
                     break;
                 } else {

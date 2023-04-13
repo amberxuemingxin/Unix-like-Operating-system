@@ -97,25 +97,32 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
             while (p) {
                 if (W_WIFEXITED(p->status)) {
+                    pid_t return_value = p->pid;
                     p->waited = true;
                     log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                    return p->pid;
+                    k_process_cleanup(p);
+                    return return_value;
                 }
                 p = p->next;
             }
 
-            return 0;
+            return -1;
+
         } else { /* wait for specific process */
             pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
+
             if (p == NULL) {
                 return 0;
             }
+
             if (W_WIFEXITED(p->status)) {
                 log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                k_process_cleanup(p);
                 return pid;
             } else {
                 return 0;
             }
+
         }
     } else { /* hanging */
         k_block(active_process);
@@ -130,8 +137,10 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
             while (p) {
                 p->waited = true;
                 if (W_WIFEXITED(p->status)) {
+                    pid_t return_value = p->pid;
                     log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                    return p->pid;
+                    k_process_cleanup(p);
+                    return return_value;
                 }
                 p = p->next;
             }
@@ -147,8 +156,11 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
             if (W_WIFEXITED(p->status)) {
                 p->waited = true;
                 log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                k_process_cleanup(p);
                 return pid;
             }
+
+            return -1;
         }
     }
     return 0;

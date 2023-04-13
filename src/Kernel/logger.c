@@ -59,8 +59,8 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         break;
     }
 
-    char buffer[32]; // The filename buffer
-    snprintf(buffer, sizeof(char) * 32, "log/log%s.txt", log_name);
+    char buffer[26]; // The filename buffer
+    snprintf(buffer, sizeof(char) * 26, "log/log%s.txt", log_name);
 
     // output file for log
     FILE *log_file = fopen(buffer, "a+");

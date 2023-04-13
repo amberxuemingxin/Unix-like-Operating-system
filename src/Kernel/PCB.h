@@ -40,8 +40,6 @@ typedef struct pcb_def
     int priority;
     // timing the process
     int ticks;
-    // num of process that blocks
-    int num_blocks;
 
     // child process management
     struct pcb_def *children;

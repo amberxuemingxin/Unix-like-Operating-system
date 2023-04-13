@@ -60,13 +60,9 @@ void shell_loop () {
             if (j->pid != fg_pid && j->background) {
                 int return_value = p_waitpid(j->pid, &j->status, true);
                 if (return_value == j->pid) {
-                    pcb_t *process = search_in_scheduler(j->pid);
-
                     remove_job(j, list, false);
                     printf("Finished: %s\n", j->cmd);
                     free_job(j);
-
-                    k_process_cleanup(process);
                 }
             }
             j = tmp;
