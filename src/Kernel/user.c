@@ -106,7 +106,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
             return 0;
         } else { /* wait for specific process */
-            pcb_t *p = search_in_scheduler(pid);
+            pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
             if (p == NULL) {
                 return 0;
             }
@@ -119,7 +119,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         }
     } else { /* hanging */
         k_block(active_process);
-        printf("cur active process being blocked by wait %s\n", active_process->process);
 
         if (pid == -1) { /* wait for any children processes */
             pcb_t *p = active_process->children;
@@ -132,7 +131,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
                 p->waited = true;
                 if (W_WIFEXITED(p->status)) {
                     log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                    k_unblock(p->parent);
                     return p->pid;
                 }
                 p = p->next;
@@ -140,20 +138,15 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
         } else { /* wait for specific process */
 
-            pcb_t *p = search_in_scheduler(pid);
-            printf("%s being waited!\n", p->process);
+            pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
 
             if (p == NULL) {
                 return -1;
             }
             
-            // if (W_WIFEXITED(p->status)) {
-            printf("status = %d\n", p->status);
-            if (p->status == EXITED_P) {
-                printf("yay\n");
+            if (W_WIFEXITED(p->status)) {
                 p->waited = true;
                 log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                k_unblock(p->parent);
                 return pid;
             }
         }

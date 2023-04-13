@@ -150,7 +150,7 @@ void cmd_handler(struct parsed_command *cmd) {
             if (!job->background) {
                 list->fg_job = job;
                 if (p_waitpid(job->pid, &job->status, false) == job->pid) {
-                    pcb_t *process = search_in_scheduler(job->pid);
+                    pcb_t *process = search_in_scheduler(job->pid)?search_in_scheduler(job->pid) : search_in_zombies(job->pid);
 
                     remove_job(job, list, false);
                     free_job(job);

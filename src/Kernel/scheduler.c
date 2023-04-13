@@ -199,10 +199,6 @@ void schedule() {
         exit(EXIT_FAILURE);
     }
 
-    // if (active_process) {
-    //     printf("cur active process = %s\n", active_process->process);
-    // }
-
     if (active_process != next_process) {
         active_process = next_process;
         log_events(SCHEDULE, global_ticks, active_process->pid, active_process->priority, active_process->process);
@@ -214,8 +210,6 @@ void schedule() {
     // end of scheduler
     perror("setcontext");
     exit(EXIT_FAILURE);
-
-    // exit the current process / insert the node back to the queue - some other functions
 }
 
 void exit_scheduler() {

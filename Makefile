@@ -2,7 +2,7 @@ CC = clang
 
 # Replace -O1 with -g for a debug version during development
 #
-CFLAGS = -Wall -Werror -O1
+CFLAGS = -Wall -Werror -g
 PENNOS = PennOS
 PENNFAT = PennFAT
 

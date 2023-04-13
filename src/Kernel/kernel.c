@@ -124,20 +124,14 @@ void k_foreground_process(pid_t pid)
 
 void k_block(pcb_t *parent) {
     parent->num_blocks++;
-    printf("process %s being blocked by %d processes\n", parent->process, parent->num_blocks);
+    // printf("process %s being blocked by %d processes\n", parent->process, parent->num_blocks);
     if (parent->num_blocks == 1) {
         //printf("process %s being blocked\n", parent->process);
         parent->status = BLOCKED_P;
         ready_to_block(parent);
-        if (queue_high->head) {
-            printf("queue high head %s\n", queue_high->head->process);
-        } else if (queue_mid->head) {
-            printf("queue mid head %s\n", queue_mid->head->process);            
-        } else if (queue_low->head) {
-            printf("queue low head %s\n", queue_low->head->process);               
-        }
 
         log_events(BLOCKED, global_ticks, parent->pid, parent->priority, parent->process);
+        swapcontext(&active_process->context, &scheduler_context);
     }
 }
 
@@ -147,7 +141,7 @@ void k_block(pcb_t *parent) {
 void k_unblock(pcb_t *parent)
 {
     parent->num_blocks--;
-    printf("process %s being blocked by %d processes\n", parent->process, parent->num_blocks);
+    // printf("process %s being blocked by %d processes\n", parent->process, parent->num_blocks);
     if (parent->num_blocks == 0)
     {
         // printf("process %s getting unblocked\n", parent->process);
