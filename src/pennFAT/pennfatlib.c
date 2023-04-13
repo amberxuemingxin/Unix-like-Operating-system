@@ -41,7 +41,7 @@ int parse_pennfat_command(char ***commands, int commandCount){
     } else if (curr_fat == NULL) {
         printf("No filesystem mounted yet\n");
         return FAILURE;
-    } else if (strcmp(cmd, "umount") == 0) {
+    } else if (strcmp(cmd, "unmount") == 0) {
         free_fat(curr_fat);
         curr_fat = NULL;
         return SUCCESS;
@@ -162,7 +162,9 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     }
     memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
     memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
-    if (write_directory_to_block(*old_f->dir_entry,curr_fat)== -1 ) {
+    int* reside_index = malloc(sizeof(int));
+    if (write_directory_to_block(*old_f->dir_entry,curr_fat,reside_index)== -1 ) {
+        free(reside_index);
         printf("error: failed to write directory entry to block\n");
         free_directory_node(old_f);
         return FAILURE;
@@ -199,45 +201,14 @@ int pennfat_remove(char **commands, FAT *fat){
             file* curr_file = read_file_from_fat(filenode, curr_fat);
             delete_file_bytes(filenode->dir_entry->firstBlock, filenode->dir_entry->size, curr_fat);
             free(curr_file);
-
-            // printf("start idx: %d, end idx: %d\n",curr_file->block_arr_start,curr_file->block_arr_end);
-            // int fd = open(curr_fat->f_name, O_RDWR); // open the file for read/write
-            // if (fd == -1) {
-            //     perror("open");
-            //     exit(1);
-            // }
-
-            // off_t offset = (off_t) curr_file->block_arr_start; // 512 decimal
-            // if (lseek(fd, offset, SEEK_SET) == -1) { // set the file offset to 0x200
-            //     perror("lseek");
-            //     exit(1);
-            // }
-
-            // char empty_string = (char)0X00; // empty string
-            // printf("empty char: %c", empty_string);
-            // if (write(fd, &empty_string, 1) != 1) { // overwrite with the empty string
-            //     perror("write");
-            //     exit(1);
-            // }
-            // if (fsync(fd) == -1) { // sync changes to disk
-            //     perror("fsync");
-            //     exit(1);
-            // }
-            
-            //remove a file that takes up a single block: 
-            //TODO: figure out how to wipe a file with multiple blocks. 
-//-------------------------------------------------------------------
-            /*
-            // uint16_t wipe = 0X0000;
-
-            // for(int i = curr_file->block_arr_start; i<curr_file->block_arr_end; i+=2) {
-            //     curr_fat->block_arr[i/2] = wipe;
-            // }
-            //TODO: REMOVE FILE FROM DIRECTORY BLOCK
-            // close(fd);
-            */
 //----------------------------------------------------------------------
-            curr_fat->block_arr[filenode->dir_entry->firstBlock] =0X0000;
+            uint16_t file_block = filenode->dir_entry->firstBlock;
+            do {
+                uint16_t prev = file_block;
+                file_block = curr_fat->block_arr[file_block];
+                curr_fat->block_arr[prev] =0X0000;
+                
+            } while (file_block!=0XFFFF);
 
             delete_directory_from_block(*filenode->dir_entry, fat);
             // set last node pointer to the prev entry if this entry is the last entry
@@ -375,7 +346,7 @@ int pennfat_cp(char **commands, FAT *fat){
         printf("error: too many arguments for cp\n");
         return FAILURE;
     }
-
+    // 
     if (count == 3) {
         // non_host = true;
         for (int i = 0; i<count;i++){
@@ -478,7 +449,9 @@ int pennfat_chmod(char **commands, FAT *fat){
         printf("error: delte entry from block");
         return FAILURE;
     }
-    if(write_directory_to_block(*file_node->dir_entry, curr_fat)) {
+    int* index = malloc(sizeof(int));
+    if(write_directory_to_block(*file_node->dir_entry, curr_fat,index)) {
+        free(index);
         printf("error: write entry to block");
         return FAILURE;
     }
@@ -511,8 +484,6 @@ int file_d_search(int fd, int mode) {
 
     return -1;
 }
-
-
 
 int f_open(const char *f_name, int mode){
     printf("now in f_open......");
@@ -558,7 +529,13 @@ int f_open(const char *f_name, int mode){
                 curr_fat->last_dir_node = file_node;
             }
             curr_fat->file_num++;
-            write_directory_to_block(*file_node->dir_entry, curr_fat);
+            /*
+                Shufan Added content:
+            */
+            int* reside_index = malloc(sizeof(int));
+            write_directory_to_block(*file_node->dir_entry, curr_fat, reside_index);
+            printf("%s resides in %dth block in fat entry\n", f_name, *reside_index);
+            free(reside_index);
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
         }

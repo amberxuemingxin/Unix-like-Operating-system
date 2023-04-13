@@ -61,7 +61,7 @@ void free_fat(FAT* fat);
 
 int delete_directory_from_block(directory_entry en, FAT* fat);
 
-int write_directory_to_block(directory_entry en, FAT* fat);
+int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block);
 
 file* read_file_from_fat(dir_node* f_node, FAT* fat);
 
