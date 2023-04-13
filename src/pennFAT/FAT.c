@@ -301,30 +301,37 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
             return SUCCESS;
         }
         // if we are using another block:
+        printf("headsup");
         fat->block_arr[1] = (uint16_t) index;
         *reside_block = index;
         index = index*block_len + fat->directory_starting_index;
-        directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+        directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
         *entry_ptr = en;
         return SUCCESS;
     }
+  
     // if directory block was already extended
     int curr_block = fat->block_arr[1];
+    int prev = -1;
     while(curr_block!=0XFFFF) {
+        prev = curr_block;
         curr_block = fat->block_arr[(int)curr_block];
     }
-    *reside_block = curr_block;
+    *reside_block = prev;
     uint16_t index = 0;
     bool dir_full = false; 
-    int start_index = fat->directory_starting_index + curr_block*block_len;
+    int start_index = fat->directory_starting_index + (prev)*((int)block_len);
     //increment 32 at a time
+    printf("start_index = %d\n", start_index);
     while(fat->block_arr[start_index + index] != ZERO && index < block_len) {
+        printf("next_index = %d\n", start_index + index);
         //if the index is non-zero, jump to the next directory block
         //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
         // thus increment by 32
         index += 32;
     }
 
+    printf("final index:%d\n", index);
     if (index >= block_len) {
         dir_full = true;
         index = 2;
@@ -339,16 +346,19 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
             
     }
     if(!dir_full) {
+        printf("HEADSUP\n");
+        printf("reside_block used here: %d\n", prev);
         // writing the directory entry struct into the directory block
-        directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+        directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[start_index+index];
         *entry_ptr = en;
         return SUCCESS;
     }
     // if we are using another block:
-    fat->block_arr[1] = (uint16_t) index;
+    fat->block_arr[prev] = (uint16_t) index;
     *reside_block = index;
+    printf("reside_block used here: %d\n", *reside_block);
     index = index*block_len + fat->directory_starting_index;
-    directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+    directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
     *entry_ptr = en;
     return SUCCESS;
    

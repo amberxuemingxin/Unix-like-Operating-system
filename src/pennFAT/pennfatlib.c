@@ -534,7 +534,7 @@ int f_open(const char *f_name, int mode){
             */
             int* reside_index = malloc(sizeof(int));
             write_directory_to_block(*file_node->dir_entry, curr_fat, reside_index);
-            printf("%s resides in %dth block in fat entry", f_name, *reside_index);
+            printf("%s resides in %dth block in fat entry\n", f_name, *reside_index);
             free(reside_index);
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
