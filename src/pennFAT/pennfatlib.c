@@ -232,6 +232,16 @@ int pennfat_cat(char **commands, FAT *fat){
         printf("Insufficient argument for cat\n");
         return FAILURE;
     }
+    if (count == 2) {
+        dir_node* f_node = search_file(commands[1], curr_fat, NULL);
+        if(f_node == NULL) {
+            printf("error: file not found\n");
+            return FAILURE;
+        }
+        file* f = read_file_from_fat(f_node, curr_fat);
+        char* buffer =(char*)f->file_bytes;
+        printf("%s",buffer);
+    }
     for (int i = 0; i < count; i++) {
         if ((strcmp(commands[i], "-w") == 0 || strcmp(commands[i], "-a") == 0 )&& i != count - 2) {
             printf("cat error: Wrong flag position\n");
@@ -255,9 +265,15 @@ int pennfat_cat(char **commands, FAT *fat){
 
             char* f_name = commands[count-1];
             if(writing) {
-                printf("debugging: writing mode......");
+                printf("debugging: writing mode......\n");
                 int fd = f_open(f_name, F_WRITE);
                 printf("current fd: %d\n", fd);
+                //erase before
+                dir_node* f_node = search_file(f_name, curr_fat,NULL);
+                file* cur_file = read_file_from_fat(f_node, curr_fat);
+                //clear out the file before reading;
+                delete_file_bytes(f_node->dir_entry->firstBlock, cur_file->size, curr_fat);
+                free(cur_file);
                 if(f_write(fd, line, len) == -1) {
                     f_close(fd);
                     return FAILURE;
@@ -333,7 +349,7 @@ int pennfat_cat(char **commands, FAT *fat){
 
 int pennfat_cp(char **commands, FAT *fat){
     int count = 0;
-    // bool host = false;
+    bool host = false;
     while (commands[count] != NULL) {
         count++;
     }
@@ -362,28 +378,46 @@ int pennfat_cp(char **commands, FAT *fat){
             if (strcmp(commands[i], "-h") == 0) {
                 if(i != 1 && i != 2) {
                     printf("error: wrong location for flag\n");
+                    return FAILURE;
                 }
-                return FAILURE;
             }
         }
         // host = true;
     }
-    exit(EXIT_FAILURE);
-    // if (!host) {
-    //     file *file = read_file_from_fat(commands[1], fat);
-    //     if (file == NULL)
-    //         return FAILURE;
-    // }
-    //     if (writeFileToFAT(commands[2], file->bytes, 0, file->len, REGULAR_FILETYPE, READWRITE_PERMS, fat, false, false, false) == FAILURE) {
-    //         return FAILURE;
-    //     }
+    if (!host) {
+        dir_node* f_node = search_file(commands[1], curr_fat, NULL);
+        if(f_node == NULL) {
+            printf("error: no such src file\n");
+            return FAILURE;
+        }
+        char* dest_f_name = commands[2];
+        int d_fd = f_open(dest_f_name, F_WRITE);
+        if(d_fd == FAILURE) {
+            printf("error: cp, fail to open dest file");
+            return FAILURE;
+        }
 
-    //     // free the file
-    //     freeFile(file);
-    //     saveFat(fat);
-    // }
-    // return SUCCESS;
+        file * src_file = read_file_from_fat(f_node, curr_fat);
+        if (src_file == NULL){
+            printf("error: file not found");
+            return FAILURE;
+        }
+        
+        // char* buffer = (char*)src_file->file_bytes;
+        // memcpy(buffer,(char*)src_file->file_bytes, src_file->size);
+        //TODO FIND FILEBYTES SIZE;
+        // printf("for Debugging purposes: line397 writing %s from srcfile of size %d\n",buffer, src_file->size);
+        if(f_write(d_fd, (char*)src_file->file_bytes, src_file->size) == FAILURE) {
+            printf("error: cp, fail to write to dest file");
+            f_close(d_fd);
+            return FAILURE;
+        }
+        f_close(d_fd);
+        return SUCCESS;
+    }
+    return SUCCESS;
 }
+
 
 int pennfat_ls(FAT *fat){
     dir_node *node = fat->first_dir_node;
