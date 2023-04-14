@@ -68,10 +68,10 @@ void exit_process() {
  */
 void set_stack(stack_t *stack)
 {
-    void *sp = malloc(SIGSTKSZ * 2);
-    VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ * 2);
+    void *sp = malloc(SIGSTKSZ);
+    VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ );
 
-    *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ * 2};
+    *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ };
 }
 
 void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
@@ -82,7 +82,7 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
     set_stack(&ucp->uc_stack);
     if (func == schedule) {
         ucp->uc_link = NULL;
-    } else if (func == exit_process || func == idle_process || func == my_sleep) {
+    } else if (func == exit_process || func == idle_process) {
         ucp->uc_link = &scheduler_context;
     } else {
         ucp->uc_link = &exit_context;
@@ -124,7 +124,7 @@ void k_foreground_process(pid_t pid)
 
 void k_block(pcb_t *parent) {
     if (parent->status == RUNNING_P) {
-        printf("process %s being blocked\n", parent->process);
+        // printf("process %s being blocked\n", parent->process);
         parent->status = BLOCKED_P;
         ready_to_block(parent);
 
