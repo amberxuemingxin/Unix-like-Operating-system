@@ -46,6 +46,12 @@ int execute(struct parsed_command *cmd, job *job) {
     } else if (strcmp(cmd->commands[0][0], "recur") == 0) {
         char *recur_arg[2] = {"recur", NULL};
         child = p_spawn(recur, recur_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    } else if (strcmp(cmd->commands[0][0], "busy") == 0) {
+        char *busy_arg[2] = {"busy", NULL};
+        child = p_spawn(busy, busy_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    } else if (strcmp(cmd->commands[0][0], "kill") == 0) {
+        char *kill_arg[4] = {"kill", cmd->commands[0][1], cmd->commands[0][2], NULL};
+        child = p_spawn(my_kill, kill_arg, 2, STDIN_FILENO, STDOUT_FILENO);
     } else {
         /* invalid input */
         free_job(job);

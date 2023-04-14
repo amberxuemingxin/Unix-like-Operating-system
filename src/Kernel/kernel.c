@@ -123,7 +123,7 @@ void k_foreground_process(pid_t pid)
 }
 
 void k_block(pcb_t *parent) {
-    if (parent->status == RUNNING_P) {
+    if (parent && parent->status == RUNNING_P) {
         // printf("process %s being blocked\n", parent->process);
         parent->status = BLOCKED_P;
         ready_to_block(parent);
@@ -138,7 +138,7 @@ void k_block(pcb_t *parent) {
  */
 void k_unblock(pcb_t *parent)
 {
-    if (parent->status == BLOCKED_P)
+    if (parent && parent->status == BLOCKED_P)
     {
         // printf("process %s getting unblocked\n", parent->process);
         parent->status = RUNNING_P;
