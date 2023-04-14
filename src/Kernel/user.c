@@ -48,8 +48,6 @@ void p_sleep(unsigned int ticks) {
     // k_block(parent);
     /* block itself */
     k_block(active_process);
-
-    setcontext(&idle_context);
 }
 
 /* send a signal to a process group

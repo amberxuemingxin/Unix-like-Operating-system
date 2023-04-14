@@ -150,7 +150,7 @@ pcb_t *pick_next_process() {
     bool low_queue_existed = (queue_low->length > 0) ? true : false;
     bool mid_queue_existed = (queue_mid->length > 0) ? true : false;
     bool high_queue_existed = (queue_high->length > 0) ? true : false;
-
+    
     if (!low_queue_existed && !mid_queue_existed && !high_queue_existed) {
         idle = true;
         return NULL;
@@ -185,7 +185,7 @@ void schedule() {
     pcb_t *sleep_process = queue_block->head;
     while (sleep_process) {
         if (sleep_process->ticks == global_ticks) {
-            k_process_kill(sleep_process, S_SIGTERM);
+            k_unblock(sleep_process);
         }
         sleep_process = sleep_process->next;
     }
@@ -193,7 +193,6 @@ void schedule() {
     pcb_t *next_process = pick_next_process();
 
     if (next_process == NULL) {
-        printf("idle process picked!\n");
         setcontext(&idle_context);
         perror("setcontext - idle");
         exit(EXIT_FAILURE);

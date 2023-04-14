@@ -107,7 +107,25 @@ void cmd_handler(struct parsed_command *cmd) {
         return;
         
     } else if (strcmp(cmd->commands[0][0], "nice") == 0) {
+        char *priority_string = cmd->commands[0][1];
+        // char *cmd_string = cmd->commands[0][2];
+
+        int priority = 0;
+
+        if (strcmp(priority_string, "-1") == 0) {
+            priority = -1;
+        } else if (strcmp(priority_string, "0") == 0) {
+            priority = 0;
+        } else if (strcmp(priority_string, "1") == 0) {
+            priority = 1;
+        } else {
+            fprintf(stderr, "Please enter the correct priority value\n");
+            return;
+        }
+
         // TODO
+        printf("%d\n", priority);
+
     } else if (strcmp(cmd->commands[0][0], "nice_pid") == 0) {
         char *priority_string = cmd->commands[0][1];
         char *pid_string = cmd->commands[0][2];
