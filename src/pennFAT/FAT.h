@@ -44,6 +44,7 @@ typedef struct FAT {
 typedef struct file {
     int block_arr_start;
     uint8_t* file_bytes;
+    uint32_t size;
 } file;
 
 dir_node * new_directory_node(char* f_name, uint32_t size, uint16_t firstBlock, uint8_t type, uint8_t perm, time_t time);

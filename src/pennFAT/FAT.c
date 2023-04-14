@@ -44,12 +44,10 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     FAT* res = (FAT*) malloc(sizeof(FAT));
 
     res->file_num = 0;
-    printf("here after 53 fat\n");
 
     // res->first_dir_node =NULL;
     // res->last_dir_node =NULL;
     
-    printf("first time accessing f_name%s\n", f_name);
     res->f_name = f_name;
     int len = strlen(f_name);
 
@@ -207,9 +205,7 @@ FAT* mount_fat(char* f_name) {
             curr_node = new_node; 
         }
     }
-    // printf("%s\n", f_name);
 
-    printf("here, before new content\n");
     // TODO: WRITE DATA REGION TO FAT
 
 
@@ -301,7 +297,6 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
             return SUCCESS;
         }
         // if we are using another block:
-        printf("headsup");
         fat->block_arr[1] = (uint16_t) index;
         *reside_block = index;
         index = index*block_len + fat->directory_starting_index;
@@ -322,16 +317,13 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     bool dir_full = false; 
     int start_index = fat->directory_starting_index + (prev)*((int)block_len);
     //increment 32 at a time
-    printf("start_index = %d\n", start_index);
     while(fat->block_arr[start_index + index] != ZERO && index < block_len) {
-        printf("next_index = %d\n", start_index + index);
         //if the index is non-zero, jump to the next directory block
         //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
         // thus increment by 32
         index += 32;
     }
 
-    printf("final index:%d\n", index);
     if (index >= block_len) {
         dir_full = true;
         index = 2;
@@ -346,8 +338,6 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
             
     }
     if(!dir_full) {
-        printf("HEADSUP\n");
-        printf("reside_block used here: %d\n", prev);
         // writing the directory entry struct into the directory block
         directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[start_index+index];
         *entry_ptr = en;
@@ -356,7 +346,6 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     // if we are using another block:
     fat->block_arr[prev] = (uint16_t) index;
     *reside_block = index;
-    printf("reside_block used here: %d\n", *reside_block);
     index = index*block_len + fat->directory_starting_index;
     directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
     *entry_ptr = en;
@@ -392,6 +381,7 @@ file* read_file_from_fat(dir_node *f_node, FAT* fat) {
 
     file *res = malloc(sizeof(file));
     res->file_bytes = read_file_bytes(f_node->dir_entry->firstBlock, f_node->dir_entry->size, fat);
+    res->size = f_node->dir_entry->size;
     if (res == NULL)
         return NULL;
 
