@@ -718,13 +718,14 @@ int f_write(int fd, const char *str, int n){
         }
         directory_entry* curr_dir = curr_node->dir_entry;
         int curr_size = curr_dir->size;
+        printf("curr_size: %d\n", curr_size);
         // find the end of the file
         if(curr_size != 0) {
             // printf("position 1");
-            while(curr_size >= 64) {
-                // printf("position 2");
+            while(curr_size >= curr_fat->block_size) { // yuan lai shi 64
+                // printf("position 2"); 
                 curr_block = curr_fat->block_arr[curr_block];
-                curr_size -= 64;
+                curr_size -= curr_fat->block_size;
             }
             // printf("position 3");
             start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
