@@ -338,6 +338,8 @@ int pennfat_cat(char **commands, FAT *fat){
 int pennfat_cp(char **commands, FAT *fat){
     int count = 0;
     bool host = false;
+    bool source_host = false;
+    bool dest_host = false;
     while (commands[count] != NULL) {
         count++;
     }
@@ -368,6 +370,12 @@ int pennfat_cp(char **commands, FAT *fat){
                     printf("error: wrong location for flag\n");
                     return FAILURE;
                 }
+            }
+            if (i == 1) {
+                source_host = true;
+            }
+            if (i == 2) {
+                dest_host = true;
             }
         }
         // host = true;
@@ -402,6 +410,65 @@ int pennfat_cp(char **commands, FAT *fat){
         }
         f_close(d_fd);
         return SUCCESS;
+    }
+
+    if (host) {
+    //cp [ -h ] SOURCE DEST
+    //Copies SOURCE to DEST. With -h, SOURCE is from the host OS
+        if(source_host) {
+            char* source_f_name = commands[2];
+            char* dest_f_name = commands[3];
+            int fd = open(source_f_name, O_RDWR | O_TRUNC | O_CREAT, 0644);
+            if (fd < 0) {
+                perror("error: cp failed to open the file");
+                return FAILURE;
+            }
+            int file_size = lseek(fd, 0, SEEK_END);
+            if (file_size == -1) {
+                perror("error: cp failed to determine the file size");
+                close(fd);
+                return FAILURE;
+            }
+            char* buffer = (char *)malloc(file_size + 1);
+            if (buffer == NULL) {
+                perror("error: cp failed to allocate memory for the buffer");
+                close(fd);
+                return FAILURE;
+            }
+            // Move the file position back to the beginning of the file
+            if (lseek(fd, 0, SEEK_SET) == -1) {
+                perror("error : cp failed to move the file position to the beginning");
+                free(buffer);
+                close(fd);
+                return FAILURE;
+            }
+            
+            int bytes_read = read(fd, buffer, file_size);
+            if (bytes_read!=file_size) {
+                perror("error : cp failed to completely read content in host destination file");
+                free(buffer);
+                close(fd);
+                return FAILURE;
+            }
+            buffer[file_size] = '\0';
+            close(fd);
+            int d_fd = f_open(dest_f_name, F_WRITE);
+            if(d_fd == FAILURE) {
+                printf("error: cp failed to f_open dest file");
+                return FAILURE;
+            }
+            if (f_write(d_fd, buffer, file_size)) {
+                printf("error: cp failed to f_write to dest file");
+                f_close(d_fd);
+                return FAILURE;
+            }
+            f_close(d_fd);
+        }
+        if(dest_host) {
+            //TODO:FILLIN
+        }
+
+
     }
     return SUCCESS;
 }
