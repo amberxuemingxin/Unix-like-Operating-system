@@ -44,12 +44,10 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     FAT* res = (FAT*) malloc(sizeof(FAT));
 
     res->file_num = 0;
-    printf("here after 53 fat\n");
 
     // res->first_dir_node =NULL;
     // res->last_dir_node =NULL;
     
-    printf("first time accessing f_name%s\n", f_name);
     res->f_name = f_name;
     int len = strlen(f_name);
 
@@ -207,9 +205,7 @@ FAT* mount_fat(char* f_name) {
             curr_node = new_node; 
         }
     }
-    // printf("%s\n", f_name);
 
-    printf("here, before new content\n");
     // TODO: WRITE DATA REGION TO FAT
 
 
@@ -268,19 +264,19 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     //block_len in bytes
     uint16_t block_len = fat->block_size * fat->block_num;
     //block len in 2 bytes
-    block_len /= 2;
+    block_len /= 2;    // 128
     if(fat->block_arr[1] == 0XFFFF) {
         bool dir_full = false; 
         // find a spot in file system
         uint16_t index = 0;
         //increment 32 at a time
-         while(fat->block_arr[fat->directory_starting_index + index] != ZERO && index < block_len) {
-            //if the index is non-zero, jump to the next directory block
-            //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
+        while(fat->block_arr[fat->directory_starting_index + index] != ZERO && index < block_len) {
+            // if the index is non-zero, jump to the next directory block
+            // each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
             // thus increment by 32
             index += 32;
-         }
-          // find the first empty data block
+        }
+        // find an empty index in FAT REGION
         if (index >= block_len) {
             dir_full = true;
             index = 2;
@@ -301,10 +297,10 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
             return SUCCESS;
         }
         // if we are using another block:
-        printf("headsup");
         fat->block_arr[1] = (uint16_t) index;
+        fat->block_arr[index] = 0XFFFF;
         *reside_block = index;
-        index = index*block_len + fat->directory_starting_index;
+        index = index*block_len;
         directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
         *entry_ptr = en;
         return SUCCESS;
@@ -317,21 +313,19 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
         prev = curr_block;
         curr_block = fat->block_arr[(int)curr_block];
     }
-    *reside_block = prev;
+    *reside_block = prev;    // prev = 6 = reside block
     uint16_t index = 0;
     bool dir_full = false; 
-    int start_index = fat->directory_starting_index + (prev)*((int)block_len);
+    // int start_index = fat->directory_starting_index + (prev)*((int)block_len);    // 128 + 768 = 896
+    int start_index = (prev)*((int)block_len);
     //increment 32 at a time
-    printf("start_index = %d\n", start_index);
     while(fat->block_arr[start_index + index] != ZERO && index < block_len) {
-        printf("next_index = %d\n", start_index + index);
         //if the index is non-zero, jump to the next directory block
         //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
         // thus increment by 32
         index += 32;
     }
 
-    printf("final index:%d\n", index);
     if (index >= block_len) {
         dir_full = true;
         index = 2;
@@ -346,8 +340,6 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
             
     }
     if(!dir_full) {
-        printf("HEADSUP\n");
-        printf("reside_block used here: %d\n", prev);
         // writing the directory entry struct into the directory block
         directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[start_index+index];
         *entry_ptr = en;
@@ -356,8 +348,10 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     // if we are using another block:
     fat->block_arr[prev] = (uint16_t) index;
     *reside_block = index;
-    printf("reside_block used here: %d\n", *reside_block);
-    index = index*block_len + fat->directory_starting_index;
+    fat->block_arr[index] = 0XFFFF;
+
+    index = index*block_len;
+
     directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
     *entry_ptr = en;
     return SUCCESS;
@@ -392,6 +386,7 @@ file* read_file_from_fat(dir_node *f_node, FAT* fat) {
 
     file *res = malloc(sizeof(file));
     res->file_bytes = read_file_bytes(f_node->dir_entry->firstBlock, f_node->dir_entry->size, fat);
+    res->size = f_node->dir_entry->size;
     if (res == NULL)
         return NULL;
 
@@ -459,18 +454,22 @@ uint8_t *read_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
     return result;
 }
 
-void delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
+int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
     int fd;
     if ((fd = open(fat->f_name, O_WRONLY, 0644)) == -1) {
         perror("open");
     }
-
+    if(length == 0) {
+        printf("nothing in the file\n");
+        return FAILURE;
+    }
     // seek to the first empty block
     uint32_t fatSize = fat->block_num * fat->block_size;
     uint16_t currIndex = startIndex;
 
     if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
         perror("lseek");
+        return FAILURE;
     }
 
     // read all (length) bytes, finding a new block every time we read (blockSize) bytes
@@ -480,6 +479,7 @@ void delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
             currIndex = fat->block_arr[currIndex];
             if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
                 perror("lseek");
+                return FAILURE;
             }
         }
 
@@ -495,6 +495,7 @@ void delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
         while (index <= bytes_to_write) {
             if (write(fd, &wipe, 1) == -1) {
                 perror("write");
+                return FAILURE;
             }
             index ++;
         }
@@ -503,7 +504,9 @@ void delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
     // close the file
     if (close(fd) == -1) {
         perror("close");
-        }
+        return FAILURE;
+    }
+    return SUCCESS;
 }
 
 
