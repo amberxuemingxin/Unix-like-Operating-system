@@ -544,6 +544,7 @@ int f_open(const char *f_name, int mode){
         if (file_node == NULL) {
             // printf("creating a new file in f_open");
             uint16_t firstBlock = 0;
+            // search in FAT REGION to find a empty block to place the fat entry
             for (uint32_t i = 2; i < curr_fat->entry_size; i++){
                 if (curr_fat->block_arr[i] == ZERO){
                     firstBlock = (uint16_t) i;
@@ -552,7 +553,7 @@ int f_open(const char *f_name, int mode){
                 }
             }
             if(firstBlock == 0) return FAILURE;
-            // new a dir entry with 0 byte (empty file)
+            // new a dir entry NODE with 0 byte (empty file)
             file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
             // append this node to the FAT dir information. 
             if (curr_fat->first_dir_node == NULL){
