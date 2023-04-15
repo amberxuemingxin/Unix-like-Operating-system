@@ -25,16 +25,24 @@ extern pcb_t *active_process;
 extern bool idle;
 
 void orphan_check(pcb_t *process) {
-    pcb_t *child = process->children;
+    children_list *child = process->children;
 
     while (child) {
-        pcb_t *tmp = child->next;
-        log_events(ORPHAN, global_ticks, child->pid, child->priority, child->process);
-        child->status = ORPHANED_P;
-        remove_from_scheduler(child);
-        k_process_cleanup(child);
+        pcb_t *p = search_in_scheduler(child->pid) ? search_in_scheduler(child->pid) : search_in_zombies(child->pid);
+        children_list *tmp = child->next;
+        if (p == NULL) {
+            printf("Can't find child's pid\n");
+            return;
+        }
+        log_events(ORPHAN, global_ticks, p->pid, p->priority, p->process);
+        p->status = ORPHANED_P;
+        remove_from_scheduler(p);
+        k_process_cleanup(p);
+        free(child);
         child = tmp;
     }
+
+    process->children = NULL;
 }
 
 void idle_process()
@@ -68,10 +76,10 @@ void exit_process() {
  */
 void set_stack(stack_t *stack)
 {
-    void *sp = malloc(SIGSTKSZ);
-    VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ );
+    void *sp = malloc(SIGSTKSZ * 10);
+    VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ * 10);
 
-    *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ };
+    *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ * 10};
 }
 
 void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
@@ -172,17 +180,21 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
 
     // add this process to the children queue
     if (!is_shell) {
-        pcb_t *child = parent->children;
-        pcb_t *prev = NULL;
+        children_list *cur = malloc(sizeof(children_list));
+        cur->pid = p->pid;
+        cur->next = NULL;
+
+        children_list *child = parent->children;
+        children_list *prev = NULL;
         while (child) {
             prev = child;
             child = child->next;
         }
 
         if (prev != NULL) {
-            prev->next = p;
+            prev->next = cur;
         } else {
-            parent->children = p;
+            parent->children = cur;
         }
 
     }
@@ -233,10 +245,12 @@ int k_process_kill(pcb_t *process, int signal)
         log_events(SIGNALED, global_ticks, process->pid, process->priority, process->process);
         process->status = ZOMBIED_P;
         log_events(ZOMBIE, global_ticks, process->pid, process->priority, process->process);
-        remove_from_scheduler(process);
-        k_unblock(process->parent);
         orphan_check(process); 
-        k_process_cleanup(process);
+        
+        // remove_from_scheduler(process);
+        k_unblock(process->parent);
+        
+        // k_process_cleanup(process);
 
         return 0;
     }
@@ -247,17 +261,16 @@ int k_process_kill(pcb_t *process, int signal)
 void k_process_cleanup(pcb_t *process)
 {
     if (process->parent) {
-        pcb_t *child = process->parent->children;
-        pcb_t *prev = NULL;
+        children_list *child = process->parent->children;
+        children_list *prev = NULL;
 
         while (child) {
-            if (child == process) {
+            if (child->pid == process->pid) {
                 if (prev) {
-                    printf("prev siblings %s\n", prev->process);
-                    prev->next = process->next;
+                    prev->next = child->next;
                     break;
                 } else {
-                    process->parent->children = process->next;
+                    process->parent->children = child->next;
                     break;
                 }
             }

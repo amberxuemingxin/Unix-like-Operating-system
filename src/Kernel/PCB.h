@@ -13,6 +13,11 @@
 #define ORPHANED_P 4
 #define BLOCKED_P 5
 
+typedef struct children_def {
+    pid_t pid;
+    struct children_def *next;
+} children_list;
+
 typedef struct pcb_def
 {
     // determine the kind of the process
@@ -42,7 +47,7 @@ typedef struct pcb_def
     int ticks;
 
     // child process management
-    struct pcb_def *children;
+    children_list *children;
     // after exiting the process, if it's being waited on
     bool waited;
 
