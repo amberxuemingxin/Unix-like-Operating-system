@@ -542,16 +542,11 @@ int f_open(const char *f_name, int mode){
         }
         //create new file
         if (file_node == NULL) {
+            
             // printf("creating a new file in f_open");
-            uint16_t firstBlock = 0;
+            uint16_t firstBlock = -1;
             // search in FAT REGION to find a empty block to place the fat entry
-            for (uint32_t i = 2; i < curr_fat->entry_size; i++){
-                if (curr_fat->block_arr[i] == ZERO){
-                    firstBlock = (uint16_t) i;
-                    curr_fat->block_arr[i] = 0xffff;
-                    break;
-                }
-            }
+
             if(firstBlock == 0) return FAILURE;
             // new a dir entry NODE with 0 byte (empty file)
             file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
@@ -569,14 +564,24 @@ int f_open(const char *f_name, int mode){
             */
             int* reside_index = malloc(sizeof(int));
             write_directory_to_block(*file_node->dir_entry, curr_fat, reside_index);
-            // printf("%s resides in %dth block in fat entry\n", f_name, *reside_index);
+            printf("debugging: %s resides in %dth block in fat entry\n", f_name, *reside_index);
             free(reside_index);
+            for (uint32_t i = 2; i < curr_fat->entry_size; i++){
+                if (curr_fat->block_arr[i] == ZERO){
+                    file_node->dir_entry->firstBlock = (uint16_t) i;
+                    curr_fat->block_arr[i] = 0xffff;
+                    printf("debugging: %s's first block is %d\n", file_node->dir_entry->name, i);
+                    break;
+                }
+            }
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
         }
         if(mode == F_WRITE) {
-            // printf("f_open: F_WRITE");
+            printf("f_open: F_WRITE\n");
             curr_fd = (int) file_node->dir_entry->firstBlock;
+            printf("firstblock for file %s is %d\n", file_node->dir_entry->name, curr_fd);
+        
         }
         // printf("here1\n");
         // printf("f_open: append mode will be here......");
