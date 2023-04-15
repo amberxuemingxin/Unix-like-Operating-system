@@ -543,6 +543,7 @@ int f_open(const char *f_name, int mode){
         //create new file
         if (file_node == NULL) {
             
+            
             // printf("creating a new file in f_open");
             uint16_t firstBlock = -1;
             // search in FAT REGION to find a empty block to place the fat entry
