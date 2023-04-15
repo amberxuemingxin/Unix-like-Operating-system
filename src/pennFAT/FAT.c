@@ -298,6 +298,7 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
         }
         // if we are using another block:
         fat->block_arr[1] = (uint16_t) index;
+        fat->block_arr[index] = 0XFFFF;
         *reside_block = index;
         index = index*block_len;
         directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
@@ -346,6 +347,7 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     // if we are using another block:
     fat->block_arr[prev] = (uint16_t) index;
     *reside_block = index;
+    fat->block_arr[index] = 0XFFFF;
 
     index = index*block_len;
 
