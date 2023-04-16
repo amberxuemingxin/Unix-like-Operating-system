@@ -152,6 +152,7 @@ void cmd_handler(struct parsed_command *cmd) {
         }
 
         p_nice(pid, priority);
+        return;
     } else if (strcmp(cmd->commands[0][0], "logout") == 0) {
         free_all_jobs(list);
         free(cmd);

@@ -86,7 +86,7 @@ void log_nice(int ticks, int pid, int old_priority, int new_priority, char *proc
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);
     }
-    int return_value = fprintf(log_file, "[%d]\tNICE\t%d\t%d\t%d\t%s\n", ticks, pid, old_priority, new_priority,process);
+    int return_value = fprintf(log_file, "[\t%5d]\t%10s\t%5d\t%5d\t%5d\t%s\n", ticks, "NICE", pid, old_priority, new_priority,process);
     if (return_value < 0) {
         perror("Fail to create the log file.\n");
         exit(EXIT_FAILURE);
