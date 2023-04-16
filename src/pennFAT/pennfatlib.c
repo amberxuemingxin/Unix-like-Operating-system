@@ -776,21 +776,21 @@ int f_read(int fd, int n, char *buf){
 int f_write(int fd, const char *str, int n){
     printf("CURRENTLY CALLING F_WRITE...");
     uint32_t byte_write = 0;
-    int curr_block = fd;
-    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
+    int curr_block = fd;    // 4
+    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;    // 256 + 2*128 = 512
     uint16_t index = start_index;
+    printf("curr fd: %d\n", fd);
 
     //write mode
     if(curr_fd == fd) {
-        // printf("f_write mode");
+        // -W MODE
         while(byte_write < n && str[byte_write] != '\0') {
-            // curr_fat->block_arr[index] = str[byte_write] << 8 | '\0';
             curr_fat->block_arr[index] = str[byte_write];
             byte_write++;
             // printf("byte_write: %d\n", byte_write);
             
             if(byte_write < n && str[byte_write] != '\0') {
-                // curr_fat->block_arr[index] = curr_fat->block_arr[index] | str[byte_write];
+                // write 1 byte if the current index block is not full
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
                 byte_write++;
             }
@@ -798,15 +798,14 @@ int f_write(int fd, const char *str, int n){
             // printf("index: %d\n", index);
 
             //check if current data block is full
-            if(index == start_index + curr_fat->block_size / 2) {
-                // printf("index now is 384");
+            if (index == start_index + curr_fat->block_size / 2) {    // if here, index = 640    // if here, index = 768
                 //find next available data block
                 if(curr_fat->block_arr[curr_block] != 0xFFFF) {
                     curr_block = curr_fat->block_arr[curr_block];
                     start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
                     index = start_index;
-                } else {
-                    // printf("the current entry is ffff\n");
+                } else {    // need to update the fat region entry
+                    printf("the current entry is ffff\n");
                     int free_entry_index = 2;
                     // find unused data block
                     while(free_entry_index < curr_fat->directory_starting_index && curr_fat->block_arr[free_entry_index] != 0x0000) {
@@ -814,23 +813,24 @@ int f_write(int fd, const char *str, int n){
                     }
                     // printf("free_entry_index: %d\n", free_entry_index);
                     // printf("curr_fat->block_num: %d\n", curr_fat->block_num);
-                    
+                    // now free_entry_index = 5
                     if(free_entry_index < curr_fat->directory_starting_index) {
-                        curr_fat->block_arr[curr_block] = free_entry_index;
-                        curr_block = free_entry_index;
-                        start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
-                        index = start_index;
-                        // printf("curr_fat->block_arr[curr_block]: %d\n", curr_fat->block_arr[curr_block]);
-                        // printf("curr_block: %d\n", curr_block);
-                        // printf("start_index: %d\n", start_index);
-                        // printf("index: %d\n", index);
+                        // updating the FAT REGION
+                        curr_fat->block_arr[curr_block] = free_entry_index;    // fat[4] = 5
+                        curr_block = free_entry_index;    // curr_block = 5
+                        curr_fat->block_arr[curr_block] = 0xFFFF;
+                        // updating the DATA REGION
+                        start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;    // start_index = 640
+                        index = start_index;    // index = 640
                     } else {
+                        printf("error: fat region is full, not available for any other entry!");
                         return FAILURE;
                     }
                     
                 }
             }
         }
+
         // find file node and update file size
         dir_node* curr_node = curr_fat->first_dir_node;
         int file_count = 0;
@@ -847,7 +847,7 @@ int f_write(int fd, const char *str, int n){
         int data_region_directory_index = curr_fat->block_size * fat_region_directory_index / 2;
         directory_entry* curr_dir = curr_node->dir_entry;
         curr_dir->size = byte_write;
-        printf("fat_region_directory_index: %d, curr_dir->firstBlock: %d, data_region_directory_index: %d\n", fat_region_directory_index, curr_dir->firstBlock, data_region_directory_index);
+
         int actual_directory_index = data_region_directory_index + (curr_dir->firstBlock - fat_region_directory_index - 1) * 32;
         printf("actual_directory_index: %d\n", actual_directory_index);
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[actual_directory_index];
