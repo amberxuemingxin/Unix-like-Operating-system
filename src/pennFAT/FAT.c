@@ -115,7 +115,7 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
 }   
 
 FAT* mount_fat(char* f_name) {
-    //file system file descriptor
+        //file system file descriptor
     int fs_fd;
     if ((fs_fd = open(f_name, O_RDONLY, 0644)) == -1) {
         perror("open");
@@ -173,18 +173,20 @@ FAT* mount_fat(char* f_name) {
     }
 
     directory_entry **entry_arr = malloc(count * sizeof(directory_entry*));
-
     for(int i = 0 ; i < count; i++) {
+        printf("!!!%d\n",i);
+        printf("count is %d\n", count);
+
         entry_arr[i] = malloc(sizeof(directory_entry));
         lseek(fs_fd, entry_size + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
         uint8_t buffer[sizeof(directory_entry)];
         for (int j = 0; j < sizeof(directory_entry); j++){
+            // printf("%d\n",(int)j);
             buffer[j] = 0x00;
         }
-        
-        if (read(fs_fd, buffer, SIZE_DIRECTORY_ENTRY) == -1) {
+        if (read(fs_fd, buffer, sizeof(directory_entry)) == -1) {
             perror("read");
-            return NULL;
+            break; // added this line
         }
         memcpy(entry_arr[i], buffer, sizeof(buffer));
     }
@@ -207,7 +209,30 @@ FAT* mount_fat(char* f_name) {
     }
 
     // TODO: WRITE DATA REGION TO FAT
+    // create a temp binary file that copies content from original files
 
+    
+    int tmp_fd = open("temp", O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
+    if (tmp_fd < -1) {
+        perror("error: mount, couldn't open temp file\n");
+        return NULL;
+    }
+
+    char tmp_buffer[1024];
+    int bytes_read, bytes_written;
+    lseek(fs_fd, 0, SEEK_SET);
+    while ((bytes_read = read(fs_fd, tmp_buffer, sizeof(tmp_buffer))) > 0) {
+        bytes_written = write(tmp_fd, tmp_buffer, bytes_read);
+        if (bytes_written != bytes_read) {
+            printf("error: Could not write to tmp file!\n");
+            close(fs_fd);
+            close(tmp_fd);
+            return NULL;
+        }
+    }    
+    // make fat
+    // write the temp to new file
+    // delete temp file. 
 
     FAT *res = make_fat(f_name, numBlocks, block_size);
     if (res == NULL) {
@@ -228,11 +253,29 @@ FAT* mount_fat(char* f_name) {
         }
         curr = curr->next;
     }
-    // printf("hello\n");
-    // printf("size of curr buffer is %d\n", (int)(size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
-    // memcpy(res->block_arr + res->dblock_starting_index, data_buffer, sizeof(uint16_t) * (size - (entry_size + SIZE_DIRECTORY_ENTRY * max_filenum)));
+    close(fs_fd);
+    int fs_wfd = open(f_name, O_WRONLY);
+    //write tmp back to f_name
+    tmp_fd = open("temp", O_RDONLY);
+    if (tmp_fd < -1) {
+        perror("error: mount, couldn't open temp file\n");
+        return NULL;
+    }
+
+
+    while ((bytes_read = read(tmp_fd, tmp_buffer, sizeof(tmp_buffer))) > 0) {
+            bytes_written = write(fs_wfd, tmp_buffer, bytes_read);
+            if (bytes_written != bytes_read) {
+                printf("error: Could not write to fs file!\n");
+                close(fs_wfd);
+                close(tmp_fd);
+                return NULL;
+            }
+        }
+    close(fs_wfd);
+    close(tmp_fd);
     return res;
-}
+    }
 
 void free_fat(FAT* fat){
     struct FAT *curr_fat = fat;
