@@ -7,7 +7,6 @@
 #include "execute.h"
 #include "user.h"
 #include "kernel.h"
-#include "parser.h" // debug
  
 extern job_list *list;
 int priority = 0;
@@ -152,6 +151,7 @@ void cmd_handler(struct parsed_command *cmd) {
         }
 
         p_nice(pid, priority);
+        return;
     } else if (strcmp(cmd->commands[0][0], "logout") == 0) {
         free_all_jobs(list);
         free(cmd);
