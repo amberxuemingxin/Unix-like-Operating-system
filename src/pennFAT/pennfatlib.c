@@ -16,7 +16,6 @@ FAT* curr_fat;
 int* file_d;
 int* file_pos;
 int file_d_size;
-int* reside_index;
 
 int parse_pennfat_command(char ***commands, int commandCount){
     char* cmd = commands[0][0];
@@ -202,7 +201,9 @@ int pennfat_remove(char **commands, FAT *fat){
                 prev_node->next = filenode->next;
             }
             file* curr_file = read_file_from_fat(filenode, curr_fat);
-            delete_file_bytes(filenode->dir_entry->firstBlock, filenode->dir_entry->size, curr_fat);
+            if(curr_file->size!=0){
+                delete_file_bytes(filenode->dir_entry->firstBlock, filenode->dir_entry->size, curr_fat);
+            }
             free(curr_file);
 //----------------------------------------------------------------------
             uint16_t file_block = filenode->dir_entry->firstBlock;
@@ -447,7 +448,7 @@ int pennfat_cp(char **commands, FAT *fat){
                 close(fd);
                 return FAILURE;
             }
-            printf("debugging in cp line 448: lseek returns size of file to be %d\n", file_size);
+            printf("debugging in cp line 451: lseek returns size of file to be %d\n", file_size);
             int bytes_read = read(fd, buffer, file_size);
             if (bytes_read!=file_size) {
                 perror("error : cp failed to completely read content in host destination file");
@@ -455,15 +456,15 @@ int pennfat_cp(char **commands, FAT *fat){
                 close(fd);
                 return FAILURE;
             }
-            buffer[file_size] = '\0';
-            printf("debugging in cp line 457: buffer content read is %s", buffer);
+            // buffer[file_size] = '\0';
+            // printf("debugging in cp line 460: buffer content read is %", buffer);
             close(fd);
             int d_fd = f_open(dest_f_name, F_WRITE);
             if(d_fd == FAILURE) {
                 printf("error: cp failed to f_open dest file");
                 return FAILURE;
             }
-            if (f_write(d_fd, buffer, file_size) == FAILURE) {
+            if (f_write(d_fd, buffer, file_size)==FAILURE) {
                 printf("error: cp failed to f_write to dest file");
                 f_close(d_fd);
                 return FAILURE;
@@ -654,7 +655,7 @@ int f_open(const char *f_name, int mode){
             /*
                 Shufan Added content:
             */
-            reside_index = malloc(sizeof(int));
+            int* reside_index = malloc(sizeof(int));
             write_directory_to_block(*file_node->dir_entry, curr_fat, reside_index);
             // printf("debugging: %s resides in %dth block in fat entry\n", f_name, *reside_index);
 
@@ -838,7 +839,7 @@ int f_write(int fd, const char *str, int n){
             file_count++;
         }
         file_count = file_count / (curr_fat->block_size / (2 * 32)); // file_count divide by how many files a directory can hold
-        // printf("file_count: %d\n", file_count);
+        printf("file_count: %d\n", file_count);
         int fat_region_directory_index = 1;
         for(int i = 0; i < file_count; i++) {
             fat_region_directory_index = curr_fat->block_arr[fat_region_directory_index];
@@ -846,30 +847,25 @@ int f_write(int fd, const char *str, int n){
         int data_region_directory_index = curr_fat->block_size * fat_region_directory_index / 2;
         directory_entry* curr_dir = curr_node->dir_entry;
         curr_dir->size = byte_write;
-        // printf("fat_region_directory_index: %d, curr_dir->firstBlock: %d, data_region_directory_index: %d\n", fat_region_directory_index, curr_dir->firstBlock, data_region_directory_index);
+        printf("fat_region_directory_index: %d, curr_dir->firstBlock: %d, data_region_directory_index: %d\n", fat_region_directory_index, curr_dir->firstBlock, data_region_directory_index);
         int actual_directory_index = data_region_directory_index + (curr_dir->firstBlock - fat_region_directory_index - 1) * 32;
-        // printf("actual_directory_index: %d\n", actual_directory_index);
+        printf("actual_directory_index: %d\n", actual_directory_index);
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[actual_directory_index];
         *entry_ptr = *curr_dir;
-        // printf("new size: %d\n", entry_ptr->size);
+        printf("new size: %d\n", entry_ptr->size);
+        // printf("write mode: curr_dir->size: %d\n", curr_dir->size);
+        // printf("write mode: entry_ptr size: %d\n", entry_ptr->size);
+        // printf("write mode: entry_ptr firstBlock: %d\n", entry_ptr->firstBlock);
     } else {
-        // APPEND MODE
+        // append mode
         // printf("debugging: currently in f_write append mode");
         dir_node* curr_node = curr_fat->first_dir_node;
-        int file_count = 0;    ////////////////////////////
         while(curr_node->dir_entry->firstBlock != fd) {
             curr_node = curr_node->next;
-            file_count ++;    /////////////////////////////
         }
-        file_count = file_count / (curr_fat->block_size / (2 * 32));    /////////////////////////////
-        int fat_region_directory_index = 1;    /////////////////////////////
-        for(int i = 0; i < file_count; i++) {    /////////////////////////////
-            fat_region_directory_index = curr_fat->block_arr[fat_region_directory_index];    /////////////////////////////
-        }
-        int data_region_directory_index = curr_fat->block_size * fat_region_directory_index / 2;    /////////////////////////////
         directory_entry* curr_dir = curr_node->dir_entry;
         int curr_size = curr_dir->size;
-
+        // printf("curr_size: %d\n", curr_size);
         // find the end of the file
         if(curr_size != 0) {
             // printf("position 1");
@@ -891,7 +887,7 @@ int f_write(int fd, const char *str, int n){
                 // printf("curr char: %d\n", curr_char);
                 index++;
             }
-
+            // 目前还是找到286 
             // if a free space available at the current index, write one char
             if((curr_fat->block_arr[index] & 0x00FF) != '\0' && (curr_fat->block_arr[index] >> 8) == '\0' && byte_write < n) {
                 // printf("position 1: index: %d\n", index);
@@ -943,9 +939,7 @@ int f_write(int fd, const char *str, int n){
         }
 
         curr_dir->size = curr_dir->size + byte_write;
-        int actual_directory_index = data_region_directory_index + (curr_dir->firstBlock - fat_region_directory_index - 1) * 32;    ///////////
-        // directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[curr_fat->directory_starting_index + (curr_dir->firstBlock - 2) * 32];
-        directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[actual_directory_index]; ///////////////
+        directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[curr_fat->directory_starting_index + (curr_dir->firstBlock - 2) * 32];
         *entry_ptr = *curr_dir;
 
     }
