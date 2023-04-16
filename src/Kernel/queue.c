@@ -21,11 +21,9 @@ void add_process(queue *q, pcb_t *p) {
         prev->next = p;
     }
     q->length++;
-    // printf("process %s added, cur len = %d\n",p->process ,q->length);
 }
 
 pcb_t *remove_process(queue *q, pcb_t *p) {
-    // printf("removed!\n");
     pcb_t *prev = NULL;
     pcb_t *tmp = q->head;
 
@@ -38,7 +36,6 @@ pcb_t *remove_process(queue *q, pcb_t *p) {
             }
             p->next = NULL;
             q->length--;
-            // printf("process %s removed, cur len = %d\n",p->process ,q->length);
             return p;
         }
         prev = tmp;

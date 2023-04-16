@@ -9,7 +9,23 @@
 #include "kernel.h"
  
 extern job_list *list;
+extern queue *queue_block;
+extern pcb_t *active_process; 
 int priority = 0;
+
+void resume_job(job *job) {
+    pcb_t *process = search_in_scheduler(job->pid);
+    if (process == NULL) {
+        printf("Fail to find %d\n", job->pid);
+        return;
+    }
+
+    job->status = RUNNING_P;
+    remove_job(job, list, true);
+    add_to_end(job, list);
+
+    k_process_kill(process, S_SIGCONT);
+}
 
 void truncate(char*** arr) {
     (*arr) += 2;  // increment the pointer by 2
@@ -25,6 +41,7 @@ void cmd_handler(struct parsed_command *cmd) {
     else if (strcmp(cmd->commands[0][0], "fg") == 0)
     {
         job *job = NULL;
+        pcb_t *process = NULL;
 
         if (cmd->commands[0][1])
         { // by jid
@@ -54,11 +71,11 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        // bring job to fg
-        list->fg_job = job;
-        job->background = false;
-        // TODO
-        // tcsetpgrp(STDIN_FILENO, job->pgid);
+        process = search_in_scheduler(job->pid);
+        if (process == NULL) {
+            printf("Process not exist!\n");
+            return;
+        }
 
         // if the job is stopped, resume it
         if (job->status == STOPPED_P)
@@ -70,6 +87,14 @@ void cmd_handler(struct parsed_command *cmd) {
         {
             fprintf(stderr, "%s\n", job->cmd);
         }
+
+        // bring job to fg
+        list->fg_job = job;
+        job->background = false;
+
+        k_block(active_process);
+        // TODO
+        // tcsetpgrp(STDIN_FILENO, job->pgid);
 
         // TODO wait_for_fg(job);
 

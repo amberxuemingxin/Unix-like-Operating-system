@@ -100,7 +100,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         while (child) {
             pcb_t *p = search_in_scheduler(child->pid) ? search_in_scheduler(child->pid) : search_in_zombies(child->pid);
             if (p == NULL) {
-                // printf("[any] Waitpid can't find the pid %d\n", child->pid);
                 return 0;
             }
             if (W_WIFEXITED(p->status)) {

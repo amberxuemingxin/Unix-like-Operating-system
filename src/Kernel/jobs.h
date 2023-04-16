@@ -42,4 +42,6 @@ void remove_job(job *j, job_list *list, bool stopped);
 
 void add_to_head(job *j, job_list *list, bool stopped);
 
+void add_to_end(job *job, job_list *list);
+
 #endif

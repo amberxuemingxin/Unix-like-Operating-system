@@ -27,6 +27,8 @@ void remove_from_scheduler(pcb_t *p);
 
 void ready_to_block(pcb_t *p);
 
+void block_to_ready(pcb_t *process);
+
 void exit_scheduler();
 
 void print_all_process();

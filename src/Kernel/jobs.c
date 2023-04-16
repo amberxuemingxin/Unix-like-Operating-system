@@ -150,6 +150,21 @@ void add_to_head(job *j, job_list *list, bool stopped) {
     j->next = prev;
 }
 
+void add_to_end(job *j, job_list *list) {
+    job *prev = list->queue_running;
+    while (prev && prev->next) {
+        prev = prev->next;
+    }
+
+    if (prev == NULL) {
+        list->queue_running = j;
+        j->next = NULL;
+    } else {
+        prev->next = j;
+        j->next = NULL;
+    }
+}
+
 job *init_job(struct parsed_command *cmd, job_list *list) {
     job *j = malloc(sizeof(job));
     j->cmd = flatten(cmd);

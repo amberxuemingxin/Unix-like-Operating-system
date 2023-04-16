@@ -91,6 +91,11 @@ void ready_to_block(pcb_t *process) {
     add_process(queue_block, process);
 }
 
+void block_to_ready(pcb_t *process) {
+    remove_process(queue_block, process);
+    add_to_scheduler(process);
+}
+
 pcb_t *search_in_scheduler(pid_t pid) {
     pcb_t *tmp = queue_high->head;
 
@@ -181,11 +186,11 @@ pcb_t *pick_next_process() {
 }
 
 void schedule() {
-    // set_timer();
+    set_timer();
 
     // decrement for all sleeps
     pcb_t *sleep_process = queue_block->head;
-    while (sleep_process) {
+    while (sleep_process && sleep_process->status != STOPPED_P) {
         if (sleep_process->ticks == global_ticks) {
             k_unblock(sleep_process);
         }

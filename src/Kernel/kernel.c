@@ -65,7 +65,6 @@ void exit_process() {
         
         // unblock parent here (make sure don't unblock if it's bg)
         if (active_process->parent) {
-            // printf("%s unblock by exit_process\n", active_process->process);
             k_unblock(active_process->parent);
         }
     }
@@ -91,10 +90,8 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
     set_stack(&ucp->uc_stack);
     if (func == schedule) {
         ucp->uc_link = NULL;
-    } else if (func == idle_process) {
+    } else if (func == idle_process || func == exit_process) {
         ucp->uc_link = &scheduler_context;
-    } else if (func == exit_process) {
-        ucp->uc_link = &idle_context;
     } else {
         ucp->uc_link = &exit_context;
     }
@@ -136,7 +133,6 @@ void k_foreground_process(pid_t pid)
 void k_block(pcb_t *parent) {
     if (parent) {
         parent->num_blocks++;
-        // printf("%s blocked by %d processes\n", parent->process, parent->num_blocks);
         /* 0->1, block the process*/
         if (parent->num_blocks == 1) {
             parent->status = BLOCKED_P;
@@ -156,7 +152,6 @@ void k_unblock(pcb_t *parent)
 {
     if (parent) {
         parent->num_blocks--;
-        // printf("%s blocked by %d processes\n", parent->process, parent->num_blocks);
         if (parent->num_blocks == 0) {
             parent->status = RUNNING_P;
             add_to_scheduler(parent);
@@ -225,10 +220,10 @@ int k_process_kill(pcb_t *process, int signal)
     {
         process->status = STOPPED_P;
         log_events(STOPPED, global_ticks, process->pid, process->priority, process->process);
+        ready_to_block(process);
 
         if (process == active_process)
         {
-            // printf("%s unblock by sigstp\n", process->parent->process);
             k_unblock(process->parent);
         }
 
@@ -242,12 +237,13 @@ int k_process_kill(pcb_t *process, int signal)
         return 0;
     } else if (signal == S_SIGCONT)
     {
-        if (process->status == EXITED_P) {
+        if (process->status == EXITED_P || process->status == ZOMBIED_P) {
             perror("Can't continue a dead process");
             return -1;
         } else if (process->status != RUNNING_P) {
             process->status = RUNNING_P;
             log_events(CONTINUED, global_ticks, process->pid, process->priority, process->process);
+            block_to_ready(process);
         }  
     } else if (signal == S_SIGNALED) {
         process->status = EXITED_P;
@@ -258,7 +254,6 @@ int k_process_kill(pcb_t *process, int signal)
         orphan_check(process); 
 
         if (process == active_process) {
-            // printf("%s unblock by sigal\n", process->parent->process);
             k_unblock(process->parent);
         }
         return 0;
