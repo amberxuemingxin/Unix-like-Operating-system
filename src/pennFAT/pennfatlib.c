@@ -450,13 +450,18 @@ int pennfat_cp(char **commands, FAT *fat){
             }
             printf("debugging in cp line 451: lseek returns size of file to be %d\n", file_size);
             int bytes_read = read(fd, buffer, file_size);
-            if (bytes_read!=file_size) {
-                perror("error : cp failed to completely read content in host destination file");
+            if (bytes_read < 0) {
+                perror("error : cp failed to read content in host destination file");
                 free(buffer);
                 close(fd);
                 return FAILURE;
-            }
-            // buffer[file_size] = '\0';
+            } else if (bytes_read < file_size) {
+                printf("error : cp did not completely read content in host destination file");
+                free(buffer);
+                close(fd);
+                return FAILURE;
+        }
+            buffer[file_size] = '\0';
             // printf("debugging in cp line 460: buffer content read is %", buffer);
             close(fd);
             int d_fd = f_open(dest_f_name, F_WRITE);

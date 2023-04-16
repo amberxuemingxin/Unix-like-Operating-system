@@ -148,48 +148,88 @@ FAT* mount_fat(char* f_name) {
     } else if(block_size == 4) {
         actual_block_size = 4096;
     }
-
-
     // TODO: read direcory entry information:
     uint32_t entry_size = 0;
     // # of FAT entries = block size * number of blocks in FAT / 2
     entry_size = actual_block_size * numBlocks;
-    int max_filenum = (int)actual_block_size/SIZE_DIRECTORY_ENTRY;
-    //get how many entries are in the directory block:
+    //max filenum denots the maximum number of directory entries in a block
+    int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
     int count = 0;
-    for(int i = 0 ; i < max_filenum; i++) {
-        lseek(fs_fd, entry_size + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
-        uint8_t* buf = malloc(sizeof(uint8_t));
-        if (read(fs_fd, buf, 1) == -1) {
+    uint16_t directory_block = 0;
+    int block = 1;
+    while (directory_block != 0XFFFF) {
+        if (read(fs_fd, &directory_block, sizeof(uint16_t)) == -1) {
             perror("read");
             return NULL;
         }
-        if((uint8_t)buf[0] == 0){
+        int starting_index = block* (int) entry_size;
+        for(int i = 0 ; i < max_filenum; i++) {
+            lseek(fs_fd, starting_index + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
+            uint8_t* buf = malloc(sizeof(uint8_t));
+            if (read(fs_fd, buf, 1) == -1) {
+                perror("read");
+                return NULL;
+            }
+            if((uint8_t)buf[0] == 0){
+                free(buf);
+                break;
+            }
+            count++;
             free(buf);
-            break;
         }
-        count++;
-        free(buf);
+        block = (int) directory_block;
+        //set to next fat_entry to read
+        lseek(fs_fd, block*sizeof(uint16_t),SEEK_SET);
     }
-
-    directory_entry **entry_arr = malloc(count * sizeof(directory_entry*));
-    for(int i = 0 ; i < count; i++) {
-        printf("!!!%d\n",i);
-        printf("count is %d\n", count);
-
-        entry_arr[i] = malloc(sizeof(directory_entry));
-        lseek(fs_fd, entry_size + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
-        uint8_t buffer[sizeof(directory_entry)];
-        for (int j = 0; j < sizeof(directory_entry); j++){
-            // printf("%d\n",(int)j);
-            buffer[j] = 0x00;
+    //we can use count to determine how many entries are in the directory_entry
+    directory_entry **entry_arr = malloc(count * sizeof(directory_entry *));
+    for (int i = 0; i < count; i++) {
+    entry_arr[i] = malloc(sizeof(directory_entry));
+    if (entry_arr[i] == NULL) {
+        perror("Failed to allocate memory for entry_arr[i]");
+        // Free previously allocated memory and return NULL
+        for (int j = 0; j < i; j++) {
+            free(entry_arr[j]);
         }
-        if (read(fs_fd, buffer, sizeof(directory_entry)) == -1) {
+        free(entry_arr);
+        return NULL;
+        }
+    }
+    //let's read again
+    directory_block = 0;
+    block = 1;
+    lseek(fs_fd, 1*sizeof(uint16_t), SEEK_SET);
+    // j mark the index in 
+    int entry_num = 0;
+  
+    while (directory_block != 0XFFFF && entry_num < count) {
+        if (read(fs_fd, &directory_block, sizeof(uint16_t)) == -1) {
             perror("read");
-            break; // added this line
+            return NULL;
         }
-        memcpy(entry_arr[i], buffer, sizeof(buffer));
+        int starting_index = block * entry_size;
+        for (int i = 0; i < max_filenum; i++) {
+            lseek(fs_fd, starting_index + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
+            uint8_t buffer[SIZE_DIRECTORY_ENTRY];
+            for (int j = 0; j < SIZE_DIRECTORY_ENTRY; j++) {
+                buffer[j] = 0x00;
+            }
+            if (read(fs_fd, buffer, SIZE_DIRECTORY_ENTRY) == -1) {
+                perror("read");
+                break;
+            }
+            // If not a directory_entry, exit the loop
+            if ((uint8_t) buffer[0] == 0) {
+                break;
+            }
+            // Copy the contents of the buffer into the struct at the appropriate index in the entry_arr array
+            memcpy(entry_arr[entry_num*max_filenum + i], buffer, sizeof(directory_entry));
+        }
+        entry_num += 1;
+        block = (int) directory_block;
+        lseek(fs_fd, block * sizeof(uint16_t), SEEK_SET);
     }
+
     dir_node* head = NULL; 
     dir_node* curr_node = NULL; 
     for (size_t i = 0; i < count; i++) {
@@ -274,6 +314,9 @@ FAT* mount_fat(char* f_name) {
         }
     close(fs_wfd);
     close(tmp_fd);
+    if (unlink("temp") == -1) {
+        perror("unlink");
+}
     return res;
     }
 
