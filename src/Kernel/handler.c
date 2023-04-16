@@ -9,6 +9,7 @@
 #include "kernel.h"
 
 extern job_list *list;
+int priority = 0;
 
 void cmd_handler(struct parsed_command *cmd) {
     if (strcmp(cmd->commands[0][0], "jobs") == 0)
@@ -108,9 +109,6 @@ void cmd_handler(struct parsed_command *cmd) {
         
     } else if (strcmp(cmd->commands[0][0], "nice") == 0) {
         char *priority_string = cmd->commands[0][1];
-        // char *cmd_string = cmd->commands[0][2];
-
-        int priority = 0;
 
         if (strcmp(priority_string, "-1") == 0) {
             priority = -1;
@@ -123,8 +121,9 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        // TODO
-        printf("%d\n", priority);
+        cmd->commands = cmd->commands[0][2];
+
+        cmd_handler(cmd);
 
     } else if (strcmp(cmd->commands[0][0], "nice_pid") == 0) {
         char *priority_string = cmd->commands[0][1];

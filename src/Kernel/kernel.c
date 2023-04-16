@@ -10,6 +10,8 @@
 #include "queue.h"
 #include "builtins.h"
 
+#define STACKSIZE 819200
+
 // global variables
 int global_ticks = 0;
 pid_t max_pid = 0;
@@ -58,15 +60,16 @@ void exit_process() {
     if (active_process) {
         k_process_kill(active_process, S_SIGTERM);
 
-        if (!active_process->waited) {
-            active_process->status = ZOMBIED_P;
-            log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
-            add_process(queue_zombie, active_process);
-        }
+        active_process->status = ZOMBIED_P;
+        log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
+        add_process(queue_zombie, active_process);
+        remove_from_scheduler(active_process);
         
         // unblock parent here (make sure don't unblock if it's bg)
-        k_unblock(active_process->parent);
-        remove_from_scheduler(active_process);
+        if (active_process->parent) {
+            // printf("%s unblock by exit_process\n", active_process->process);
+            k_unblock(active_process->parent);
+        }
     }
 }
 
@@ -76,10 +79,10 @@ void exit_process() {
  */
 void set_stack(stack_t *stack)
 {
-    void *sp = malloc(SIGSTKSZ * 10);
-    VALGRIND_STACK_REGISTER(sp, sp + SIGSTKSZ * 10);
+    void *sp = malloc(STACKSIZE);
+    VALGRIND_STACK_REGISTER(sp, sp + STACKSIZE);
 
-    *stack = (stack_t){.ss_sp = sp, .ss_size = SIGSTKSZ * 10};
+    *stack = (stack_t){.ss_sp = sp, .ss_size = STACKSIZE};
 }
 
 void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
@@ -131,14 +134,19 @@ void k_foreground_process(pid_t pid)
 }
 
 void k_block(pcb_t *parent) {
-    if (parent && parent->status == RUNNING_P) {
-        // printf("process %s being blocked\n", parent->process);
-        parent->status = BLOCKED_P;
-        ready_to_block(parent);
+    if (parent) {
+        parent->num_blocks++;
+        // printf("%s blocked by %d processes\n", parent->process, parent->num_blocks);
+        /* 0->1, block the process*/
+        if (parent->num_blocks == 1) {
+            parent->status = BLOCKED_P;
+            ready_to_block(parent);
 
-        log_events(BLOCKED, global_ticks, parent->pid, parent->priority, parent->process);
-        swapcontext(&active_process->context, &scheduler_context);
+            log_events(BLOCKED, global_ticks, parent->pid, parent->priority, parent->process);
+            swapcontext(&active_process->context, &scheduler_context);
+        }
     }
+
 }
 
 /*
@@ -146,13 +154,15 @@ void k_block(pcb_t *parent) {
  */
 void k_unblock(pcb_t *parent)
 {
-    if (parent && parent->status == BLOCKED_P)
-    {
-        // printf("process %s getting unblocked\n", parent->process);
-        parent->status = RUNNING_P;
-        add_to_scheduler(parent);
-        remove_process(queue_block, parent);
-        log_events(UNBLOCKED, global_ticks, parent->pid, parent->priority, parent->process);
+    if (parent) {
+        parent->num_blocks--;
+        // printf("%s blocked by %d processes\n", parent->process, parent->num_blocks);
+        if (parent->num_blocks == 0) {
+            parent->status = RUNNING_P;
+            add_to_scheduler(parent);
+            remove_process(queue_block, parent);
+            log_events(UNBLOCKED, global_ticks, parent->pid, parent->priority, parent->process);
+        }
     }
 }
 
@@ -174,9 +184,9 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
     p->status = RUNNING_P;
     p->priority = is_shell ? -1 : 0;
     p->ticks = -1;
+    p->num_blocks = 0;
     p->children = NULL;
     p->next = NULL;
-    p->waited = false;
 
     // add this process to the children queue
     if (!is_shell) {
@@ -219,7 +229,7 @@ int k_process_kill(pcb_t *process, int signal)
 
         if (process == active_process)
         {
-            // active_process = NULL;
+            // printf("%s unblock by sigstp\n", process->parent->process);
             k_unblock(process->parent);
         }
 
@@ -246,12 +256,11 @@ int k_process_kill(pcb_t *process, int signal)
         process->status = ZOMBIED_P;
         log_events(ZOMBIE, global_ticks, process->pid, process->priority, process->process);
         orphan_check(process); 
-        
-        // remove_from_scheduler(process);
-        k_unblock(process->parent);
-        
-        // k_process_cleanup(process);
 
+        if (process == active_process) {
+            // printf("%s unblock by sigal\n", process->parent->process);
+            k_unblock(process->parent);
+        }
         return 0;
     }
 

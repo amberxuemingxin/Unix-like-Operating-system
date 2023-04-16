@@ -45,11 +45,11 @@ typedef struct pcb_def
     int priority;
     // timing the process
     int ticks;
+    // # of processes blocking it
+    int num_blocks;
 
     // child process management
     children_list *children;
-    // after exiting the process, if it's being waited on
-    bool waited;
 
     // context of the process
     ucontext_t context;

@@ -45,7 +45,6 @@ void p_sleep(unsigned int ticks) {
     pcb_t *sleep_process = active_process;
     sleep_process->ticks = global_ticks + ticks;
     // pcb_t *parent = sleep_process->parent;
-    // k_block(parent);
     /* block itself */
     k_block(active_process);
 }
@@ -93,13 +92,14 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         children_list *child = active_process->children;
         
         if (child == NULL) {
+            /* when nohang exit */
             return -1;
         }
 
         while (child) {
             pcb_t *p = search_in_scheduler(child->pid) ? search_in_scheduler(child->pid) : search_in_zombies(child->pid);
             if (p == NULL) {
-                printf("[any] Waitpid can't find the pid %d\n", child->pid);
+                // printf("[any] Waitpid can't find the pid %d\n", child->pid);
                 return 0;
             }
             if (W_WIFEXITED(p->status)) {
@@ -130,6 +130,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         }
 
     }
+    
     return 0;
 }
 

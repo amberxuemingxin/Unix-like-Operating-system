@@ -181,6 +181,8 @@ pcb_t *pick_next_process() {
 }
 
 void schedule() {
+    set_timer();
+    
     // decrement for all sleeps
     pcb_t *sleep_process = queue_block->head;
     while (sleep_process) {
