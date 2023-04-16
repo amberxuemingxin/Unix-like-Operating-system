@@ -83,11 +83,6 @@ int p_kill(pid_t pid, int sig) {
 * - nohang = false, block the caller until any children change the state
 */
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
-
-    /* global as the caller */
-    if (!nohang) {
-        k_block(active_process);
-    }
         
     if (pid == -1) { /* wait for any children processes */
         children_list *child = active_process->children;
@@ -95,6 +90,11 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         if (child == NULL) {
             /* when nohang exit */
             return -1;
+        }
+
+        /* global as the caller */
+        if (!nohang) {
+            k_block(active_process);
         }
 
         while (child) {
@@ -119,6 +119,11 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
         if (p == NULL) {
             printf("Waitpid can't find the pid %d\n", pid);
             return 0;
+        }
+
+        /* global as the caller */
+        if (!nohang) {
+            k_block(active_process);
         }
 
         if (W_WIFEXITED(p->status)) {

@@ -254,6 +254,7 @@ int k_process_kill(pcb_t *process, int signal)
         log_events(SIGNALED, global_ticks, process->pid, process->priority, process->process);
         process->status = ZOMBIED_P;
         log_events(ZOMBIE, global_ticks, process->pid, process->priority, process->process);
+        remove_from_scheduler(process);
         orphan_check(process); 
 
         if (process == active_process) {
