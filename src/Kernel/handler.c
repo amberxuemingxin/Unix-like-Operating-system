@@ -7,8 +7,15 @@
 #include "execute.h"
 #include "user.h"
 #include "kernel.h"
-
+#include "parser.h" // debug
+ 
 extern job_list *list;
+int priority = 0;
+
+void truncate(char*** arr) {
+    (*arr) += 2;  // increment the pointer by 2
+    // now (*arr) points to the third element of the original array
+}
 
 void cmd_handler(struct parsed_command *cmd) {
     if (strcmp(cmd->commands[0][0], "jobs") == 0)
@@ -108,9 +115,6 @@ void cmd_handler(struct parsed_command *cmd) {
         
     } else if (strcmp(cmd->commands[0][0], "nice") == 0) {
         char *priority_string = cmd->commands[0][1];
-        // char *cmd_string = cmd->commands[0][2];
-
-        int priority = 0;
 
         if (strcmp(priority_string, "-1") == 0) {
             priority = -1;
@@ -123,8 +127,7 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        // TODO
-        printf("%d\n", priority);
+        truncate(cmd->commands);
 
     } else if (strcmp(cmd->commands[0][0], "nice_pid") == 0) {
         char *priority_string = cmd->commands[0][1];
@@ -160,7 +163,8 @@ void cmd_handler(struct parsed_command *cmd) {
     {
         // init job here
         job *job = init_job(cmd, list);
-        int return_value = execute(cmd, job);
+        int return_value = execute(cmd, job, priority);
+        priority = 0;
 
         /* if execution success */
         if (return_value == 0) {

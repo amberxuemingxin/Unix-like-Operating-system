@@ -264,7 +264,7 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
     //block_len in bytes
     uint16_t block_len = fat->block_size * fat->block_num;
     //block len in 2 bytes
-    block_len /= 2;
+    block_len /= 2;    // 128
     if(fat->block_arr[1] == 0XFFFF) {
         bool dir_full = false; 
         // find a spot in file system
@@ -313,10 +313,11 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
         prev = curr_block;
         curr_block = fat->block_arr[(int)curr_block];
     }
-    *reside_block = prev;
+    *reside_block = prev;    // prev = 6 = reside block
     uint16_t index = 0;
     bool dir_full = false; 
-    int start_index = fat->directory_starting_index + (prev)*((int)block_len);
+    // int start_index = fat->directory_starting_index + (prev)*((int)block_len);    // 128 + 768 = 896
+    int start_index = (prev)*((int)block_len);
     //increment 32 at a time
     while(fat->block_arr[start_index + index] != ZERO && index < block_len) {
         //if the index is non-zero, jump to the next directory block

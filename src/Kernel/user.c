@@ -14,7 +14,7 @@ extern int global_ticks;
 /* fork a new process
 * return = the pid of the new process
 */
-pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
+pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1, int priority) {
     bool is_shell = false;
 
     if (strcmp(argv[0], "shell") == 0) {
@@ -27,6 +27,7 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
 
     child->fd0 = fd0;
     child->fd1 = fd1;
+    child->priority = priority;
 
     child->process = malloc(sizeof(char) * (strlen(argv[0]) + 1));
     strcpy(child->process, argv[0]);
@@ -45,7 +46,6 @@ void p_sleep(unsigned int ticks) {
     pcb_t *sleep_process = active_process;
     sleep_process->ticks = global_ticks + ticks;
     // pcb_t *parent = sleep_process->parent;
-    // k_block(parent);
     /* block itself */
     k_block(active_process);
 }
@@ -85,82 +85,53 @@ int p_kill(pid_t pid, int sig) {
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
     /* global as the caller */
-    if (nohang) { /* return the result immediately */
-        if (pid == -1) { /* wait for any children processes */
-            pcb_t *p = active_process->children;
-            
-            if (p == NULL) {
-                return 0;
-            }
-
-            while (p) {
-                if (W_WIFEXITED(p->status)) {
-                    pid_t return_value = p->pid;
-                    p->waited = true;
-                    log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                    k_process_cleanup(p);
-                    return return_value;
-                }
-                p = p->next;
-            }
-
-            return -1;
-
-        } else { /* wait for specific process */
-            pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
-
-            if (p == NULL) {
-                return 0;
-            }
-
-            if (W_WIFEXITED(p->status)) {
-                log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                k_process_cleanup(p);
-                return pid;
-            } else {
-                return 0;
-            }
-
-        }
-    } else { /* hanging */
+    if (!nohang) {
         k_block(active_process);
-
-        if (pid == -1) { /* wait for any children processes */
-            pcb_t *p = active_process->children;
-
-            if (p == NULL) { /* no child */
-                return -1;
-            }
-
-            while (p) {
-                p->waited = true;
-                if (W_WIFEXITED(p->status)) {
-                    pid_t return_value = p->pid;
-                    log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                    k_process_cleanup(p);
-                    return return_value;
-                }
-                p = p->next;
-            }
-
-        } else { /* wait for specific process */
-
-            pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
-
-            if (p == NULL) {
-                return -1;
-            }
-            
-            if (W_WIFEXITED(p->status)) {
-                p->waited = true;
-                log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                k_process_cleanup(p);
-                return pid;
-            }
-
+    }
+        
+    if (pid == -1) { /* wait for any children processes */
+        children_list *child = active_process->children;
+        
+        if (child == NULL) {
+            /* when nohang exit */
             return -1;
         }
+
+        while (child) {
+            pcb_t *p = search_in_scheduler(child->pid) ? search_in_scheduler(child->pid) : search_in_zombies(child->pid);
+            if (p == NULL) {
+                // printf("[any] Waitpid can't find the pid %d\n", child->pid);
+                return 0;
+            }
+            if (W_WIFEXITED(p->status)) {
+                pid_t return_value = p->pid;
+                log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+                remove_from_scheduler(p);
+                k_process_cleanup(p);
+                return return_value;
+            }
+            child = child->next;
+        }
+
+    } else { /* wait for specific process */
+        pcb_t *p = search_in_scheduler(pid) ? search_in_scheduler(pid) : search_in_zombies(pid);
+
+        if (p == NULL) {
+            printf("Waitpid can't find the pid %d\n", pid);
+            return 0;
+        }
+
+        if (W_WIFEXITED(p->status)) {
+            log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
+            remove_from_scheduler(p);
+            k_process_cleanup(p);
+            return pid;
+        } else {
+            return 0;
+        }
+
     }
+    
     return 0;
 }
 
