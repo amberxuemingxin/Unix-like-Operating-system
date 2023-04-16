@@ -43,7 +43,7 @@ static void spawn(bool nohang)
   // Spawn 10 nappers named child_0 through child_9.
   for (int i = 0; i < 10; i++) {
     argv[0][sizeof name - 2] = '0' + i;
-    const int id = p_spawn(nap, argv, 1, STDIN_FILENO, STDOUT_FILENO);
+    const int id = p_spawn(nap, argv, 1, STDIN_FILENO, STDOUT_FILENO, 0);
 
     if (i == 0)
       pid = id;
@@ -85,7 +85,7 @@ static void spawn_r(void)
 
   if (i < 26) {
     argv[0][sizeof name - 2] = 'A' + i++;
-    pid = p_spawn(spawn_r, argv, 1, STDIN_FILENO, STDOUT_FILENO);
+    pid = p_spawn(spawn_r, argv, 1, STDIN_FILENO, STDOUT_FILENO, 0);
     // TODO dprintf(STDERR_FILENO, "%s was spawned\n", *argv);
     printf("%s was spawned\n", *argv);
     usleep(10000);  // 10 milliseconds

@@ -14,7 +14,7 @@ extern int global_ticks;
 /* fork a new process
 * return = the pid of the new process
 */
-pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
+pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1, int priority) {
     bool is_shell = false;
 
     if (strcmp(argv[0], "shell") == 0) {
@@ -27,6 +27,7 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1) {
 
     child->fd0 = fd0;
     child->fd1 = fd1;
+    child->priority = priority;
 
     child->process = malloc(sizeof(char) * (strlen(argv[0]) + 1));
     strcpy(child->process, argv[0]);

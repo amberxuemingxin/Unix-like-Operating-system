@@ -22,7 +22,7 @@ void zombie_child() {
 
 void zombify() {
     char *zombie_arg[2] = {"zombie_child", NULL};
-    p_spawn(zombie_child, zombie_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    p_spawn(zombie_child, zombie_arg, 0, STDIN_FILENO, STDOUT_FILENO, 0);
     while (1);
     return;
 }
@@ -33,7 +33,7 @@ void orphan_child() {
 
 void orphanify() {
     char *orphan_arg[2] = {"orphan_child", NULL};
-    p_spawn(orphan_child, orphan_arg, 0, STDIN_FILENO, STDOUT_FILENO);
+    p_spawn(orphan_child, orphan_arg, 0, STDIN_FILENO, STDOUT_FILENO, 0);
     return;
 }
 

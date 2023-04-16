@@ -182,7 +182,6 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
     p->pgid = is_shell ? 1: parent->pgid;
     p->parent = parent;
     p->status = RUNNING_P;
-    p->priority = is_shell ? -1 : 0;
     p->ticks = -1;
     p->num_blocks = 0;
     p->children = NULL;
