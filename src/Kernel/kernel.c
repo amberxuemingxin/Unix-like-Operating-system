@@ -18,11 +18,9 @@ pid_t max_pid = 0;
 
 extern ucontext_t scheduler_context;
 extern ucontext_t exit_context;
+extern ucontext_t idle_context;
 extern queue *queue_block;
 extern queue *queue_zombie;
-extern queue *queue_high; // debug purpose
-extern queue *queue_mid; // debug purpose
-extern queue *queue_low; // debug purpose
 extern pcb_t *active_process;
 extern bool idle;
 
@@ -93,8 +91,10 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
     set_stack(&ucp->uc_stack);
     if (func == schedule) {
         ucp->uc_link = NULL;
-    } else if (func == exit_process || func == idle_process) {
+    } else if (func == idle_process) {
         ucp->uc_link = &scheduler_context;
+    } else if (func == exit_process) {
+        ucp->uc_link = &idle_context;
     } else {
         ucp->uc_link = &exit_context;
     }

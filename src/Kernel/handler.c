@@ -7,7 +7,6 @@
 #include "execute.h"
 #include "user.h"
 #include "kernel.h"
-#include "parser.h" // debug
  
 extern job_list *list;
 int priority = 0;
