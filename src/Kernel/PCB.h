@@ -10,8 +10,7 @@
 #define STOPPED_P 1
 #define EXITED_P 2
 #define ZOMBIED_P 3
-#define ORPHANED_P 4
-#define BLOCKED_P 5
+#define BLOCKED_P 4
 
 typedef struct children_def {
     pid_t pid;
