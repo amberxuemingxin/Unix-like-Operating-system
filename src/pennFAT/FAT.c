@@ -207,8 +207,7 @@ FAT* mount_fat(char* f_name) {
             perror("read");
             return NULL;
         }
-        int starting_index = block * (int)(int)entry_size;
-        printf("strange shit right here, starting index is %d\n",starting_index);
+        int starting_index = block * (int)entry_size;
         printf("strange shit right here, starting index is %d\n",starting_index);
         for (int i = 0; i < max_filenum; i++) {
             lseek(fs_fd, starting_index + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
