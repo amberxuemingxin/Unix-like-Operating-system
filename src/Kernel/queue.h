@@ -15,6 +15,4 @@ void add_process(queue *q, pcb_t *p);
 
 pcb_t *remove_process(queue *q, pcb_t *p);
 
-void free_queue(queue *q);
-
 #endif
