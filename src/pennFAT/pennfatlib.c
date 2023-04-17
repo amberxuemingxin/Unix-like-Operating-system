@@ -160,20 +160,43 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
         printf("error mv: the original file does not exist\n");
         return FAILURE;
     }
-    if (delete_directory_from_block(*old_f->dir_entry,curr_fat) ==FAILURE) {
-        return FAILURE;
-    }
-    memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
-    memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
-    int* reside_index = malloc(sizeof(int));
-    if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
-        free(reside_index);
-        printf("error: failed to write directory entry to block\n");
+    dir_node* new_f = search_file(newFileName, curr_fat, NULL);
+    if (new_f == NULL) {
+        if (delete_directory_from_block(*old_f->dir_entry,curr_fat) == FAILURE) {
+                return FAILURE;
+            }
+        memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
+        memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
+        int* reside_index = malloc(sizeof(int));
+        if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
+            free(reside_index);
+            printf("error: failed to write directory entry to block\n");
+            free_directory_node(old_f);
+            return FAILURE;
+        }   
         free_directory_node(old_f);
-        return FAILURE;
-    }   
-    free_directory_node(old_f);
-    return SUCCESS;
+        return SUCCESS;
+    } else {
+        //overwrite new_f content and write everything from old_f to new_f
+        // file* src = read_file_from_fat(old_f,curr_fat);
+        // file* dest = read_file_from_fat(new_f, curr_fat);
+
+        char** cmd = malloc(2 * sizeof(char*));
+        cmd[0] = "rm";
+        cmd[1] = newFileName;
+        pennfat_remove(cmd, curr_fat);
+
+        memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
+        memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
+        printf("old file name is now %s\n", old_f->dir_entry->name);
+
+        //delete src file. 
+        return SUCCESS;
+
+
+
+    }
+    
 }
 
 int pennfat_remove(char **commands, FAT *fat){
@@ -436,7 +459,7 @@ int pennfat_cp(char **commands, FAT *fat){
                 close(fd);
                 return FAILURE;
             }
-            char* buffer = (char *)malloc(file_size + 1);
+            char* buffer = (char *)malloc(file_size);
             if (buffer == NULL) {
                 perror("error: cp failed to allocate memory for the buffer");
                 close(fd);
@@ -462,7 +485,7 @@ int pennfat_cp(char **commands, FAT *fat){
                 close(fd);
                 return FAILURE;
         }
-            buffer[file_size] = '\0';
+            // buffer[file_size] = '\0';
             // printf("debugging in cp line 460: buffer content read is %", buffer);
             close(fd);
             int d_fd = f_open(dest_f_name, F_WRITE);
@@ -475,6 +498,9 @@ int pennfat_cp(char **commands, FAT *fat){
                 f_close(d_fd);
                 return FAILURE;
             }
+
+            dir_node* f_node = search_file(dest_f_name, curr_fat, NULL);
+            f_node->dir_entry->size = file_size;
             f_close(d_fd);
         }
     // cp SOURCE -h DEST
@@ -808,12 +834,12 @@ int f_write(int fd, const char *str, int n){
     //write mode
     if(curr_fd == fd) {
         // -W MODE
-        while(byte_write < n && str[byte_write] != '\0') {
+        while(byte_write < n) {
             curr_fat->block_arr[index] = str[byte_write];
             byte_write++;
             // printf("byte_write: %d\n", byte_write);
             
-            if(byte_write < n && str[byte_write] != '\0') {
+            if(byte_write < n) {
                 // write 1 byte if the current index block is not full
                 curr_fat->block_arr[index] = curr_fat->block_arr[index] | (str[byte_write] << 8);
                 byte_write++;
