@@ -500,29 +500,22 @@ int delete_directory_from_block(directory_entry en, FAT* fat) {
     // find a spot in file system
     // uint32_t entry_size = 0;
     // // # of FAT entries = block size * number of blocks in FAT / 2
-    // entry_size = fat->block_size * fat->block_num;
+    int entry_size = fat->block_size * fat->block_num;
     // //max filenum denots the maximum number of directory entries in a block
-    // int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
-    uint16_t index = 0;
-    // int b_index = 1;
-    // while(fat->block_arr[b_index] != 0XFFFF) {
-    //     index = block_arr[b_index];
-    //     for(int i = 0; i<max_filenum; i++) {
-
-    //     }
-    // }
-    while(fat->directory_starting_index + index < fat->dblock_starting_index) {
-        //if the index is non-zero, jump to the next directory block
-        //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
-        // thus increment by 32
-        directory_entry* curr_entry = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
-        if(strcmp(curr_entry->name, en.name) == 0) {
-            for (int i = 0; i<32; i++) {
-                fat->block_arr[fat->directory_starting_index + index + i] = ZERO;
+    int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
+    int b_index = 1;
+    while(b_index != 0XFFFF) {
+        for(int i = 0; i<max_filenum; i++) {
+            int curr_index = fat->directory_starting_index + ((b_index-1)*fat->block_size)/2 + i*32;
+            directory_entry* curr_entry = (directory_entry*) &fat->block_arr[curr_index];
+            if(strcmp(curr_entry->name, en.name) == 0) {
+                for (int j = 0; j<32; j++) {
+                    fat->block_arr[curr_index + j] = ZERO;
+                }
+                return SUCCESS;
             }
-            return SUCCESS;
         }
-        index += 32;
+        b_index =fat->block_arr[b_index];
     }
     printf("file not found\n");
     return FAILURE;
@@ -607,7 +600,7 @@ uint8_t *read_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
 int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
     int fd;
     if ((fd = open(fat->f_name, O_WRONLY, 0644)) == -1) {
-        perror("open");
+        perror("open\n");
     }
     if(length == 0) {
         printf("nothing in the file\n");
@@ -618,14 +611,18 @@ int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
     uint16_t currIndex = startIndex;
 
     if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
-        perror("lseek");
+        perror("lseek\n");
         return FAILURE;
     }
+    printf("DEBUGGING: length: %d\n", length);
 
     // read all (length) bytes, finding a new block every time we read (blockSize) bytes
     for (int i = 0; i < length; i += fat->block_size) {
         if (i != 0 && i % fat->block_size == 0) {
             // get next block to start reading from
+            // int tempIndex = fat->block_arr[currIndex];
+            // fat->block_arr[currIndex] = 0x0000;
+            // currIndex = tempIndex;
             currIndex = fat->block_arr[currIndex];
             if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
                 perror("lseek");
@@ -635,20 +632,23 @@ int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
 
         // If we are at the last block;
         int bytes_to_write = fat->block_size;
+        printf("DEBUGGING: bytes_to_write: %d\n", bytes_to_write); 
         if (bytes_to_write > length - i) {
+            printf("DEBUGGING: we are at the last block!\n"); 
             bytes_to_write = length - i;
         }
         
         // delete the content 
         uint8_t wipe = 0X00;
         int index = 0;
-        while (index <= bytes_to_write) {
+        while (index < bytes_to_write) {
             if (write(fd, &wipe, 1) == -1) {
                 perror("write");
                 return FAILURE;
             }
             index ++;
         }
+        printf("DEBUGGING: the last index is: %d\n", index); 
 
     }
     // close the file
