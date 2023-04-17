@@ -9,6 +9,7 @@
 extern pcb_t *active_process;
 extern ucontext_t idle_context;
 extern ucontext_t scheduler_context;
+extern queue *queue_zombie;
 extern int global_ticks;
 
 /* fork a new process
@@ -44,9 +45,10 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1, int p
 */
 void p_sleep(unsigned int ticks) {
     pcb_t *sleep_process = active_process;
-    sleep_process->ticks = global_ticks + ticks;
+    sleep_process->ticks = ticks;
     // pcb_t *parent = sleep_process->parent;
     /* block itself */
+    // printf("sleep block %s in p_sleep\n", active_process->process);
     k_block(active_process);
 }
 
@@ -71,6 +73,7 @@ int p_kill(pid_t pid, int sig) {
             k_process_kill(p, sig);
             return 0;
         } else { /* pid not found */
+            //printf("hey\n");
             return -1;
         }
     }
@@ -94,19 +97,21 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
         /* global as the caller */
         if (!nohang) {
+            // printf("%d block %s in waitpid\n", active_process->children->pid, active_process->process);
             k_block(active_process);
         }
 
         while (child) {
             pcb_t *p = search_in_scheduler(child->pid) ? search_in_scheduler(child->pid) : search_in_zombies(child->pid);
             if (p == NULL) {
-                // printf("[any] Waitpid can't find the pid %d\n", child->pid);
                 return 0;
             }
             if (W_WIFEXITED(p->status)) {
                 pid_t return_value = p->pid;
                 log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                remove_from_scheduler(p);
+                if (remove_from_scheduler(p) == FAILURE) {
+                    remove_process(queue_zombie, p);
+                }
                 k_process_cleanup(p);
                 return return_value;
             }
@@ -123,12 +128,15 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
         /* global as the caller */
         if (!nohang) {
+            // printf("%d block %s in waitpid\n", active_process->children->pid, active_process->process);
             k_block(active_process);
         }
 
         if (W_WIFEXITED(p->status)) {
             log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-            remove_from_scheduler(p);
+            if (remove_from_scheduler(p) == FAILURE) {
+                remove_process(queue_zombie, p);
+            }
             k_process_cleanup(p);
             return pid;
         } else {

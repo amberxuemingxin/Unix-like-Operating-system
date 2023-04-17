@@ -8,8 +8,10 @@
 #include "logger.h"
 #include "PCB.h"
 #include "user.h"
+#include "jobs.h"
 
 pcb_t *active_process;
+pcb_t *active_sleep;
 
 queue *queue_high;
 queue *queue_mid;
@@ -20,6 +22,7 @@ queue *queue_zombie;
 extern bool idle;
 extern ucontext_t scheduler_context;
 extern ucontext_t idle_context;
+extern job_list *list;
 extern int global_ticks;
 extern int max_pid;
 
@@ -32,6 +35,7 @@ void init_scheduler() {
     queue_zombie = init_queue();
 
     active_process = NULL;
+    active_sleep = NULL;
 }
 
 void alarm_handler(int signum) {
@@ -75,20 +79,32 @@ void add_to_scheduler(pcb_t *process) {
     }
 }
 
-void remove_from_scheduler(pcb_t *process) {
+int remove_from_scheduler(pcb_t *process) {
+    pcb_t *removed = NULL;
 
     if (process->priority == -1) {
-        remove_process(queue_high, process);
+        removed = remove_process(queue_high, process);
     } else if (process->priority == 0) {
-        remove_process(queue_mid, process);
+        removed = remove_process(queue_mid, process);
     } else {
-        remove_process(queue_low, process);
+        removed = remove_process(queue_low, process);
+    }
+
+    if (removed == NULL) {
+        return FAILURE;
+    } else {
+        return SUCCESS;
     }
 }
 
 void ready_to_block(pcb_t *process) {
     remove_from_scheduler(process);
     add_process(queue_block, process);
+}
+
+void block_to_ready(pcb_t *process) {
+    remove_process(queue_block, process);
+    add_to_scheduler(process);
 }
 
 pcb_t *search_in_scheduler(pid_t pid) {
@@ -181,12 +197,20 @@ pcb_t *pick_next_process() {
 }
 
 void schedule() {
-    // set_timer();
+    set_timer();
 
     // decrement for all sleeps
     pcb_t *sleep_process = queue_block->head;
-    while (sleep_process) {
-        if (sleep_process->ticks == global_ticks) {
+    while (sleep_process && sleep_process->status != STOPPED_P) {
+        sleep_process->ticks--;
+
+        if (list->fg_job) {
+            if (sleep_process->pid == list->fg_job->pid) {
+                active_sleep = sleep_process;
+            }
+        }
+
+        if (sleep_process->ticks == -1) {
             k_unblock(sleep_process);
         }
         sleep_process = sleep_process->next;
