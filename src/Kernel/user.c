@@ -11,7 +11,7 @@ extern int global_ticks;
 /* fork a new process
 * return = the pid of the new process
 */
-pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1, int priority) {
+pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1, int priority, bool background) {
     bool is_shell = false;
 
     if (strcmp(argv[0], "shell") == 0) {
@@ -25,6 +25,7 @@ pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1, int p
     child->fd0 = fd0;
     child->fd1 = fd1;
     child->priority = priority;
+    child->background = background;
 
     child->process = malloc(sizeof(char) * (strlen(argv[0]) + 1));
     strcpy(child->process, argv[0]);
@@ -69,6 +70,7 @@ int p_kill(pid_t pid, int sig) {
             k_process_kill(p, sig);
             return SUCCESS;
         } else { /* pid not found */
+//            printf("Pid not found\n");
             return FAILURE;
         }
     }

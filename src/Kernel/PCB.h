@@ -57,7 +57,7 @@ typedef struct pcb_def
     int num_blocks; /**< The number of processes that is blocking it. */
 
     children_list *children; /**< The linked list of children's pid for children management. */
-
+    bool background; /**< If the process is a background process. */
     ucontext_t context; /**< The execution context of itself. */
 } pcb_t;
 

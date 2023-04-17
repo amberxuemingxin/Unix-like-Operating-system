@@ -74,7 +74,7 @@ void exit_process() {
         remove_from_scheduler(active_process);
         
         // unblock parent here (skip if it's bg)
-        if (active_process->parent) {
+        if (!active_process->background) {
             k_unblock(active_process->parent);
         }
     }
@@ -228,24 +228,31 @@ int k_process_kill(pcb_t *process, int signal)
             k_unblock(process->parent);
         }
 
-        return 0;
+        return SUCCESS;
     } else if (signal == S_SIGTERM) 
     {
         process->status = EXITED_P;
         log_events(EXITED, global_ticks, process->pid, process->priority, process->process);
         orphan_check(process); 
 
-        return 0;
-    } else if (signal == S_SIGCONT)
+        return SUCCESS;
+    } else if (signal == S_SIGCONT_FG || signal == S_SIGCONT_BG)
     {
         if (process->status == EXITED_P || process->status == ZOMBIED_P) {
             perror("Can't continue a dead process");
             return -1;
-        } else if (process->status != RUNNING_P) {
-            process->status = RUNNING_P;
-            log_events(CONTINUED, global_ticks, process->pid, process->priority, process->process);
-            if (strcmp(process->process, "sleep") != 0) {
-                block_to_ready(process);
+        } else {
+            
+            if (signal == S_SIGCONT_FG) {
+                process->background = false;
+            }
+
+            if (process->status != RUNNING_P) {
+                process->status = RUNNING_P;
+                log_events(CONTINUED, global_ticks, process->pid, process->priority, process->process);
+                if (strcmp(process->process, "sleep") != 0) {
+                    block_to_ready(process);
+                }
             }
         }  
     } else if (signal == S_SIGNALED) {
@@ -259,10 +266,10 @@ int k_process_kill(pcb_t *process, int signal)
         if (process == active_process || process == active_sleep) {
             k_unblock(process->parent);
         }
-        return 0;
+        return SUCCESS;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 /* cleanup the process, including freeing the pcb struct and removing it from its parent's children list

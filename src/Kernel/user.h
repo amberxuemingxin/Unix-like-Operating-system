@@ -4,16 +4,7 @@
  */
 
 #include "PCB.h"
-
-/**
- * @{ \name Signals
- */
-#define S_SIGSTOP 0 /**< Signal of stopping the process. */
-#define S_SIGCONT 1 /**< Signal of continuing the process. */
-#define S_SIGTERM 2 /**< Signal of terminating the process. */
-/**
- * @}
- */
+#include "header.h"
 
 /**
  * @{ \name User Level Functions for Process Status
@@ -31,9 +22,10 @@
  * @param fd0 The file descriptor for stdin.
  * @param fd1 The file descriptor for stdout.
  * @param priority The nice value of the process.
+ * @param background If the process is a background process.
  * @return A pointer to the spawned process.
 */
-pid_t p_spawn(void (*func)(), char **argv, int num_arg, int fd0, int fd1, int priority);
+pid_t p_spawn(void (*func)(), char **argv, int num_arg, int fd0, int fd1, int priority, bool background);
 
 /**
  * @brief A function that will stay idle for the specified amount of ticks.

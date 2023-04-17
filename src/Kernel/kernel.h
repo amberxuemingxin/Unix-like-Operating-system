@@ -6,12 +6,6 @@
 #include "scheduler.h"
 #include "PCB.h"
 
-// Define macros for signals
-#define S_SIGSTOP 0
-#define S_SIGCONT 1
-#define S_SIGTERM 2
-#define S_SIGNALED 3
-
 void idle_process();
 
 void exit_process();
