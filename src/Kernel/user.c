@@ -60,17 +60,16 @@ int p_kill(pid_t pid, int sig) {
     kill() sends its signal to all processes whose process group ID is equal to that of the sender. */
     if (pid == 0) {
         k_process_kill(active_process, sig);
-        return 0;
+        return SUCCESS;
 
     } else {
         pcb_t *p = search_in_scheduler(pid);
 
         if (p) {
             k_process_kill(p, sig);
-            return 0;
+            return SUCCESS;
         } else { /* pid not found */
-            //printf("hey\n");
-            return -1;
+            return FAILURE;
         }
     }
 }
@@ -174,9 +173,9 @@ int p_nice(pid_t pid, int priority) {
             add_to_scheduler(p);
 
             log_nice(global_ticks, pid, old_priority, priority, p->process);
-            return 0;
+            return SUCCESS;
         }
     }
 
-    return 1;
+    return FAILURE;
 }

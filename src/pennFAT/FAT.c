@@ -378,7 +378,7 @@ int write_directory_to_block(directory_entry* en, FAT* fat, int* reside_block) {
             for (uint32_t i = 2; i < fat->entry_size; i++){
                 if (fat->block_arr[i] == ZERO){
                     en->firstBlock = (uint16_t) i;
-                    printf("1 curr first block is: %d\n", en->firstBlock);
+                    // printf("1 curr first block is: %d\n", en->firstBlock);
                     // printf("curr file name is: %s\n", en.name);
                     fat->block_arr[i] = 0XFFFF;
                     break;
@@ -387,9 +387,10 @@ int write_directory_to_block(directory_entry* en, FAT* fat, int* reside_block) {
             int starting_point = curr_directory_index*(block_len/2) + index;
             directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[starting_point];
             *entry_ptr = *en;
-            printf("current en's firstBlock is: %d\n", en->firstBlock);
+            // printf("current en's firstBlock is: %d\n", en->firstBlock);
             return SUCCESS;
         }
+
         // if we couldn't find a spot in current block:
         // and if we are at the last directory index, we need to extend the directory block
         if(fat->block_arr[curr_directory_index] == 0XFFFF) {
@@ -418,6 +419,7 @@ int write_directory_to_block(directory_entry* en, FAT* fat, int* reside_block) {
             printf("current en's firstBlock is: %d\n", en->firstBlock);
             return SUCCESS;
         }
+
         curr_directory_index = fat->block_arr[curr_directory_index];
     }while(curr_directory_index != 0XFFFF);
     

@@ -1,28 +1,76 @@
+/**
+ * @file user.h
+ * @brief Contains all user level functions.
+ */
+
 #include "PCB.h"
 
-#define S_SIGSTOP 0
-#define S_SIGCONT 1
-#define S_SIGTERM 2
+/**
+ * @{ \name Signals
+ */
+#define S_SIGSTOP 0 /**< Signal of stopping the process. */
+#define S_SIGCONT 1 /**< Signal of continuing the process. */
+#define S_SIGTERM 2 /**< Signal of terminating the process. */
+/**
+ * @}
+ */
 
-#define W_WIFEXITED(wstatus) (wstatus == EXITED_P || wstatus == ZOMBIED_P)
-#define W_WIFSIGNALED(wstatus) (wstatus == EXITED_P)
-#define W_WIFSTOPPED(wstatus) (wstatus == STOPPED_P)
+/**
+ * @{ \name User Level Functions for Process Status
+ */
+#define W_WIFEXITED(wstatus) (wstatus == EXITED_P || wstatus == ZOMBIED_P) /**< Return true if the process is considered dead. That is, the process is either exited normally or being a zombie. */
+#define W_WIFSIGNALED(wstatus) (wstatus == EXITED_P) /**< Return true if the process is terminated by user's input. */
+#define W_WIFSTOPPED(wstatus) (wstatus == STOPPED_P) /**< Return true if the procesw is stopped. */
 
-// // user level
-
-// /*(U) forks a new thread that retains most of the attributes of the parent thread 
-// (see k_process_create). Once the thread is spawned, it executes the function 
-// referenced by func with its argument array argv.
-// fd0 is the file descriptor for the input file, and fd1 is the file descriptor for 
-// the output file. It returns the pid of the child thread on success, or -1 on error.*/
+/**
+ * @brief Spawn a process.
+ * 
+ * @param func The function of the process.
+ * @param argv A list of char array as the arguments of the function.
+ * @param num_arg The number of arguments of the function.
+ * @param fd0 The file descriptor for stdin.
+ * @param fd1 The file descriptor for stdout.
+ * @param priority The nice value of the process.
+ * @return A pointer to the spawned process.
+*/
 pid_t p_spawn(void (*func)(), char **argv, int num_arg, int fd0, int fd1, int priority);
 
+/**
+ * @brief A function that will stay idle for the specified amount of ticks.
+ * 
+ * @param ticks The number of seconds that the function need to stay idle.
+*/
 void p_sleep(unsigned int ticks);
 
+/**
+ * @brief Sends the specified signal to the destination process.
+ * 
+ * @param pid The destination process.
+ * @param sig The signals. Can be S_SIGCONT, S_SIGTERM, S_SIGSTOP.
+ * @return 0 if success, -1 if the pid is not existing.
+*/
 int p_kill(pid_t pid, int sig);
 
+/**
+ * @brief Wait for the specified children; if any of them are finished, clean up the finished children.
+ * 
+ * @param pid The children's pid. If pid == -1, the function will wait for every children of the caller process.
+ * @param wstatus A pointer point to the children's status.
+ * @param nohang Option of hanging or not. If nohang, the function will return the result immediately; else, the function will block the caller process until any children have changed the status.
+ * @return The pid of the child that's been waited successfully. The function will also return 0 if no child has changed the status, and -1 if the caller has no child. 
+*/
 pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang);
 
+/**
+ * @brief Exit the caller process gracefully.
+*/
 void p_exit();
 
+/**
+ * @brief Change the nice value of the specified process.
+ * 
+ * @param pid The destination process.
+ * @param priority The new nice value.
+ * @return 0 if success, -1 if the process not exists.
+*/
 int p_nice(pid_t pid, int priority);
