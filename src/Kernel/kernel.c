@@ -1,6 +1,3 @@
-#include <unistd.h>            // STDIN_FILENO
-#include <signal.h>            // sigaction, sigemptyset, sigfillset, signal
-#include <ucontext.h>          // getcontext, makecontext, setcontext, swapcontext
 #include <valgrind/valgrind.h> // VALGRIND_STACK_REGISTER
 
 #include "kernel.h"
@@ -27,10 +24,12 @@ extern pcb_t *active_sleep;
 extern job_list *list;
 extern bool idle;
 
+/* Check if the process has any orphan processes; if exists, clean up orphans */
 void orphan_check(pcb_t *process) {
     children_list *child = process->children;
 
     while (child) {
+        /* both zombies and living children can be orphans as well */
         pcb_t *p = search_in_scheduler(child->pid) ? search_in_scheduler(child->pid) : search_in_zombies(child->pid);
         children_list *tmp = child->next;
         if (p == NULL) {
@@ -38,16 +37,21 @@ void orphan_check(pcb_t *process) {
             return;
         }
         log_events(ORPHAN, global_ticks, p->pid, p->priority, p->process);
-        p->status = ORPHANED_P;
-        remove_from_scheduler(p);
+
+        if (remove_from_scheduler(p) == FAILURE) {
+            remove_process(queue_zombie, p);
+        }
+
         k_process_cleanup(p);
         free(child);
+
         child = tmp;
     }
 
     process->children = NULL;
 }
 
+/* will be picked when no process is in the ready queue */
 void idle_process()
 {
     while (1) {
@@ -57,6 +61,9 @@ void idle_process()
     }
 }
 
+/* All processes, except for the shell, will be linked to it when they finished
+* be responsible for delivering S_SIGTERM, marking zombies, handling scheduler stuffs
+*/
 void exit_process() {
     if (active_process) {
         k_process_kill(active_process, S_SIGTERM);
@@ -85,6 +92,12 @@ void set_stack(stack_t *stack)
     *stack = (stack_t){.ss_sp = sp, .ss_size = STACKSIZE};
 }
 
+/* setting necessary variables for the context of every process
+* @param ucp, the target context
+* @param func, the target function
+* @param argc, the number of arguments that will be passed into the function
+* @param argv, the string array of all necessary arguments
+*/
 void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
 {
     getcontext(ucp);
@@ -115,27 +128,9 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
     }
 }
 
-void k_foreground_process(pid_t pid)
-{
-    pcb_t *p = search_in_scheduler(pid);
-
-    if (p == NULL)
-    {
-        perror("Pid not found\n");
-        exit(EXIT_FAILURE);
-    }
-
-    /* block the shell if it's not shell */
-    if (p->pid != 1)
-    {
-        p->parent->status = BLOCKED_P;
-        log_events(BLOCKED, global_ticks, p->parent->pid, p->parent->priority, p->parent->process);
-    }
-}
-
+/* block a process */
 void k_block(pcb_t *parent) {
     if (parent) {
-        // printf("Process %s blocked!\n", parent->process);
         parent->num_blocks++;
         /* 0->1, block the process*/
         if (parent->num_blocks == 1) {
@@ -155,7 +150,6 @@ void k_block(pcb_t *parent) {
 void k_unblock(pcb_t *parent)
 {
     if (parent) {
-        // printf("Process %s unblocked!\n", parent->process);
         parent->num_blocks--;
         if (parent->num_blocks == 0) {
             parent->status = RUNNING_P;
@@ -214,13 +208,12 @@ pcb_t *k_process_create(pcb_t *parent, bool is_shell)
     return p;
 }
 /*
- * kill the designated process
+ * send signals to the designated process
  * @param process, the process needs to be kills
  * @param signal, the signal intended
  */
 int k_process_kill(pcb_t *process, int signal)
 {
-    // stop the process
     if (signal == S_SIGSTOP)
     {
         process->status = STOPPED_P;
@@ -272,6 +265,8 @@ int k_process_kill(pcb_t *process, int signal)
     return 0;
 }
 
+/* cleanup the process, including freeing the pcb struct and removing it from its parent's children list
+*/
 void k_process_cleanup(pcb_t *process)
 {
     if (process->parent) {

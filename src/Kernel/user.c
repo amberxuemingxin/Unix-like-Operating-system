@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-#include <signal.h> // sigalrm ...
-
 #include "user.h"
 #include "kernel.h"
 #include "logger.h"
@@ -128,7 +124,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
         /* global as the caller */
         if (!nohang) {
-            // printf("%d block %s in waitpid\n", active_process->children->pid, active_process->process);
             k_block(active_process);
         }
 

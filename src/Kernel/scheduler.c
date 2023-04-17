@@ -1,8 +1,3 @@
-#include <sys/time.h>  // setitimer
-#include <stdlib.h> // rand
-#include <signal.h> // sigaction, sigemptyset, sigfillset, signal
-#include <string.h> // strcmp
-
 #include "scheduler.h"
 #include "kernel.h"
 #include "logger.h"

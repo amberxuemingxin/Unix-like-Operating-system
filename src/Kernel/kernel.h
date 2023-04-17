@@ -1,6 +1,8 @@
 #ifndef KERNEL_HEADER
 #define KERNEL_HEADER
 
+#include <signal.h>            // sigaction, sigemptyset, sigfillset, signal
+#include "header.h"
 #include "scheduler.h"
 #include "PCB.h"
 
