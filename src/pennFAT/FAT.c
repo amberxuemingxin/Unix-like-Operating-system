@@ -499,11 +499,6 @@ int write_directory_to_block(directory_entry* en, FAT* fat, int* reside_block) {
 
 int delete_directory_from_block(directory_entry en, FAT* fat) {
     // find a spot in file system
-    uint32_t entry_size = 0;
-    // # of FAT entries = block size * number of blocks in FAT / 2
-    entry_size = fat->block_size * fat->block_num;
-    //max filenum denots the maximum number of directory entries in a block
-    int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
     // uint32_t entry_size = 0;
     // // # of FAT entries = block size * number of blocks in FAT / 2
     int entry_size = fat->block_size * fat->block_num;
