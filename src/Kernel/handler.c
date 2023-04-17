@@ -6,7 +6,7 @@
 #include "jobs.h"
 #include "execute.h"
 #include "user.h"
-#include "kernel.h"
+#include "queue.h"
  
 extern job_list *list;
 extern queue *queue_block;
@@ -28,7 +28,6 @@ void cmd_handler(struct parsed_command *cmd) {
     else if (strcmp(cmd->commands[0][0], "fg") == 0)
     {
         job *job = NULL;
-        pcb_t *process = NULL;
 
         if (cmd->commands[0][1])
         { // by jid
@@ -58,12 +57,6 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        process = search_in_scheduler(job->pid);
-        if (process == NULL) {
-            printf("Process not exist!\n");
-            return;
-        }
-
         // if the job is stopped, resume it
         if (job->status == STOPPED_P)
         {
@@ -74,7 +67,7 @@ void cmd_handler(struct parsed_command *cmd) {
             job->background = false;
             remove_job(job, list, true);
             add_to_head(job, list, false);
-            k_process_kill(process, S_SIGCONT);
+            p_kill(job->pid, S_SIGCONT);
         }
         else
         {
@@ -125,13 +118,7 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        pcb_t *process = search_in_scheduler(job->pid);
-        if (process == NULL) {
-            printf("Process not exist!\n");
-            return;
-        }
-
-        k_process_kill(process, S_SIGCONT);
+        p_kill(job->pid, S_SIGCONT);
         job->status = RUNNING_P;
         remove_job(job, list, true);
         add_to_head(job, list, false);

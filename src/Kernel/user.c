@@ -73,6 +73,7 @@ int p_kill(pid_t pid, int sig) {
             k_process_kill(p, sig);
             return 0;
         } else { /* pid not found */
+            //printf("hey\n");
             return -1;
         }
     }

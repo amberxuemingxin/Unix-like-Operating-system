@@ -23,6 +23,7 @@ extern ucontext_t idle_context;
 extern queue *queue_block;
 extern queue *queue_zombie;
 extern pcb_t *active_process;
+extern pcb_t *active_sleep;
 extern job_list *list;
 extern bool idle;
 
@@ -67,9 +68,6 @@ void exit_process() {
         
         // unblock parent here (skip if it's bg)
         if (active_process->parent) {
-            if (list->fg_job && list->fg_job->pid != active_process->pid) {
-                return;
-            }
             k_unblock(active_process->parent);
         }
     }
@@ -137,6 +135,7 @@ void k_foreground_process(pid_t pid)
 
 void k_block(pcb_t *parent) {
     if (parent) {
+        // printf("Process %s blocked!\n", parent->process);
         parent->num_blocks++;
         /* 0->1, block the process*/
         if (parent->num_blocks == 1) {
@@ -156,6 +155,7 @@ void k_block(pcb_t *parent) {
 void k_unblock(pcb_t *parent)
 {
     if (parent) {
+        // printf("Process %s unblocked!\n", parent->process);
         parent->num_blocks--;
         if (parent->num_blocks == 0) {
             parent->status = RUNNING_P;
@@ -230,7 +230,7 @@ int k_process_kill(pcb_t *process, int signal)
             ready_to_block(process);
         }
 
-        if (process == active_process)
+        if (process == active_process || process == active_sleep)
         {
             k_unblock(process->parent);
         }
@@ -263,7 +263,7 @@ int k_process_kill(pcb_t *process, int signal)
         remove_from_scheduler(process);
         orphan_check(process); 
 
-        if (process == active_process) {
+        if (process == active_process || process == active_sleep) {
             k_unblock(process->parent);
         }
         return 0;

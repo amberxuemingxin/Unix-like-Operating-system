@@ -27,15 +27,15 @@ void sigtstp_handler(int signo) {
         k_process_kill(active_process, S_SIGSTOP);
     }
 
-    job *job = list->fg_job;
-    job->status = STOPPED_P;
+    job *j = list->fg_job;
+    j->status = STOPPED_P;
 
-    remove_job(job, list, false);
-    add_to_head(job, list, true);
+    remove_job(j, list, false);
+    add_to_head(j, list, true);
 
     list->fg_job = NULL;
 
-    printf("Stopped: %s\n", job->cmd);
+    printf("Stopped: %s\n", j->cmd);
 }
 
 void shell_loop () {
