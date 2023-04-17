@@ -9,6 +9,7 @@
 #include "handler.h"
 
 job_list *list;
+bool interactive;
 extern pcb_t *active_process;
 extern pcb_t *active_sleep;
 
@@ -40,6 +41,7 @@ void sigtstp_handler(int signo) {
 
 void shell_loop () {
     list = init_job_list();
+    interactive = isatty(STDIN_FILENO);
 
     // ctrl+C behavior
     if (signal(SIGINT, sigint_handler) == SIG_ERR)
@@ -56,7 +58,7 @@ void shell_loop () {
     }
     
     while (1) {
-        /* checking for bg */
+        /* wait for bg jobs */
         job *j = list->queue_running;
 
         while (j) {
@@ -73,12 +75,14 @@ void shell_loop () {
         }
 
         // first prompt to the user
-        int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
+        if (interactive) {
+            int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
 
-        if ( return_value == -1)
-        {
-            perror("Fail to write!\n");
-            exit(EXIT_FAILURE);
+            if ( return_value == -1)
+            {
+                perror("Fail to write!\n");
+                exit(EXIT_FAILURE);
+            }
         }
 
         // get user input
