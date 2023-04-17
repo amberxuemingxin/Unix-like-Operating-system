@@ -103,6 +103,9 @@ FAT* pennfat_mount(char *f_name) {
 
     FAT* fat = mount_fat(f_name);
     curr_fat = fat;
+    file_d = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
+    file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
+    file_d_size = curr_fat->block_size / 64;
 
     return fat;    
 }
