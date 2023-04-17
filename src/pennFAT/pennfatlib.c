@@ -174,7 +174,6 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
             free_directory_node(old_f);
             return FAILURE;
         }   
-        free_directory_node(old_f);
         return SUCCESS;
     } else {
         //overwrite new_f content and write everything from old_f to new_f
@@ -185,12 +184,19 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
         cmd[0] = "rm";
         cmd[1] = newFileName;
         pennfat_remove(cmd, curr_fat);
-
+        if (delete_directory_from_block(*old_f->dir_entry,curr_fat) == FAILURE) {
+                return FAILURE;
+        }
         memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
         memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
         printf("old file name is now %s\n", old_f->dir_entry->name);
-
-        //delete src file. 
+        int* reside_index = malloc(sizeof(int));
+        if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
+            free(reside_index);
+            printf("error: failed to write directory entry to block\n");
+            free_directory_node(old_f);
+            return FAILURE;
+        }   
         return SUCCESS;
 
 
