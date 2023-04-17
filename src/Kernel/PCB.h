@@ -14,13 +14,11 @@
 /**
  * @{ \name Possible Status for PCB
  */
-
 #define RUNNING_P 0 /**< The process is running normally. It can be picked by the scheduler. */
 #define STOPPED_P 1 /**< The process is stopped by signal. It can be resumed. */
 #define EXITED_P 2 /**< The process is finished or terminated. It can't be resumed. */
 #define ZOMBIED_P 3 /**< The process is finished or terminated while the parent it's not waiting for it. It can't be resumed. */
 #define BLOCKED_P 4 /**< The process is blocked by other processes. It can't be picked by the scheduler until it's unblocked. */
-
 /**
  * @}
  */
