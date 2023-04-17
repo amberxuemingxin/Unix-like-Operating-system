@@ -11,21 +11,8 @@
 extern job_list *list;
 extern queue *queue_block;
 extern pcb_t *active_process; 
+extern ucontext_t scheduler_context;
 int priority = 0;
-
-void resume_job(job *job) {
-    pcb_t *process = search_in_scheduler(job->pid);
-    if (process == NULL) {
-        printf("Fail to find %d\n", job->pid);
-        return;
-    }
-
-    job->status = RUNNING_P;
-    remove_job(job, list, true);
-    add_to_end(job, list);
-
-    k_process_kill(process, S_SIGCONT);
-}
 
 void truncate(char*** arr) {
     (*arr) += 2;  // increment the pointer by 2
@@ -82,6 +69,8 @@ void cmd_handler(struct parsed_command *cmd) {
         {
             // TODO resume_job(job);
             fprintf(stderr, "Restarting: %s\n", job->cmd);
+            job->status = RUNNING_P;
+            k_process_kill(process, S_SIGCONT);
         }
         else
         {
@@ -91,12 +80,14 @@ void cmd_handler(struct parsed_command *cmd) {
         // bring job to fg
         list->fg_job = job;
         job->background = false;
+        swapcontext(&active_process->context, &scheduler_context);
 
-        k_block(active_process);
-        // TODO
-        // tcsetpgrp(STDIN_FILENO, job->pgid);
-
-        // TODO wait_for_fg(job);
+        // wait for fg
+        if (p_waitpid(job->pid, &job->status, false) == job->pid) {
+            remove_job(job, list, false);
+            free_job(job);
+            list->fg_job = NULL;
+        }
 
         return;
     }

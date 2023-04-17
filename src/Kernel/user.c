@@ -47,6 +47,7 @@ void p_sleep(unsigned int ticks) {
     sleep_process->ticks = global_ticks + ticks;
     // pcb_t *parent = sleep_process->parent;
     /* block itself */
+    // printf("sleep block %s in p_sleep\n", active_process->process);
     k_block(active_process);
 }
 
@@ -94,6 +95,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
         /* global as the caller */
         if (!nohang) {
+            // printf("%d block %s in waitpid\n", active_process->children->pid, active_process->process);
             k_block(active_process);
         }
 
@@ -122,6 +124,7 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
         /* global as the caller */
         if (!nohang) {
+            // printf("%d block %s in waitpid\n", active_process->children->pid, active_process->process);
             k_block(active_process);
         }
 

@@ -220,7 +220,10 @@ int k_process_kill(pcb_t *process, int signal)
     {
         process->status = STOPPED_P;
         log_events(STOPPED, global_ticks, process->pid, process->priority, process->process);
-        ready_to_block(process);
+
+        if (strcmp(process->process, "sleep") != 0) {
+            ready_to_block(process);
+        }
 
         if (process == active_process)
         {
@@ -243,7 +246,9 @@ int k_process_kill(pcb_t *process, int signal)
         } else if (process->status != RUNNING_P) {
             process->status = RUNNING_P;
             log_events(CONTINUED, global_ticks, process->pid, process->priority, process->process);
-            block_to_ready(process);
+            if (strcmp(process->process, "sleep") != 0) {
+                block_to_ready(process);
+            }
         }  
     } else if (signal == S_SIGNALED) {
         process->status = EXITED_P;

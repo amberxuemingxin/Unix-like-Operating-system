@@ -20,6 +20,8 @@ void add_process(queue *q, pcb_t *p) {
     } else {
         prev->next = p;
     }
+
+    // p->next = NULL;
     q->length++;
 }
 
@@ -34,12 +36,13 @@ pcb_t *remove_process(queue *q, pcb_t *p) {
             } else {
                 q->head = p->next;
             }
-            p->next = NULL;
+            // p->next = NULL;
             q->length--;
+            p->next = NULL;
             return p;
         }
         prev = tmp;
         tmp = tmp->next;
     }
-    return p;
+    return NULL;
 }

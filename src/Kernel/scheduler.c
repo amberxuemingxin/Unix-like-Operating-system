@@ -8,6 +8,7 @@
 #include "logger.h"
 #include "PCB.h"
 #include "user.h"
+#include "jobs.h"
 
 pcb_t *active_process;
 
@@ -20,6 +21,7 @@ queue *queue_zombie;
 extern bool idle;
 extern ucontext_t scheduler_context;
 extern ucontext_t idle_context;
+extern job_list *list;
 extern int global_ticks;
 extern int max_pid;
 
@@ -191,6 +193,9 @@ void schedule() {
     // decrement for all sleeps
     pcb_t *sleep_process = queue_block->head;
     while (sleep_process && sleep_process->status != STOPPED_P) {
+        if (sleep_process->pid == list->fg_job->pid) {
+            active_process = sleep_process;
+        }
         if (sleep_process->ticks == global_ticks) {
             k_unblock(sleep_process);
         }
