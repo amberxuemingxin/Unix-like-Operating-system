@@ -1,3 +1,0 @@
-The role of the operating system is to protect the file system from corruption as well as manipulate
-it by reading, writing, and deleting files. Internally, the operating system will store a reference to a file
-descriptor (an integer) for each of open file
