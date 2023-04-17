@@ -10,27 +10,32 @@
 
 job_list *list;
 extern pcb_t *active_process;
+extern pcb_t *active_sleep;
 
 void sigint_handler(int signo) {
-    if (active_process && active_process->pid != 1) {
+    if (active_sleep) {
+        k_process_kill(active_sleep, S_SIGNALED);
+    } else if (active_process && active_process->pid != 1) {
         k_process_kill(active_process, S_SIGNALED);
     }
 }
 
 void sigtstp_handler(int signo) {
-    if (active_process && active_process->pid != 1) {
+    if (active_sleep) {
+        k_process_kill(active_sleep, S_SIGSTOP);
+    } else if (active_process && active_process->pid != 1) {
         k_process_kill(active_process, S_SIGSTOP);
-
-        job *job = list->fg_job;
-        job->status = STOPPED_P;
-
-        remove_job(job, list, false);
-        add_to_head(job, list, true);
-
-        list->fg_job = NULL;
-
-        printf("Stopped: %s\n", job->cmd);
     }
+
+    job *job = list->fg_job;
+    job->status = STOPPED_P;
+
+    remove_job(job, list, false);
+    add_to_head(job, list, true);
+
+    list->fg_job = NULL;
+
+    printf("Stopped: %s\n", job->cmd);
 }
 
 void shell_loop () {
@@ -53,11 +58,10 @@ void shell_loop () {
     while (1) {
         /* checking for bg */
         job *j = list->queue_running;
-        pid_t fg_pid = list->fg_job ? list->fg_job->pid : 0;
 
         while (j) {
             job *tmp = j->next;
-            if (j->pid != fg_pid && j->background) {
+            if (j->background) {
                 int return_value = p_waitpid(j->pid, &j->status, true);
                 if (return_value == j->pid) {
                     remove_job(j, list, false);

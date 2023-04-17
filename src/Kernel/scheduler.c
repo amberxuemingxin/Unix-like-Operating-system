@@ -11,6 +11,7 @@
 #include "jobs.h"
 
 pcb_t *active_process;
+pcb_t *active_sleep;
 
 queue *queue_high;
 queue *queue_mid;
@@ -34,6 +35,7 @@ void init_scheduler() {
     queue_zombie = init_queue();
 
     active_process = NULL;
+    active_sleep = NULL;
 }
 
 void alarm_handler(int signum) {
@@ -193,10 +195,15 @@ void schedule() {
     // decrement for all sleeps
     pcb_t *sleep_process = queue_block->head;
     while (sleep_process && sleep_process->status != STOPPED_P) {
-        if (sleep_process->pid == list->fg_job->pid) {
-            active_process = sleep_process;
+        sleep_process->ticks--;
+
+        if (list->fg_job) {
+            if (sleep_process->pid == list->fg_job->pid) {
+                active_sleep = sleep_process;
+            }
         }
-        if (sleep_process->ticks == global_ticks) {
+
+        if (sleep_process->ticks == -1) {
             k_unblock(sleep_process);
         }
         sleep_process = sleep_process->next;

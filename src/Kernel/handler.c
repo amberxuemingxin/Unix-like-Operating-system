@@ -70,6 +70,10 @@ void cmd_handler(struct parsed_command *cmd) {
             // TODO resume_job(job);
             fprintf(stderr, "Restarting: %s\n", job->cmd);
             job->status = RUNNING_P;
+            list->fg_job = job;
+            job->background = false;
+            remove_job(job, list, true);
+            add_to_head(job, list, false);
             k_process_kill(process, S_SIGCONT);
         }
         else
@@ -78,8 +82,6 @@ void cmd_handler(struct parsed_command *cmd) {
         }
 
         // bring job to fg
-        list->fg_job = job;
-        job->background = false;
         swapcontext(&active_process->context, &scheduler_context);
 
         // wait for fg
@@ -123,7 +125,16 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        // TODO resume_job(job);
+        pcb_t *process = search_in_scheduler(job->pid);
+        if (process == NULL) {
+            printf("Process not exist!\n");
+            return;
+        }
+
+        k_process_kill(process, S_SIGCONT);
+        job->status = RUNNING_P;
+        remove_job(job, list, true);
+        add_to_head(job, list, false);
         fprintf(stderr, "Running: %s\n", job->cmd);
 
         return;
