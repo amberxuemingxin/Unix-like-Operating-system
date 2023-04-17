@@ -358,140 +358,71 @@ int write_directory_to_block(directory_entry* en, FAT* fat, int* reside_block) {
     //block_len in bytes
     uint16_t block_len = fat->block_size * fat->block_num;
     //block len in 2 bytes
-    block_len /= 2;    // 128
-    if(fat->block_arr[1] == 0XFFFF) {
-        bool dir_full = false; 
-        // find a spot in file system
-        uint16_t index = 0;
-        //increment 32 at a time
-        while(fat->block_arr[fat->directory_starting_index + index] != ZERO && index < block_len) {
+
+    int curr_directory_index = 1;
+    int prev = 0;
+    do{
+        prev = curr_directory_index;
+        int index = 0;
+         while(fat->block_arr[(block_len/2) * curr_directory_index + index] != ZERO && index < block_len) {
             // if the index is non-zero, jump to the next directory block
             // each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
             // thus increment by 32
             index += 32;
         }
-        // find an empty index in FAT REGION
-        if (index >= block_len) {
-            dir_full = true;
-            index = 2;
-            while(fat->block_arr[index] != 0X0000 && index < block_len) {
-                index++;
-            } 
-            if(index >= fat->directory_starting_index) {
-                printf("error: fat entry are all occupied");
-                return FAILURE;
-            }
-            
-        }
-        // if directory block is available:
-        if(!dir_full) {
+        //if we find a spot in current index:
+        if (index < block_len/2){
             // writing the directory entry struct into the directory block
+
+            //find a spot in fat region
             for (uint32_t i = 2; i < fat->entry_size; i++){
                 if (fat->block_arr[i] == ZERO){
                     en->firstBlock = (uint16_t) i;
-                    printf("1 curr first block is: %d\n", en->firstBlock);
+                    // printf("1 curr first block is: %d\n", en->firstBlock);
                     // printf("curr file name is: %s\n", en.name);
-                    fat->block_arr[i] = 0xffff;
+                    fat->block_arr[i] = 0XFFFF;
                     break;
                 }
             }
-            directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
+            int starting_point = curr_directory_index*(block_len/2) + index;
+            directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[starting_point];
+            *entry_ptr = *en;
+            // printf("current en's firstBlock is: %d\n", en->firstBlock);
+            return SUCCESS;
+        }
+
+        // if we couldn't find a spot in current block:
+        // and if we are at the last directory index, we need to extend the directory block
+        if(fat->block_arr[curr_directory_index] == 0XFFFF) {
+            for(int i = 2; i<fat->entry_size; i++) {
+                if (fat->block_arr[i] == ZERO) {
+                    fat->block_arr[prev] = (uint16_t)i;
+                    *reside_block = i;
+                    fat->block_arr[i] = 0XFFFF;
+                    curr_directory_index = i;
+                    break;
+                }
+            }
+            //find a spot in fat region
+            for (uint32_t i = 2; i < fat->entry_size; i++){
+                if (fat->block_arr[i] == ZERO){
+                    en->firstBlock = (uint16_t) i;
+                    // printf("1 curr first block is: %d\n", en->firstBlock);
+                    // printf("curr file name is: %s\n", en.name);
+                    fat->block_arr[i] = 0XFFFF;
+                    break;
+                }
+            }
+            int starting_point = curr_directory_index*(block_len/2);
+            directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[starting_point];
             *entry_ptr = *en;
             printf("current en's firstBlock is: %d\n", en->firstBlock);
             return SUCCESS;
         }
-        // if we are using another block:
-        fat->block_arr[1] = (uint16_t) index;
-        fat->block_arr[index] = 0XFFFF;
-        *reside_block = index;
-        index = index*block_len;
 
-        // update the directory entry's firstBlock
-        for (uint32_t i = 2; i < fat->entry_size; i++){
-            if (fat->block_arr[i] == ZERO){
-                en->firstBlock = (uint16_t) i;
-                printf("2 curr first block is: %d\n", en->firstBlock);
-                // printf("curr file name is: %s\n", en.name);
-                fat->block_arr[i] = 0xffff;
-                break;
-            }
-        }
-
-        directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
-        *entry_ptr = *en;
-
-        // printf("3 current en's firstBlock is: %d\n", en.firstBlock);
-        // printf("3 current entry_ptr's firstBlock is: %d\n", entry_ptr->firstBlock);
-        return SUCCESS;
-    }
-  
-    // if directory block was already extended
-    int curr_block = fat->block_arr[1];
-    int prev = -1;
-    while(curr_block!=0XFFFF) {
-        prev = curr_block;
-        curr_block = fat->block_arr[(int)curr_block];
-    }
-    *reside_block = prev;    // prev = 6 = reside block
-    uint16_t index = 0;
-    bool dir_full = false; 
-    // int start_index = fat->directory_starting_index + (prev)*((int)block_len);    // 128 + 768 = 896
-    int start_index = (prev)*((int)block_len);
-    //increment 32 at a time
-    while(fat->block_arr[start_index + index] != ZERO && index < block_len) {
-        //if the index is non-zero, jump to the next directory block
-        //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
-        // thus increment by 32
-        index += 32;
-    }
-
-    if (index >= block_len) {
-        dir_full = true;
-        index = 2;
-        //find the next free block
-        while(fat->block_arr[index] != 0X0000 && index < block_len/2) {
-            index++;
-        } 
-        if(index >= fat->directory_starting_index) {
-            printf("error: fat entry are all occupied");
-            return FAILURE;
-        }
-            
-    }
-    if(!dir_full) {
-        // writing the directory entry struct into the directory block
-        for (uint32_t i = 2; i < fat->entry_size; i++){
-            if (fat->block_arr[i] == ZERO){
-                en->firstBlock = (uint16_t) i;
-                printf("curr first block is: %d\n", en->firstBlock);
-                printf("curr file name is: %s\n", en->name);
-                fat->block_arr[i] = 0xffff;
-                break;
-            }
-        }
-        directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[start_index+index];
-        *entry_ptr = *en;
-        return SUCCESS;
-    }
-    // if we are using another block:
-    fat->block_arr[prev] = (uint16_t) index;
-    *reside_block = index;
-    fat->block_arr[index] = 0XFFFF;
-
-    index = index*block_len;
-
-    for (uint32_t i = 2; i < fat->entry_size; i++){
-        if (fat->block_arr[i] == ZERO){
-            en->firstBlock = (uint16_t) i;
-            printf("curr first block is: %d\n", en->firstBlock);
-            printf("curr file name is: %s\n", en->name);
-            fat->block_arr[i] = 0xffff;
-            break;
-        }
-    }
-
-    directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[index];
-    *entry_ptr = *en;
+        curr_directory_index = fat->block_arr[curr_directory_index];
+    }while(curr_directory_index != 0XFFFF);
+    
     return SUCCESS;
 
 }
