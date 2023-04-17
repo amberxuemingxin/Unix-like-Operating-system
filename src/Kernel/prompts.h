@@ -4,3 +4,5 @@
 #include <stdio.h>
 
 void shell_prompt();
+
+void cat_usage();

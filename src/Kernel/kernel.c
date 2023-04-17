@@ -9,6 +9,7 @@
 #include "scheduler.h"
 #include "queue.h"
 #include "builtins.h"
+#include "jobs.h"
 
 #define STACKSIZE 819200
 
@@ -22,6 +23,7 @@ extern ucontext_t idle_context;
 extern queue *queue_block;
 extern queue *queue_zombie;
 extern pcb_t *active_process;
+extern job_list *list;
 extern bool idle;
 
 void orphan_check(pcb_t *process) {
@@ -63,8 +65,11 @@ void exit_process() {
         add_process(queue_zombie, active_process);
         remove_from_scheduler(active_process);
         
-        // unblock parent here (make sure don't unblock if it's bg)
+        // unblock parent here (skip if it's bg)
         if (active_process->parent) {
+            if (list->fg_job && list->fg_job->pid != active_process->pid) {
+                return;
+            }
             k_unblock(active_process->parent);
         }
     }

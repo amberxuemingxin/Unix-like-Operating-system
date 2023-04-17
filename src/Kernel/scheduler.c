@@ -79,14 +79,21 @@ void add_to_scheduler(pcb_t *process) {
     }
 }
 
-void remove_from_scheduler(pcb_t *process) {
+int remove_from_scheduler(pcb_t *process) {
+    pcb_t *removed = NULL;
 
     if (process->priority == -1) {
-        remove_process(queue_high, process);
+        removed = remove_process(queue_high, process);
     } else if (process->priority == 0) {
-        remove_process(queue_mid, process);
+        removed = remove_process(queue_mid, process);
     } else {
-        remove_process(queue_low, process);
+        removed = remove_process(queue_low, process);
+    }
+
+    if (removed == NULL) {
+        return FAILURE;
+    } else {
+        return SUCCESS;
     }
 }
 

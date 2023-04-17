@@ -179,6 +179,35 @@ void cmd_handler(struct parsed_command *cmd) {
 
         p_nice(pid, priority);
         return;
+    } else if (strcmp(cmd->commands[0][0], "man") == 0) {
+        printf("USER MANUAL OF PENNOS\n");
+        printf("-------------------------------------------\n");
+        printf("Shell Built-ins: (args with * are optional)\n");
+        printf("  cat [args]*\t\t");
+        printf("reads data from the file and gives their content as output\n");
+        printf("  sleep [args]\t\t");
+        printf("causes the calling thread to sleep [args] seconds; args should be some integers\n");
+        printf("  busy\t\t\t");
+        printf("waits indefinitely\n");
+        printf("  echo [args]*\t\t");
+        printf("displays a line of text from [args]\n");
+        printf("  ls [args]*\t\t");
+        printf("lists all files in the directory\n");
+        printf("  touch [args]\t\t");
+        printf("creates an empty file if it does not exist, or update its timestamp otherwise\n");
+        printf("  mv [arg1] [arg2]\t");
+        printf("rename arg1 to arg2\n");
+        printf("  cp [arg1] [arg2]\t");
+        printf("copy arg1 to arg2\n");
+        printf("  rm [args]\t\t");
+        printf("remove [args] from the directory\n");
+        printf("  chmod [args]\t\t");
+        printf("changes the file mode bits of each given file according to mode\n");
+        printf("  ps\t\t\t");
+        printf("lists all processes on PennOS\n");
+        printf("  kill [arg1] [arg2]\t");
+        printf("sends a specified signal [arg1] to the specified process [arg2]\n");
+        return; 
     } else if (strcmp(cmd->commands[0][0], "logout") == 0) {
         free_all_jobs(list);
         free(cmd);

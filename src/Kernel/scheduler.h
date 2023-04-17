@@ -4,6 +4,8 @@
 #include "queue.h"
 
 #define CENTISECOND 10000 /* 10 millisconds */
+#define SUCCESS 0
+#define FAILURE -1
 
 /*Keeps all queues
  Ready queue: three
@@ -23,7 +25,7 @@ void schedule();
 
 void add_to_scheduler(pcb_t *p);
 
-void remove_from_scheduler(pcb_t *p);
+int remove_from_scheduler(pcb_t *p);
 
 void ready_to_block(pcb_t *p);
 

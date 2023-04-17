@@ -54,6 +54,7 @@ int execute(struct parsed_command *cmd, job *job, int priority) {
         child = p_spawn(my_kill, kill_arg, 2, STDIN_FILENO, STDOUT_FILENO, priority);
     } else {
         /* invalid input */
+        remove_job(job, list, false);
         free_job(job);
         return -1;
     }

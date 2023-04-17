@@ -9,6 +9,7 @@
 extern pcb_t *active_process;
 extern ucontext_t idle_context;
 extern ucontext_t scheduler_context;
+extern queue *queue_zombie;
 extern int global_ticks;
 
 /* fork a new process
@@ -107,7 +108,9 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
             if (W_WIFEXITED(p->status)) {
                 pid_t return_value = p->pid;
                 log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-                remove_from_scheduler(p);
+                if (remove_from_scheduler(p) == FAILURE) {
+                    remove_process(queue_zombie, p);
+                }
                 k_process_cleanup(p);
                 return return_value;
             }
@@ -130,7 +133,9 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang) {
 
         if (W_WIFEXITED(p->status)) {
             log_events(WAITED, global_ticks, p->pid, p->priority, p->process);
-            remove_from_scheduler(p);
+            if (remove_from_scheduler(p) == FAILURE) {
+                remove_process(queue_zombie, p);
+            }
             k_process_cleanup(p);
             return pid;
         } else {
