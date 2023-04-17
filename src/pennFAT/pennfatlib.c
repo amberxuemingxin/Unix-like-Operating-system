@@ -166,7 +166,7 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
     memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
     int* reside_index = malloc(sizeof(int));
-    if (write_directory_to_block(*old_f->dir_entry,curr_fat,reside_index)== -1 ) {
+    if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
         free(reside_index);
         printf("error: failed to write directory entry to block\n");
         free_directory_node(old_f);
@@ -269,33 +269,33 @@ int pennfat_cat(char **commands, FAT *fat){
         }
         // writing line to the destination file. 
 
-            char* f_name = commands[count-1];
-            if(writing) {
-                int fd = f_open(f_name, F_WRITE);
-                //erase before
-                dir_node* f_node = search_file(f_name, curr_fat,NULL);
-                file* cur_file = read_file_from_fat(f_node, curr_fat);
-                //clear out the file before reading;
-                delete_file_bytes(f_node->dir_entry->firstBlock, cur_file->size, curr_fat);
-                free(cur_file);
-                if(f_write(fd, line, len) == -1) {
-                    f_close(fd);
-                    return FAILURE;
-                }
+        char* f_name = commands[count-1];
+        if(writing) {
+            int fd = f_open(f_name, F_WRITE);
+            //erase before
+            dir_node* f_node = search_file(f_name, curr_fat,NULL);
+            file* cur_file = read_file_from_fat(f_node, curr_fat);
+            //clear out the file before reading;
+            delete_file_bytes(f_node->dir_entry->firstBlock, cur_file->size, curr_fat);
+            free(cur_file);
+            if(f_write(fd, line, len) == -1) {
                 f_close(fd);
-                return SUCCESS;
-            } else if (appending)
-            {
-                int fd = f_open(f_name, F_APPEND);
-                int status = f_write(fd, line, len);
-
-                if(status == -1) {
-                    f_close(fd);
-                    return FAILURE;
-                }
-                f_close(fd);
-                return SUCCESS;
+                return FAILURE;
             }
+            f_close(fd);
+            return SUCCESS;
+        } else if (appending)
+        {
+            int fd = f_open(f_name, F_APPEND);
+            int status = f_write(fd, line, len);
+
+            if(status == -1) {
+                f_close(fd);
+                return FAILURE;
+            }
+            f_close(fd);
+            return SUCCESS;
+        }
         }
 
     //handle redirection cases:
@@ -582,7 +582,7 @@ int pennfat_chmod(char **commands, FAT *fat){
         return FAILURE;
     }
     int* index = malloc(sizeof(int));
-    if(write_directory_to_block(*file_node->dir_entry, curr_fat,index)) {
+    if(write_directory_to_block(file_node->dir_entry, curr_fat,index)) {
         free(index);
         printf("error: write entry to block");
         return FAILURE;
@@ -662,27 +662,45 @@ int f_open(const char *f_name, int mode){
                 Shufan Added content:
             */
             int* reside_index = malloc(sizeof(int));
-            write_directory_to_block(*file_node->dir_entry, curr_fat, reside_index);
+
+            // int file_count = 0;
+            // while(curr_node->dir_entry->firstBlock != fd) {
+            //     curr_node = curr_node->next;
+            //     file_count++;
+            // }
+            // file_count = file_count / (curr_fat->block_size / (2 * 32)); // file_count divide by how many files a directory can hold
+
+
+            // // write_directory_to_block(*file_node->dir_entry, curr_fat, reside_index);
+
+            // if (file_count > 1){    // fat region need one more directory entry
+            //     // 
+            // }
+            
+            // for (uint32_t i = 2; i < curr_fat->entry_size; i++){
+            //     if (curr_fat->block_arr[i] == ZERO){
+            //         file_node->dir_entry->firstBlock = (uint16_t) i;
+            //         printf("curr first block is: %d\n", file_node->dir_entry->firstBlock);
+            //         printf("curr file name is: %s\n", file_node->dir_entry->name);
+            //         curr_fat->block_arr[i] = 0xffff;
+            //         break;
+            //     }
+            // }
+            printf("BEFORE: file_node->dir_entry->firstblock: %d\n", file_node->dir_entry->firstBlock);
+            write_directory_to_block(file_node->dir_entry, curr_fat, reside_index);
+            printf("AFTER: file_node->dir_entry->firstblock: %d\n", file_node->dir_entry->firstBlock);
+            // curr_fat->block_arr[i] = 0xffff;
             // printf("debugging: %s resides in %dth block in fat entry\n", f_name, *reside_index);
 
             free(reside_index);
-            for (uint32_t i = 2; i < curr_fat->entry_size; i++){
-                if (curr_fat->block_arr[i] == ZERO){
-                    file_node->dir_entry->firstBlock = (uint16_t) i;
-                    curr_fat->block_arr[i] = 0xffff;
-                    // printf("debugging: %s's first block is %d\n", file_node->dir_entry->name, i);
-
-                    break;
-                }
-            }
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
         }
         if(mode == F_WRITE) {
 
-            // printf("f_open: F_WRITE\n");
+            printf("f_open: F_WRITE\n");
             curr_fd = (int) file_node->dir_entry->firstBlock;
-            // printf("firstblock for file %s is %d\n", file_node->dir_entry->name, curr_fd);
+            printf("firstblock for file %s is %d\n", file_node->dir_entry->name, curr_fd);
 
         
         }
