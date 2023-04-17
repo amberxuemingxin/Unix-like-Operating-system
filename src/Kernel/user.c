@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-#include <signal.h> // sigalrm ...
-
 #include "user.h"
 #include "kernel.h"
 #include "logger.h"

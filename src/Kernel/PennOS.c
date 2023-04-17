@@ -1,8 +1,5 @@
-#include <stdio.h>
-
 #include "kernel.h"
 #include "scheduler.h"
-#include "ucontext.h"
 #include "user.h"
 #include "logger.h"
 #include "shell.h"

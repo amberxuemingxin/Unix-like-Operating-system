@@ -1,6 +1,3 @@
-#include <unistd.h>            // STDIN_FILENO
-#include <signal.h>            // sigaction, sigemptyset, sigfillset, signal
-#include <ucontext.h>          // getcontext, makecontext, setcontext, swapcontext
 #include <valgrind/valgrind.h> // VALGRIND_STACK_REGISTER
 
 #include "kernel.h"

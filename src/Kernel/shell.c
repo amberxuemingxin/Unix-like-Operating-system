@@ -73,7 +73,13 @@ void shell_loop () {
         }
 
         // first prompt to the user
-        shell_prompt();
+        int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
+
+        if ( return_value == -1)
+        {
+            perror("Fail to write!\n");
+            exit(EXIT_FAILURE);
+        }
 
         // get user input
         char *user_input = NULL;

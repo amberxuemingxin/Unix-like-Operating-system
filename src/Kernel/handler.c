@@ -1,7 +1,3 @@
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-
 #include "handler.h"
 #include "jobs.h"
 #include "execute.h"
@@ -14,7 +10,7 @@ extern pcb_t *active_process;
 extern ucontext_t scheduler_context;
 int priority = 0;
 
-void truncate(char*** arr) {
+void my_truncate(char*** arr) {
     (*arr) += 2;  // increment the pointer by 2
     // now (*arr) points to the third element of the original array
 }
@@ -140,7 +136,7 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        truncate(cmd->commands);
+        my_truncate(cmd->commands);
 
     } else if (strcmp(cmd->commands[0][0], "nice_pid") == 0) {
         char *priority_string = cmd->commands[0][1];

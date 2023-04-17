@@ -1,13 +1,11 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h> // STDIN
-#include <string.h> 
+#include "unistd.h"
 
 #include "execute.h"
 #include "user.h"
 #include "builtins.h"
 #include "scheduler.h"
 #include "stress.h"
+//#include "header.h"
 
 extern job_list *list;
 
