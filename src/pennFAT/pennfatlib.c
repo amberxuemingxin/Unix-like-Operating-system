@@ -123,6 +123,7 @@ int pennfat_touch(char **files, FAT *fat){
                 file_node->dir_entry->mtime = time(0);
                 index += 1;
                 file_name = files[index];
+                printf("first block is %d\n", file_node->dir_entry->firstBlock);
                 continue;
             }
         int fd = f_open(file_name, F_WRITE);

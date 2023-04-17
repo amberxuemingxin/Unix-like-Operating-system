@@ -207,7 +207,8 @@ FAT* mount_fat(char* f_name) {
             perror("read");
             return NULL;
         }
-        int starting_index = block * entry_size;
+        int starting_index = block * (int)entry_size;
+        printf("strange shit right here, starting index is %d\n",starting_index);
         for (int i = 0; i < max_filenum; i++) {
             lseek(fs_fd, starting_index + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
             uint8_t buffer[SIZE_DIRECTORY_ENTRY];
@@ -223,7 +224,14 @@ FAT* mount_fat(char* f_name) {
                 break;
             }
             // Copy the contents of the buffer into the struct at the appropriate index in the entry_arr array
-            memcpy(entry_arr[entry_num*max_filenum + i], buffer, sizeof(directory_entry));
+            memcpy(&entry_arr[entry_num*max_filenum + i]->name, buffer, 32);
+            memcpy(&entry_arr[entry_num*max_filenum + i]->size, buffer + 32, sizeof(uint32_t));
+            memcpy(&entry_arr[entry_num*max_filenum + i]->firstBlock, buffer + 36, sizeof(uint16_t));
+            memcpy(&entry_arr[entry_num*max_filenum + i]->type, buffer + 38, sizeof(uint8_t));
+            memcpy(&entry_arr[entry_num*max_filenum + i]->perm, buffer + 39, sizeof(uint8_t));
+            memcpy(&entry_arr[entry_num*max_filenum + i]->mtime, buffer + 40, sizeof(time_t));
+            // memcpy(entry_arr[entry_num*max_filenum + i], buffer, sizeof(directory_entry));
+            printf("debugging: just checking, entry_arr[entry_num*max_filenum + i]'s first block is %d\n", entry_arr[entry_num*max_filenum + i]->firstBlock);
         }
         entry_num += 1;
         block = (int) directory_block;
@@ -446,7 +454,19 @@ int write_directory_to_block(directory_entry en, FAT* fat, int* reside_block) {
 
 int delete_directory_from_block(directory_entry en, FAT* fat) {
     // find a spot in file system
+    // uint32_t entry_size = 0;
+    // // # of FAT entries = block size * number of blocks in FAT / 2
+    // entry_size = fat->block_size * fat->block_num;
+    // //max filenum denots the maximum number of directory entries in a block
+    // int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
     uint16_t index = 0;
+    // int b_index = 1;
+    // while(fat->block_arr[b_index] != 0XFFFF) {
+    //     index = block_arr[b_index];
+    //     for(int i = 0; i<max_filenum; i++) {
+
+    //     }
+    // }
     while(fat->directory_starting_index + index < fat->dblock_starting_index) {
         //if the index is non-zero, jump to the next directory block
         //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
