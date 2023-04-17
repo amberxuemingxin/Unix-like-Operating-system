@@ -500,29 +500,22 @@ int delete_directory_from_block(directory_entry en, FAT* fat) {
     // find a spot in file system
     // uint32_t entry_size = 0;
     // // # of FAT entries = block size * number of blocks in FAT / 2
-    // entry_size = fat->block_size * fat->block_num;
+    int entry_size = fat->block_size * fat->block_num;
     // //max filenum denots the maximum number of directory entries in a block
-    // int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
-    uint16_t index = 0;
-    // int b_index = 1;
-    // while(fat->block_arr[b_index] != 0XFFFF) {
-    //     index = block_arr[b_index];
-    //     for(int i = 0; i<max_filenum; i++) {
-
-    //     }
-    // }
-    while(fat->directory_starting_index + index < fat->dblock_starting_index) {
-        //if the index is non-zero, jump to the next directory block
-        //each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
-        // thus increment by 32
-        directory_entry* curr_entry = (directory_entry*) &fat->block_arr[fat->directory_starting_index+index];
-        if(strcmp(curr_entry->name, en.name) == 0) {
-            for (int i = 0; i<32; i++) {
-                fat->block_arr[fat->directory_starting_index + index + i] = ZERO;
+    int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
+    int b_index = 1;
+    while(b_index != 0XFFFF) {
+        for(int i = 0; i<max_filenum; i++) {
+            int curr_index = fat->directory_starting_index + ((b_index-1)*fat->block_size)/2 + i*32;
+            directory_entry* curr_entry = (directory_entry*) &fat->block_arr[curr_index];
+            if(strcmp(curr_entry->name, en.name) == 0) {
+                for (int j = 0; j<32; j++) {
+                    fat->block_arr[curr_index + j] = ZERO;
+                }
+                return SUCCESS;
             }
-            return SUCCESS;
         }
-        index += 32;
+        b_index =fat->block_arr[b_index];
     }
     printf("file not found\n");
     return FAILURE;
