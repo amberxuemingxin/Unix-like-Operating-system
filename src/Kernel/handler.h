@@ -5,4 +5,8 @@
  */
 #include "parser.h"
 
+/**
+ * @brief the main command handler function
+ * @param the parsed command
+ */
 void cmd_handler(struct parsed_command *cmd);

@@ -29,4 +29,8 @@ void ps();
  */
 void busy();
 
+/**
+ * @brief kill the process with the designated signal
+ * @param the signal and the pid that the user wants to kill
+ */
 void my_kill(char *signo, char *pid);
