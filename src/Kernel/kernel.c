@@ -62,21 +62,10 @@ void idle_process()
 }
 
 /* All processes, except for the shell, will be linked to it when they finished
-* be responsible for delivering S_SIGTERM, marking zombies, handling scheduler stuffs
 */
 void exit_process() {
     if (active_process) {
         k_process_kill(active_process, S_SIGTERM);
-
-        active_process->status = ZOMBIED_P;
-        log_events(ZOMBIE, global_ticks, active_process->pid, active_process->priority, active_process->process);
-        add_process(queue_zombie, active_process);
-        remove_from_scheduler(active_process);
-        
-        // unblock parent here (skip if it's bg)
-        if (!active_process->background) {
-            k_unblock(active_process->parent);
-        }
     }
 }
 
@@ -218,12 +207,16 @@ int k_process_kill(pcb_t *process, int signal)
     {
         process->status = STOPPED_P;
         log_events(STOPPED, global_ticks, process->pid, process->priority, process->process);
+        job *j = find_by_pid(process->pid, list);
+        if (j) {
+            j->status = STOPPED_P;
+        }
 
         if (strcmp(process->process, "sleep") != 0) {
             ready_to_block(process);
         }
 
-        if (process == active_process || process == active_sleep)
+        if (!process->background)
         {
             k_unblock(process->parent);
         }
@@ -233,7 +226,16 @@ int k_process_kill(pcb_t *process, int signal)
     {
         process->status = EXITED_P;
         log_events(EXITED, global_ticks, process->pid, process->priority, process->process);
+        process->status = ZOMBIED_P;
+        log_events(ZOMBIE, global_ticks, process->pid, process->priority, process->process);
+        add_process(queue_zombie, process);
+        remove_from_scheduler(process);
         orphan_check(process); 
+        
+        // unblock parent here (skip if it's bg)
+        if (!process->background) {
+            k_unblock(process->parent);
+        }
 
         return SUCCESS;
     } else if (signal == S_SIGCONT_FG || signal == S_SIGCONT_BG)
@@ -253,6 +255,11 @@ int k_process_kill(pcb_t *process, int signal)
                 if (strcmp(process->process, "sleep") != 0) {
                     block_to_ready(process);
                 }
+
+                job *j = find_by_pid(process->pid, list);
+                if (j) {
+                    j->status = RUNNING_P;
+                }
             }
         }  
     } else if (signal == S_SIGNALED) {
@@ -263,7 +270,7 @@ int k_process_kill(pcb_t *process, int signal)
         remove_from_scheduler(process);
         orphan_check(process); 
 
-        if (process == active_process || process == active_sleep) {
+        if (!process->background) {
             k_unblock(process->parent);
         }
         return SUCCESS;

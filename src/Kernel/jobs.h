@@ -57,11 +57,19 @@ job_list *init_job_list();
 
 /**
  * @brief search through a designated list and find job through job id
- * @param job id the user wishes to find
+ * @param jid id the user wishes to find
  * @param list the job list the user wishes to search in
  * @return the found job, NULL if not found
  */
 job *find_by_jid(int jid, job_list *list);
+
+/**
+ * @brief search through a designated list and find job through process id
+ * @param pid id the user wishes to find
+ * @param list the job list the user wishes to search in
+ * @return the found job, NULL if not found
+ */
+job *find_by_pid(pid_t pid, job_list *list);
 
 /**
  * @brief free the job node

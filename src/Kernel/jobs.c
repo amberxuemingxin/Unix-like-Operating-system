@@ -266,6 +266,33 @@ job *find_by_jid(int jid, job_list *list)
     return NULL;
 }
 
+
+job *find_by_pid(pid_t pid, job_list *list)
+{
+    job *tmp = list->queue_running;
+    while (tmp)
+    {
+        if (tmp->pid == pid)
+        {
+            return tmp;
+        }
+        tmp = tmp->next;
+    }
+
+    tmp = list->queue_stopped;
+    while (tmp != NULL)
+    {
+        if (tmp->pid == pid)
+        {
+            return tmp;
+        }
+        tmp = tmp->next;
+    }
+
+    // return null if not found
+    return NULL;
+}
+
 void print_all_jobs(job_list *list)
 {
     for (int i = 1; i <= list->max_jid; i++)
