@@ -42,4 +42,6 @@ int f_close(int fd);
 
 int f_lseek(int fd, int offset, int whence);
 
+int find_entry_block(char* f_name);
+
 #endif
