@@ -87,7 +87,7 @@ int parse_pennfat_command(char ***commands, int commandCount){
     return FAILURE;
 }
 
-int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **fat){
+int pennfat_mkfs(char *f_name, uint8_t block_num, uint32_t block_size, FAT **fat){
     // if FAT exist, we need to overwrite the origianl FAT
     if (fat != NULL) {
         free_fat(*fat);
