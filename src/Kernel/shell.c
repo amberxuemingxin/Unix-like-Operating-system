@@ -13,25 +13,35 @@ bool interactive;
 extern pcb_t *active_process;
 extern pcb_t *active_sleep;
 
-void sigint_handler(int signo) {
-    if (active_sleep) {
+void sigint_handler(int signo)
+{
+    if (active_sleep)
+    {
         k_process_kill(active_sleep, S_SIGNALED);
-    } else if (active_process && active_process->pid != 1) {
+    }
+    else if (active_process && active_process->pid != 1)
+    {
         k_process_kill(active_process, S_SIGNALED);
     }
 }
 
-void sigtstp_handler(int signo) {
-    if (active_sleep) {
+void sigtstp_handler(int signo)
+{
+    if (active_sleep)
+    {
         k_process_kill(active_sleep, S_SIGSTOP);
-    } else if (active_process && active_process->pid != 1) {
+    }
+    else if (active_process && active_process->pid != 1)
+    {
         k_process_kill(active_process, S_SIGSTOP);
     }
-
+    // change the status of the job to STOPPED
     job *j = list->fg_job;
     j->status = STOPPED_P;
 
+    // remove the job from the previous list
     remove_job(j, list, false);
+    // and add to the stopped list
     add_to_head(j, list, true);
 
     list->fg_job = NULL;
@@ -39,7 +49,8 @@ void sigtstp_handler(int signo) {
     printf("Stopped: %s\n", j->cmd);
 }
 
-void shell_loop () {
+void shell_loop()
+{
     list = init_job_list();
     interactive = isatty(STDIN_FILENO);
 
@@ -56,16 +67,24 @@ void shell_loop () {
         perror("Fail to catch SIGTSTP!\n");
         exit(EXIT_FAILURE);
     }
-    
-    while (1) {
+
+    while (1)
+    {
         /* wait for bg jobs */
         job *j = list->queue_running;
 
-        while (j) {
+        // iterate through all running processes
+        while (j)
+        {
             job *tmp = j->next;
-            if (j->background) {
+            if (j->background)
+            {
+                // if it's a background process, wait on it
                 int return_value = p_waitpid(j->pid, &j->status, true);
-                if (return_value == j->pid) {
+                // if it finished running
+                if (return_value == j->pid)
+                {
+                    // remove the job from the current list and free job
                     remove_job(j, list, false);
                     printf("Finished: %s\n", j->cmd);
                     free_job(j);
@@ -75,10 +94,10 @@ void shell_loop () {
         }
 
         // first prompt to the user
-        if (interactive) {
+        if (interactive)
+        {
             int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
-
-            if ( return_value == -1)
+            if (return_value == -1)
             {
                 perror("Fail to write!\n");
                 exit(EXIT_FAILURE);
@@ -113,10 +132,12 @@ void shell_loop () {
             continue;
         }
 
-        if (cmd->num_commands >= 1) {
+        if (cmd->num_commands >= 1)
+        {
+            // send to the command handler
             cmd_handler(cmd);
         }
-        
+
         free(cmd);
     }
 }
