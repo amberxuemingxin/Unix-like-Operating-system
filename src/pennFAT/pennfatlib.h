@@ -27,6 +27,7 @@ int pennfat_chmod(char **commands, FAT *fat);
 
 dir_node* search_file(char* file_name, FAT* fat, dir_node** prev);
 
+int find_entry_block(char* f_name);
 
 
 

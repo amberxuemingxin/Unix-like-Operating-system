@@ -87,10 +87,10 @@ int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **fat)
     }
     *fat = make_fat(f_name, block_num, block_size);
     curr_fat = *fat;
-    file_d = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
-    file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
+    file_d = (int*) malloc(sizeof(int) * (curr_fat->block_size * curr_fat->directory_starting_index / 64));
+    file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size * curr_fat->directory_starting_index / 64));
 
-    file_d_size = curr_fat->block_size / 64;
+    file_d_size = curr_fat->block_size * curr_fat->directory_starting_index / 64;
     return SUCCESS;
 }
 
@@ -103,10 +103,17 @@ FAT* pennfat_mount(char *f_name) {
 
     FAT* fat = mount_fat(f_name);
     curr_fat = fat;
-    file_d = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
-    file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size / 64));
-    file_d_size = curr_fat->block_size / 64;
+    file_d = (int*) malloc(sizeof(int) * (curr_fat->block_size * curr_fat->directory_starting_index / 64));
+    file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size * curr_fat->directory_starting_index / 64));
+    file_d_size = curr_fat->block_size * curr_fat->directory_starting_index / 64;
 
+    dir_node* tmp = curr_fat->first_dir_node;
+    int fd_index = 0;
+    while(tmp!=NULL) {
+        file_d[fd_index] = tmp->dir_entry->firstBlock;
+        fd_index++;
+        tmp = tmp->next;
+    }
     return fat;    
 }
 
@@ -125,7 +132,10 @@ int pennfat_touch(char **files, FAT *fat){
                 file_node->dir_entry->mtime = time(0);
                 index += 1;
                 file_name = files[index];
-                printf("first block is %d\n", file_node->dir_entry->firstBlock);
+                // printf("first block is %d\n", file_node->dir_entry->firstBlock);
+                int x = find_entry_block(file_node->dir_entry->name);
+                printf("debugging:The block resides in %d entry\n", x);
+                
                 continue;
             }
         int fd = f_open(file_name, F_WRITE);
@@ -161,7 +171,8 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
             printf("error: failed to write directory entry to block\n");
             free_directory_node(old_f);
             return FAILURE;
-        }   
+        }
+        old_f->dir_entry->mtime = time(0);
         return SUCCESS;
     } else {
         //overwrite new_f content and write everything from old_f to new_f
@@ -185,12 +196,9 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
             free_directory_node(old_f);
             return FAILURE;
         }   
+        old_f->dir_entry->mtime = time(0);   
         return SUCCESS;
-
-
-
     }
-    
 }
 
 int pennfat_remove(char **commands, FAT *fat){
@@ -318,10 +326,12 @@ int pennfat_cat(char **commands, FAT *fat){
                 return FAILURE;
             }
             f_close(fd);
+            f_node->dir_entry->mtime = time(0);
             return SUCCESS;
         } else if (appending)
         {
             int fd = f_open(f_name, F_APPEND);
+            dir_node* f_node = search_file(f_name, curr_fat,NULL);
             int status = f_write(fd, line, len);
 
             if(status == -1) {
@@ -329,6 +339,7 @@ int pennfat_cat(char **commands, FAT *fat){
                 return FAILURE;
             }
             f_close(fd);
+            f_node->dir_entry->mtime = time(0);
             return SUCCESS;
         }
         }
@@ -353,6 +364,8 @@ int pennfat_cat(char **commands, FAT *fat){
             // printf("DEBUGGING - curr_fd: %d\n", curr_fd);
         }
         dir_node* f1_node = search_file(f1_name,curr_fat,NULL);
+        dir_node* f2_node = search_file(f2_name,curr_fat,NULL);
+
         char buff[f1_node->dir_entry->size];
         // printf("DEBUGGING - f1_node->dir_entry->size: %d\n", f1_node->dir_entry->size);
 
@@ -365,6 +378,7 @@ int pennfat_cat(char **commands, FAT *fat){
                 printf("DEBUGGING - currently appending in f2!!!");
                 f_close(f1_fd);
                 f_close(f2_fd);
+                f2_node->dir_entry->mtime = time(0);
                 return SUCCESS;
             } else {
                 f_close(f1_fd);
@@ -635,6 +649,7 @@ int pennfat_chmod(char **commands, FAT *fat){
         printf("error: write entry to block");
         return FAILURE;
     }
+    file_node->dir_entry->mtime = time(0);
     return SUCCESS;
 }
 
@@ -734,7 +749,7 @@ int f_open(const char *f_name, int mode){
             write_directory_to_block(file_node->dir_entry, curr_fat, reside_index);
             // printf("AFTER: file_node->dir_entry->firstblock: %d\n", file_node->dir_entry->firstBlock);
             // curr_fat->block_arr[i] = 0xffff;
-            // printf("debugging: %s resides in %dth block in fat entry\n", f_name, *reside_index);
+            // printf("debugging: f_open %s resides in %dth block in fat entry\n", f_name, *reside_index);
 
             free(reside_index);
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
@@ -745,8 +760,7 @@ int f_open(const char *f_name, int mode){
             printf("f_open: F_WRITE\n");
             curr_fd = (int) file_node->dir_entry->firstBlock;
             printf("firstblock for file %s is %d\n", file_node->dir_entry->name, curr_fd);
-
-        
+       
         }
 
         int fd = (int) file_node->dir_entry->firstBlock;
@@ -1058,4 +1072,33 @@ int f_lseek(int fd, int offset, int whence){
     }
 
     return file_pos[index];
+}
+
+
+//given a f_name, the function traverse all directory entries and return the number
+//of block that the entry with the same name resides in. The function returns
+//-1 file not found
+int find_entry_block(char* f_name) {
+    int curr_directory_index = 1;
+    //block_len in bytes
+    uint16_t block_len = curr_fat->block_size * curr_fat->block_num;
+    block_len /= 2;
+    //block len in 2 bytes
+      do{
+        int index = 0;
+        while(index < block_len) {
+            int starting_point = curr_directory_index*(block_len) + index;
+            directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[starting_point];
+            // if the index is non-zero, jump to the next directory block
+            // each directory entry is 64 bytes, and each array index is 2 bytes as it is uint16_t type
+            // thus increment by 32
+            if(strcmp(entry_ptr->name, f_name) == 0) {
+                return curr_directory_index;
+            } 
+            index += 32;
+        }
+        curr_directory_index = curr_fat->block_arr[curr_directory_index];
+    }while(curr_directory_index != 0XFFFF);
+    
+    return -1;
 }
