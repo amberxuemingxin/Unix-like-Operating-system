@@ -461,6 +461,7 @@ file* read_file_from_fat(dir_node *f_node, FAT* fat) {
     file *res = malloc(sizeof(file));
     res->file_bytes = read_file_bytes(f_node->dir_entry->firstBlock, f_node->dir_entry->size, fat);
     res->size = f_node->dir_entry->size;
+    res->block_arr_start = f_node->dir_entry->firstBlock;
     if (res == NULL)
         return NULL;
 

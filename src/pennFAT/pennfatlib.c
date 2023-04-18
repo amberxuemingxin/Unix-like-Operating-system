@@ -170,25 +170,59 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     } else {
         //overwrite new_f content and write everything from old_f to new_f
         // file* src = read_file_from_fat(old_f,curr_fat);
-        // file* dest = read_file_from_fat(new_f, curr_fat);
 
-        char** cmd = malloc(2 * sizeof(char*));
-        cmd[0] = "rm";
-        cmd[1] = newFileName;
-        pennfat_remove(cmd, curr_fat);
-        if (delete_directory_from_block(*old_f->dir_entry,curr_fat) == FAILURE) {
-                return FAILURE;
-        }
-        memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
-        memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
-        int* reside_index = malloc(sizeof(int));
-        if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
-            free(reside_index);
-            printf("error: failed to write directory entry to block\n");
-            free_directory_node(old_f);
+        // uint8_t* buffer = read_file_bytes(src->block_arr_start, src->size, curr_fat);        
+        // //write content from oldfile to newfile
+        // int fd =f_open(newFileName, F_WRITE);
+        // if(fd <0) {
+        //     printf("error: mv failed to f_open\n");
+        //     return FAILURE;
+        // }
+        // if(f_write(fd, (char*)buffer, src->size) == FAILURE) {
+        //     printf("error: mv failed to f_write\n");
+        //     return FAILURE;
+        // }
+        // f_close(fd);
+        
+        char** cat_cmd = malloc(4*sizeof(char*));
+        cat_cmd[0] = "cat";
+        cat_cmd[1] = oldFileName;
+        cat_cmd[2] = "-w";
+        cat_cmd[3] = newFileName;
+        if (pennfat_cat(cat_cmd,curr_fat)==FAILURE) {
+            free(cat_cmd);
+            printf("error: mv unable to overwrite content\n");
             return FAILURE;
-        }   
-        old_f->dir_entry->mtime = time(0);   
+        }
+        free(cat_cmd);
+
+        //delete old file
+        char** rm_cmd = malloc(2 * sizeof(char*));
+        rm_cmd[0] = "rm";
+        rm_cmd[1] = oldFileName;
+        if(pennfat_remove(rm_cmd, curr_fat) ==FAILURE){
+            // free(cat_cmd);
+            free(rm_cmd);
+            printf("error: mv unable to delete file\n");
+            return FAILURE;
+        }
+
+        
+        // if (delete_directory_from_block(*old_f->dir_entry,curr_fat) == FAILURE) {
+        //         return FAILURE;
+        // }
+        // memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
+        // memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
+        // int* reside_index = malloc(sizeof(int));
+        // if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
+        //     free(reside_index);
+        //     printf("error: failed to write directory entry to block\n");
+        //     free_directory_node(old_f);
+        //     return FAILURE;
+        // }   
+        new_f->dir_entry->mtime = time(0);   
+        // free(cat_cmd);
+        free(rm_cmd);
         return SUCCESS;
     }
 }
@@ -260,7 +294,7 @@ int pennfat_cat(char **commands, FAT *fat){
             printf("error: file not found\n");
             return FAILURE;
         }
-        file* f = read_file_from_fat(f_node, curr_fat);
+        // file* f = read_file_from_fat(f_node, curr_fat);
         // char* buffer =(char*)f->file_bytes;
         // printf("%s",buffer);
     }
@@ -766,7 +800,7 @@ int f_open(const char *f_name, int mode){
 }
 
 int f_read(int fd, int n, char *buf){
-    printf("CURRENTLY CALLING F_READ...\n");    // reading f1
+    // printf("CURRENTLY CALLING F_READ...\n");    // reading f1
     uint32_t byte_read = 0;
     int curr_block = fd;    // curr_block = fd = 2
     int i = file_d_search(fd, 0);
@@ -776,10 +810,10 @@ int f_read(int fd, int n, char *buf){
     uint16_t index = start_index;
     int curr_pos = pos;
 
-    printf("DEBUGGING - i: %d, curr_pos: %d, start_index: %d\n", i, curr_pos, start_index);
+    // printf("DEBUGGING - i: %d, curr_pos: %d, start_index: %d\n", i, curr_pos, start_index);
 
     while(curr_pos / 2 >= curr_fat->block_size / 2) {
-        printf("DEBUGGING - what are you doing here?????");
+        // printf("DEBUGGING - what are you doing here?????");
         if(curr_fat->block_arr[curr_block] != 0xFFFF) {
             curr_block = curr_fat->block_arr[curr_block];
             start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
@@ -797,7 +831,7 @@ int f_read(int fd, int n, char *buf){
         curr_pos -= 2;
         index++;
     }
-    printf("DEBUGGING - index before: %d\n", index);
+    // printf("DEBUGGING - index before: %d\n", index);
 
 
     if(curr_pos % 2 == 1) {
@@ -809,46 +843,46 @@ int f_read(int fd, int n, char *buf){
         pos++;
         index++;
     }
-    printf("DEBUGGING - byte_read: %d\n", byte_read);
-    printf("DEBUGGING - index after: %d\n", index);
-    
+    // printf("DEBUGGING - byte_read: %d\n", byte_read);
+    // printf("DEBUGGING - index after: %d\n", index);
+    // // 
 
     // read data into buf
     while(byte_read < n) {    // n = 256
 
         char ch = (char) curr_fat->block_arr[index] & 0x00FF;//(char) (curr_fat->block_arr[index] >> 8);
         // EOF reached
-        printf("reading ch 1: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
+        // printf("reading ch 1: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
         if(ch == '\0') return EOF;
         buf[byte_read] = ch;
         byte_read++;
         pos++;
-        printf("DEBUGGING - buf 1: %s\n", buf);
+        // printf("DEBUGGING - buf 1: %s\n", buf);
         
         
         // read another char at the same index
         if(byte_read < n) {
             ch = (char) (curr_fat->block_arr[index] >> 8); // (char) curr_fat->block_arr[index] & 0x00FF;
-            printf("reading ch 2: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
+            // printf("reading ch 2: %c, index: %d, byte_read: %d, pos: %d, n: %d\n", ch, index, byte_read, pos, n);
             if(ch == '\0') return EOF;
             buf[byte_read] = ch;
             byte_read++;
             pos++;
-            printf("DEBUGGING - buf 2: %s\n", buf);
+            // printf("DEBUGGING - buf 2: %s\n", buf);
         }
 
         index++;
-        printf("DEBUGGING - index: %d\n", index);
+        // printf("DEBUGGING - index: %d\n", index);
 
         // find next data block to read
         if(index == start_index + 128) {
             if(curr_fat->block_arr[curr_block] != 0xFFFF) {
-                printf("DEBUGGING - fat region is NOT ffff\n");
+                // printf("DEBUGGING - fat region is NOT ffff\n");
                 curr_block = curr_fat->block_arr[curr_block];
                 start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;
                 index = start_index;
             } else {
-                printf("DEBUGGING - fat region is ffff\n");
+                // printf("DEBUGGING - fat region is ffff\n");
                 return EOF;
             }
         }
