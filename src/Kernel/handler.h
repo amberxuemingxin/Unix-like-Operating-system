@@ -7,6 +7,6 @@
 
 /**
  * @brief the main command handler function
- * @param the parsed command
+ * @param cmd the parsed command
  */
 void cmd_handler(struct parsed_command *cmd);

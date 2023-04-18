@@ -9,7 +9,9 @@
 /**
  * @brief The execute function that executes whatever commands that are passed in
  * and attach to the job list
- * @param the parsed command, the job list, and its priority
+ * @param cmd the parsed command
+ * @param job the job added
+ * @param priority the priority of the job
  * @return an int that indicates whether it is executed correctly
  *
  */

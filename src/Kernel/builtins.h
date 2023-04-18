@@ -5,7 +5,7 @@
 
 /**
  * @brief our own sleep function that sleeps for the ticks of time
- * @param the number of ticks the user wish to sleep
+ * @param ticks the number of ticks the user wish to sleep
  */
 void my_sleep(char *ticks);
 
@@ -31,6 +31,7 @@ void busy();
 
 /**
  * @brief kill the process with the designated signal
- * @param the signal and the pid that the user wants to kill
+ * @param signo the signal
+ * @param pid the pid that the user wants to kill
  */
 void my_kill(char *signo, char *pid);

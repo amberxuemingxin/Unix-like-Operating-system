@@ -45,7 +45,8 @@ typedef struct job_queue
 
 /**
  * @brief initialize a job node
- * @param the parsed command and the job list the user wishes to add the job node to
+ * @param cmd parsed command
+ * @param list the job list the user wishes to add the job node to
  */
 job *init_job(struct parsed_command *cmd, job_list *list);
 
@@ -56,49 +57,52 @@ job_list *init_job_list();
 
 /**
  * @brief search through a designated list and find job through job id
- * @param job id the user wishes to find, and the job list the user wishes to search in
+ * @param job id the user wishes to find
+ * @param list the job list the user wishes to search in
  * @return the found job, NULL if not found
  */
 job *find_by_jid(int jid, job_list *list);
 
 /**
  * @brief free the job node
- * @param the job node the user wants to free
+ * @param j the job node the user wants to free
  */
 void free_job(job *j);
 
 /**
  * @brief free all job nodes inside a job list
- * @param the job list the user wants to free
+ * @param list the job list the user wants to free
  */
 void free_all_jobs(job_list *list);
 
 /**
  * @brief print all jobs from a designated job list
- * @param the job list the user wants to print
+ * @param list the job list the user wants to print
  */
 void print_all_jobs(job_list *list);
 
 /**
  * @brief remove a job node from a designated job list
- * @param the job the user wants to remove, the job list the user wants to remove the
- * job from, and whether the job is stopped, as the job will be in a different queue
+ * @param j the job the user wants to remove
+ * @param list the job list the user wants to remove the job from
+ * @param stopped whether the job is stopped, as the job will be in a different queue
  */
 void remove_job(job *j, job_list *list, bool stopped);
 
 /**
  * @brief add a job to the head of the job list. If the job is stopped, add to the
  * stopped queue, otherwise add to the current running queue
- * @param the job the user wants to add, the job list the user wants to add to,
- * and whether the job is stopped or not
+ * @param j the job the user wants to add
+ * @param list the job list the user wants to add to
+ * @param stopped whether the job is stopped or not
  */
 void add_to_head(job *j, job_list *list, bool stopped);
 
 /**
  * @brief add a job to the end of the job list. If the job is stopped, add to the
  * stopped queue, otherwise add to the current running queue
- * @param the job the user wants to add, the job list the user wants to add to,
- * and whether the job is stopped or not
+ * @param job the job the user wants to add
+ * @param list the job list the user wants to add to
  */
 void add_to_end(job *job, job_list *list);
 
