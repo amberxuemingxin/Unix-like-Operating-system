@@ -28,11 +28,20 @@ char *time_stamp();
 
 /**
  * @brief log the current event that just happened and output to the log file
+ * @param type type of the event
+ * @param ticks the number of ticks the event took place
+ * @param pid the process id of the event
+ * @param priority the priority of the process
+ * @param process the name of the process
  */
 void log_events(int type, int ticks, int pid, int priority, char *process);
 
 /**
  * @brief log the nice event and output to the log file
+ * @param ticks the number of ticks the nice event took place
+ * @param old_priority the original priority before the NICE call
+ * @param new_priority the new priority assigned
+ * @param process the name of the process
  */
 void log_nice(int ticks, int pid, int old_priority, int new_priority, char *process);
 

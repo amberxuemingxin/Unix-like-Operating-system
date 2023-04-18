@@ -69,9 +69,7 @@ int p_kill(pid_t pid, int sig)
     {
         k_process_kill(active_process, sig);
         return SUCCESS;
-    }
-    else
-    {
+    } else {
         // otherwise search for the specific pid in the scheduler
         pcb_t *p = search_in_scheduler(pid);
         if (p)

@@ -7,6 +7,7 @@ const char STATUS[3][9] = {"Running", "Stopped", "Finished"};
 char *flatten(struct parsed_command *cmd)
 {
     // calculate the size
+    // this part is directly lifted from PennShell
     int size = 0;
     for (size_t i = 0; i < cmd->num_commands; i++)
     {
@@ -95,29 +96,39 @@ char *flatten(struct parsed_command *cmd)
     return string;
 }
 
-
 /* remove a job from list
-* if stopped = true, remove from the stopped Q
-* else, remove from the curr Q
-*/ 
+ * if stopped = true, remove from the stopped Q
+ * else, remove from the curr Q
+ */
 void remove_job(job *j, job_list *list, bool stopped)
 {
     job *prev = NULL;
     job *tmp;
-    if (stopped) {
+    if (stopped)
+    {
         tmp = list->queue_stopped;
-    } else {
+    }
+    else
+    {
         tmp = list->queue_running;
     }
 
-    while (tmp) {
-        if (tmp == j) {
-            if (prev) {
+    while (tmp)
+    {
+        if (tmp == j)
+        {
+            if (prev)
+            {
                 prev->next = j->next;
-            } else {
-                if (stopped) {
+            }
+            else
+            {
+                if (stopped)
+                {
                     list->queue_stopped = j->next;
-                } else {
+                }
+                else
+                {
                     list->queue_running = j->next;
                 }
             }
@@ -130,16 +141,20 @@ void remove_job(job *j, job_list *list, bool stopped)
 }
 
 /* add a job into the head of the Q
-* if stopped, add it as the head of stopped Q
-* if !stopped, add it as the head of curr Q
-*/
-void add_to_head(job *j, job_list *list, bool stopped) {
+ * if stopped, add it as the head of stopped Q
+ * if !stopped, add it as the head of curr Q
+ */
+void add_to_head(job *j, job_list *list, bool stopped)
+{
     job *prev;
 
-    if (stopped) {
+    if (stopped)
+    {
         prev = list->queue_stopped;
         list->queue_stopped = j;
-    } else {
+    }
+    else
+    {
         prev = list->queue_running;
         list->queue_running = j;
     }
@@ -147,22 +162,32 @@ void add_to_head(job *j, job_list *list, bool stopped) {
     j->next = prev;
 }
 
-void add_to_end(job *j, job_list *list) {
+/* add a job into the end of the Q
+ * if stopped, add it as the head of stopped Q
+ * if !stopped, add it as the head of curr Q
+ */
+void add_to_end(job *j, job_list *list)
+{
     job *prev = list->queue_running;
-    while (prev && prev->next) {
+    while (prev && prev->next)
+    {
         prev = prev->next;
     }
 
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         list->queue_running = j;
         j->next = NULL;
-    } else {
+    }
+    else
+    {
         prev->next = j;
         j->next = NULL;
     }
 }
 
-job *init_job(struct parsed_command *cmd, job_list *list) {
+job *init_job(struct parsed_command *cmd, job_list *list)
+{
     job *j = malloc(sizeof(job));
     j->cmd = flatten(cmd);
     j->background = cmd->is_background;
@@ -177,7 +202,8 @@ job *init_job(struct parsed_command *cmd, job_list *list) {
     return j;
 }
 
-job_list *init_job_list() {
+job_list *init_job_list()
+{
     job_list *list = malloc(sizeof(job_list));
     list->max_jid = 0;
     list->queue_running = NULL;
@@ -186,22 +212,26 @@ job_list *init_job_list() {
     return list;
 }
 
-void free_job(job *j) {
+void free_job(job *j)
+{
     free(j->cmd);
     free(j);
 }
 
-void free_all_jobs(job_list *list) {
+void free_all_jobs(job_list *list)
+{
     job *tmp;
     job *cur = list->queue_running;
-    while (cur) {
+    while (cur)
+    {
         tmp = cur;
         cur = cur->next;
         free_job(tmp);
     }
 
     cur = list->queue_stopped;
-    while (cur) {
+    while (cur)
+    {
         tmp = cur;
         cur = cur->next;
         free_job(tmp);
@@ -210,7 +240,8 @@ void free_all_jobs(job_list *list) {
     free(list);
 }
 
-job *find_by_jid(int jid, job_list *list) {
+job *find_by_jid(int jid, job_list *list)
+{
     job *tmp = list->queue_running;
     while (tmp)
     {
@@ -235,7 +266,35 @@ job *find_by_jid(int jid, job_list *list) {
     return NULL;
 }
 
-void print_all_jobs(job_list *list) {
+
+job *find_by_pid(pid_t pid, job_list *list)
+{
+    job *tmp = list->queue_running;
+    while (tmp)
+    {
+        if (tmp->pid == pid)
+        {
+            return tmp;
+        }
+        tmp = tmp->next;
+    }
+
+    tmp = list->queue_stopped;
+    while (tmp != NULL)
+    {
+        if (tmp->pid == pid)
+        {
+            return tmp;
+        }
+        tmp = tmp->next;
+    }
+
+    // return null if not found
+    return NULL;
+}
+
+void print_all_jobs(job_list *list)
+{
     for (int i = 1; i <= list->max_jid; i++)
     {
         job *curr = find_by_jid(i, list);

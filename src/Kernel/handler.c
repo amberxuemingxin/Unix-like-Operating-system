@@ -3,24 +3,28 @@
 #include "execute.h"
 #include "user.h"
 #include "queue.h"
- 
+
 extern job_list *list;
 extern queue *queue_block;
-extern pcb_t *active_process; 
+extern pcb_t *active_process;
 extern ucontext_t scheduler_context;
 int priority = 0;
 
-void my_truncate(char*** arr) {
-    (*arr) += 2;  // increment the pointer by 2
+void my_truncate(char ***arr)
+{
+    (*arr) += 2; // increment the pointer by 2
     // now (*arr) points to the third element of the original array
 }
 
-void cmd_handler(struct parsed_command *cmd) {
+void cmd_handler(struct parsed_command *cmd)
+{
+    // print out all jobs if the command is "jobs"
     if (strcmp(cmd->commands[0][0], "jobs") == 0)
     {
         print_all_jobs(list);
         return;
     }
+    // switch the job to foreground when "fg" flag is detected
     else if (strcmp(cmd->commands[0][0], "fg") == 0)
     {
         job *job = NULL;
@@ -56,7 +60,6 @@ void cmd_handler(struct parsed_command *cmd) {
         // if the job is stopped, resume it
         if (job->status == STOPPED_P)
         {
-            // TODO resume_job(job);
             fprintf(stderr, "Restarting: %s\n", job->cmd);
             job->status = RUNNING_P;
             remove_job(job, list, true);
@@ -74,7 +77,8 @@ void cmd_handler(struct parsed_command *cmd) {
         swapcontext(&active_process->context, &scheduler_context);
 
         // wait for fg
-        if (p_waitpid(job->pid, &job->status, false) == job->pid) {
+        if (p_waitpid(job->pid, &job->status, false) == job->pid)
+        {
             remove_job(job, list, false);
             free_job(job);
             list->fg_job = NULL;
@@ -82,6 +86,7 @@ void cmd_handler(struct parsed_command *cmd) {
 
         return;
     }
+    // switch the job to background when "bg" flag is detected
     else if (strcmp(cmd->commands[0][0], "bg") == 0)
     {
         job *job = NULL;
@@ -121,48 +126,70 @@ void cmd_handler(struct parsed_command *cmd) {
         fprintf(stderr, "Running: %s\n", job->cmd);
 
         return;
-        
-    } else if (strcmp(cmd->commands[0][0], "nice") == 0) {
+        // give the job a nice value when "nice" flag is detected
+    }
+    else if (strcmp(cmd->commands[0][0], "nice") == 0)
+    {
         char *priority_string = cmd->commands[0][1];
 
-        if (strcmp(priority_string, "-1") == 0) {
+        if (strcmp(priority_string, "-1") == 0)
+        {
             priority = -1;
-        } else if (strcmp(priority_string, "0") == 0) {
+        }
+        else if (strcmp(priority_string, "0") == 0)
+        {
             priority = 0;
-        } else if (strcmp(priority_string, "1") == 0) {
+        }
+        else if (strcmp(priority_string, "1") == 0)
+        {
             priority = 1;
-        } else {
+        }
+        else
+        {
             fprintf(stderr, "Please enter the correct priority value\n");
             return;
         }
 
         my_truncate(cmd->commands);
-
-    } else if (strcmp(cmd->commands[0][0], "nice_pid") == 0) {
+    }
+    // give the job a nice value when "nice" flag is detected
+    else if (strcmp(cmd->commands[0][0], "nice_pid") == 0)
+    {
         char *priority_string = cmd->commands[0][1];
         char *pid_string = cmd->commands[0][2];
         int priority;
         int pid;
 
-        if (strcmp(priority_string, "-1") == 0) {
+        if (strcmp(priority_string, "-1") == 0)
+        {
             priority = -1;
-        } else if (strcmp(priority_string, "0") == 0) {
+        }
+        else if (strcmp(priority_string, "0") == 0)
+        {
             priority = 0;
-        } else if (strcmp(priority_string, "1") == 0) {
+        }
+        else if (strcmp(priority_string, "1") == 0)
+        {
             priority = 1;
-        } else {
+        }
+        else
+        {
             fprintf(stderr, "Please enter the correct priority value\n");
             return;
         }
 
         pid = atoi(pid_string);
-        if (pid == 0) {
+        if (pid == 0)
+        {
             fprintf(stderr, "Please enter the correct pid value\n");
         }
 
         p_nice(pid, priority);
         return;
-    } else if (strcmp(cmd->commands[0][0], "man") == 0) {
+    }
+    // print out the user manual when the "man" flag is detected
+    else if (strcmp(cmd->commands[0][0], "man") == 0)
+    {
         printf("USER MANUAL OF PENNOS\n");
         printf("-------------------------------------------\n");
         printf("Shell Built-ins: (args with * are optional)\n");
@@ -190,8 +217,11 @@ void cmd_handler(struct parsed_command *cmd) {
         printf("lists all processes on PennOS\n");
         printf("  kill [arg1] [arg2]\t");
         printf("sends a specified signal [arg1] to the specified process [arg2]\n");
-        return; 
-    } else if (strcmp(cmd->commands[0][0], "logout") == 0) {
+        return;
+    }
+    // logout :)
+    else if (strcmp(cmd->commands[0][0], "logout") == 0)
+    {
         free_all_jobs(list);
         free(cmd);
         p_exit();
@@ -206,16 +236,21 @@ void cmd_handler(struct parsed_command *cmd) {
         priority = 0;
 
         /* if execution success */
-        if (return_value == 0) {
+        if (return_value == 0)
+        {
             /* block the parent if it's a fg job */
-            if (!job->background) {
+            if (!job->background)
+            {
                 list->fg_job = job;
-                if (p_waitpid(job->pid, &job->status, false) == job->pid) {
+                if (p_waitpid(job->pid, &job->status, false) == job->pid)
+                {
                     remove_job(job, list, false);
                     free_job(job);
                     list->fg_job = NULL;
                 }
-            } else { /* else, won't block the parent */
+            }
+            else
+            { /* else, won't block the parent */
                 printf("Running: %s\n", job->cmd);
             }
         }

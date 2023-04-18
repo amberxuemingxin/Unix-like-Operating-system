@@ -2,7 +2,6 @@
 
 #include "shell.h"
 #include "parser.h"
-#include "kernel.h"
 #include "user.h"
 #include "execute.h"
 #include "jobs.h"
@@ -10,33 +9,24 @@
 
 job_list *list;
 bool interactive;
-extern pcb_t *active_process;
-extern pcb_t *active_sleep;
 
 void sigint_handler(int signo)
 {
-    if (active_sleep)
+    if (list->fg_job)
     {
-        k_process_kill(active_sleep, S_SIGNALED);
-    }
-    else if (active_process && active_process->pid != 1)
-    {
-        k_process_kill(active_process, S_SIGNALED);
+        p_kill(list->fg_job->pid, S_SIGNALED);
     }
 }
 
 void sigtstp_handler(int signo)
 {
-    if (active_sleep)
-    {
-        k_process_kill(active_sleep, S_SIGSTOP);
-    }
-    else if (active_process && active_process->pid != 1)
-    {
-        k_process_kill(active_process, S_SIGSTOP);
-    }
-    // change the status of the job to STOPPED
     job *j = list->fg_job;
+    if (j)
+    {
+        p_kill(j->pid, S_SIGSTOP);
+    }
+    
+    // change the status of the job to STOPPED
     j->status = STOPPED_P;
 
     // remove the job from the previous list
