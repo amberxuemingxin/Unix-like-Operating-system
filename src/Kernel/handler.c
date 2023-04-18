@@ -59,11 +59,8 @@ void cmd_handler(struct parsed_command *cmd) {
             // TODO resume_job(job);
             fprintf(stderr, "Restarting: %s\n", job->cmd);
             job->status = RUNNING_P;
-            list->fg_job = job;
-            job->background = false;
             remove_job(job, list, true);
             add_to_head(job, list, false);
-            p_kill(job->pid, S_SIGCONT);
         }
         else
         {
@@ -71,6 +68,9 @@ void cmd_handler(struct parsed_command *cmd) {
         }
 
         // bring job to fg
+        p_kill(job->pid, S_SIGCONT_FG);
+        list->fg_job = job;
+        job->background = false;
         swapcontext(&active_process->context, &scheduler_context);
 
         // wait for fg
@@ -114,7 +114,7 @@ void cmd_handler(struct parsed_command *cmd) {
             return;
         }
 
-        p_kill(job->pid, S_SIGCONT);
+        p_kill(job->pid, S_SIGCONT_BG);
         job->status = RUNNING_P;
         remove_job(job, list, true);
         add_to_head(job, list, false);

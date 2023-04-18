@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
     // spawn a process for shell
     char *shell_args = "shell";
-    p_spawn(shell_loop, &shell_args, 0, STDIN_FILENO, STDOUT_FILENO, -1);
+    p_spawn(shell_loop, &shell_args, 0, STDIN_FILENO, STDOUT_FILENO, -1, false);
 
     idle = true;
     setcontext(&idle_context);

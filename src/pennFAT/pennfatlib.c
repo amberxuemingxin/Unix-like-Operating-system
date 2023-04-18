@@ -16,6 +16,7 @@ FAT* curr_fat;
 int* file_d;
 int* file_pos;
 int file_d_size;
+int* reside_index;
 
 int parse_pennfat_command(char ***commands, int commandCount){
     char* cmd = commands[0][0];
@@ -710,7 +711,7 @@ int f_open(const char *f_name, int mode){
             /*
                 Shufan Added content:
             */
-            int* reside_index = malloc(sizeof(int));
+            reside_index = malloc(sizeof(int));
 
             // int file_count = 0;
             // while(curr_node->dir_entry->firstBlock != fd) {
@@ -737,11 +738,11 @@ int f_open(const char *f_name, int mode){
             // }
             // printf("BEFORE: file_node->dir_entry->firstblock: %d\n", file_node->dir_entry->firstBlock);
             write_directory_to_block(file_node->dir_entry, curr_fat, reside_index);
-            // printf("AFTER: file_node->dir_entry->firstblock: %d\n", file_node->dir_entry->firstBlock);
+            printf("RESIDE INDEX: %d\n", *reside_index);
             // curr_fat->block_arr[i] = 0xffff;
             // printf("debugging: f_open %s resides in %dth block in fat entry\n", f_name, *reside_index);
 
-            free(reside_index);
+            // free(reside_index);
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
             return FAILURE;
         }
@@ -913,7 +914,32 @@ int f_write(int fd, const char *str, int n){
             }
         }
 
+
+        // find the dir node in linkedlist
+        dir_node* curr_node = curr_fat->first_dir_node;
+        while(curr_node->dir_entry->firstBlock != fd) {
+            curr_node = curr_node->next;
+        }
+        printf("F_WRITE - curr_node->dir_entry->name: %s\n, curr_node->dir_entry->firstBlock: %d\n", curr_node->dir_entry->name, curr_node->dir_entry->firstBlock);
+        directory_entry* curr_dir = curr_node->dir_entry;
+        curr_dir->size = byte_write;
+
         // find file node and update file size
+        int desired_entry_block = find_entry_block(curr_dir->name);
+        printf("F_WRITE - desired_entry_block: %d\n", desired_entry_block);
+        int dir_entry_block_start_index = desired_entry_block * curr_fat->directory_starting_index;    // directory entry. f1: 128; f5: 768
+        int desired_entry_index;
+        for (desired_entry_index = dir_entry_block_start_index; desired_entry_index < dir_entry_block_start_index + curr_fat->directory_starting_index; desired_entry_index += 32){
+            // fd在哪个位置呢？name: 32bytes. size: 4bytes. next is fd: 2 bytes 
+            if (curr_fat->block_arr[desired_entry_index + 18] == (uint16_t) fd){
+                break;
+            }
+        }
+        printf("F_WRITE - desired_entry_index: %d\n", desired_entry_index);
+        directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[desired_entry_index];
+        *entry_ptr = *curr_dir;
+
+        /*
         dir_node* curr_node = curr_fat->first_dir_node;
         int file_count = 0;
         while(curr_node->dir_entry->firstBlock != fd) {
@@ -934,6 +960,7 @@ int f_write(int fd, const char *str, int n){
         // printf("actual_directory_index: %d\n", actual_directory_index);
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[actual_directory_index];
         *entry_ptr = *curr_dir;
+        */
 
     } else {
         // append mode
@@ -1063,7 +1090,6 @@ int f_lseek(int fd, int offset, int whence){
 
     return file_pos[index];
 }
-
 
 //given a f_name, the function traverse all directory entries and return the number
 //of block that the entry with the same name resides in. The function returns

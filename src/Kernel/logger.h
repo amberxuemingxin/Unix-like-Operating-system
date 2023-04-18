@@ -1,3 +1,8 @@
+/**
+ * @file logger.h
+ * @ brief logger structure that logs the behavior of all processes
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -14,10 +19,24 @@
 #define STOPPED 9
 #define CONTINUED 10
 
+/**
+ * @brief Generate the current time stamp and format it as a char array to print out to the log file
+ *
+ * @return return the char array of time stamp generated
+ */
 char *time_stamp();
 
+/**
+ * @brief log the current event that just happened and output to the log file
+ */
 void log_events(int type, int ticks, int pid, int priority, char *process);
 
+/**
+ * @brief log the nice event and output to the log file
+ */
 void log_nice(int ticks, int pid, int old_priority, int new_priority, char *process);
 
+/**
+ * @brief free the logger data structure
+ */
 void free_logger();
