@@ -416,7 +416,7 @@ int write_directory_to_block(directory_entry* en, FAT* fat, int* reside_block) {
             int starting_point = curr_directory_index*(block_len/2);
             directory_entry* entry_ptr = (directory_entry*) &fat->block_arr[starting_point];
             *entry_ptr = *en;
-            printf("current en's firstBlock is: %d\n", en->firstBlock);
+            //printf("current en's firstBlock is: %d\n", en->firstBlock);
             return SUCCESS;
         }
 
@@ -546,7 +546,7 @@ int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
         perror("lseek\n");
         return FAILURE;
     }
-    printf("DEBUGGING: length: %d\n", length);
+    //printf("DEBUGGING: length: %d\n", length);
 
     // read all (length) bytes, finding a new block every time we read (blockSize) bytes
     for (int i = 0; i < length; i += fat->block_size) {
@@ -564,9 +564,9 @@ int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
 
         // If we are at the last block;
         int bytes_to_write = fat->block_size;
-        printf("DEBUGGING: bytes_to_write: %d\n", bytes_to_write); 
+        //printf("DEBUGGING: bytes_to_write: %d\n", bytes_to_write); 
         if (bytes_to_write > length - i) {
-            printf("DEBUGGING: we are at the last block!\n"); 
+            //printf("DEBUGGING: we are at the last block!\n"); 
             bytes_to_write = length - i;
         }
         
@@ -580,7 +580,7 @@ int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
             }
             index ++;
         }
-        printf("DEBUGGING: the last index is: %d\n", index); 
+        //printf("DEBUGGING: the last index is: %d\n", index); 
 
     }
     // close the file
