@@ -1224,27 +1224,24 @@ void save_fds(char *f_name, int file_d_size, int *file_d, int *file_pos) {
     }   
     if (fd == -1) {
         perror("Error opening temporary file");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // Write the data to the temporary file
     if (write(fd, &file_d_size, sizeof(int)) == -1) {
         perror("Error writing file_d_size");
-        exit(EXIT_FAILURE);
+        return;
     }
     if (write(fd, file_d, file_d_size * sizeof(int)) == -1) {
-        perror("Error writing file_d");
-        exit(EXIT_FAILURE);
+        return;
     }
     if (write(fd, file_pos, file_d_size * sizeof(int)) == -1) {
-        perror("Error writing file_pos");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // Close the temporary file
     if (close(fd) == -1) {
-        perror("Error closing temporary file");
-        exit(EXIT_FAILURE);
+        return;
     }
 }
 
@@ -1252,14 +1249,14 @@ void load_fds(const char* f_name) {
     // Open the temporary file for reading/writing
     int fd = open(f_name, O_RDONLY);
     if (fd == -1) {
-        perror("Error opening temporary file");
+        // perror("Error opening temporary file");
         return;
     }
 
     // Read the file_d_size variable
     int read_size = read(fd, &file_d_size, sizeof(int));
     if (read_size != sizeof(int)) {
-        perror("Error reading file_d_size");
+        // perror("Error reading file_d_size");
         close(fd);
         return;
     }
@@ -1271,7 +1268,7 @@ void load_fds(const char* f_name) {
     // Read the file_d array
     read_size = read(fd, file_d, file_d_size * sizeof(int));
     if (read_size != file_d_size * sizeof(int)) {
-        perror("Error reading file_d");
+        // perror("Error reading file_d");
         close(fd);
         free(file_d);
         free(file_pos);
@@ -1281,7 +1278,7 @@ void load_fds(const char* f_name) {
     // Read the file_pos array
     read_size = read(fd, file_pos, file_d_size * sizeof(int));
     if (read_size != file_d_size * sizeof(int)) {
-        perror("Error reading file_pos");
+        // perror("Error reading file_pos");
         close(fd);
         free(file_d);
         free(file_pos);
