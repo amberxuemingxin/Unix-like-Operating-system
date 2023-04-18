@@ -190,7 +190,8 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
         //     return FAILURE;
         // }
         // f_close(fd);
-        
+
+        /*
         char** cat_cmd = malloc(4*sizeof(char*));
         cat_cmd[0] = "cat";
         cat_cmd[1] = oldFileName;
@@ -230,6 +231,47 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
         new_f->dir_entry->mtime = time(0);   
         // free(cat_cmd);
         free(rm_cmd);
+        */
+
+        //delete dest file
+        char** rm_cmd = malloc(2 * sizeof(char*));
+        rm_cmd[0] = "rm";
+        rm_cmd[1] = newFileName;
+        if(pennfat_remove(rm_cmd, curr_fat) ==FAILURE){
+            // free(cat_cmd);
+            free(rm_cmd);
+            printf("error: mv unable to delete file\n");
+            return FAILURE;
+        }
+
+        // change the src dir entry name to dest name. both in linklist and in dir entry.
+        directory_entry* old_f_entry = old_f->dir_entry;
+        strcpy(old_f_entry->name, newFileName);
+        // old_f_entry->name = newFileName;
+        old_f_entry->mtime = time(0);
+
+        int desired_entry_block = find_entry_block(oldFileName);
+        printf("MV - desired_entry_block: %d\n", desired_entry_block);
+        int dir_entry_block_start_index = desired_entry_block * curr_fat->directory_starting_index;    // directory entry. f1: 128
+        int desired_entry_index;
+        for (desired_entry_index = dir_entry_block_start_index; desired_entry_index < dir_entry_block_start_index + curr_fat->directory_starting_index; desired_entry_index += 32){
+            directory_entry* finder = (directory_entry*) &curr_fat->block_arr[desired_entry_index];
+            printf("finder->name: %s\n, oldFileName: %s\n", finder->name, oldFileName);
+
+            if (curr_fat->block_arr[desired_entry_index] == *oldFileName){
+                printf("MV - find desired dir entry name!! 1\n");
+                break;
+            }
+            if (strcmp(finder->name, oldFileName) == 0){
+                printf("MV - find desired dir entry name!! 2\n");
+                break;
+            }
+
+        }
+        printf("MV - desired_entry_index: %d\n", desired_entry_index);
+        directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[desired_entry_index];
+        *entry_ptr = *old_f_entry;
+
         return SUCCESS;
     }
 }
@@ -381,6 +423,7 @@ int pennfat_cat(char **commands, FAT *fat){
     // cat file1 -w file2
     // cat file1 -a file2
     if(count == 4 && (writing || appending)) {
+        printf("MV - ENTER CAT\n");
         char* f1_name = commands[1];
         char* f2_name = commands[3];
 
