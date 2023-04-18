@@ -1,7 +1,9 @@
 #include "queue.h"
 #include "stdio.h" // debug purpose
 
-queue *init_queue() {
+// initialize a single linked list for processes
+queue *init_queue()
+{
     queue *q = (queue *)malloc(sizeof(queue));
     q->head = NULL;
     q->length = 0;
@@ -9,15 +11,21 @@ queue *init_queue() {
     return q;
 }
 
-void add_process(queue *q, pcb_t *p) {
+// add a process to the back of the queue
+void add_process(queue *q, pcb_t *p)
+{
     pcb_t *prev = q->head;
-    while (prev && prev->next) {
+    while (prev && prev->next)
+    {
         prev = prev->next;
     }
 
-    if (prev == NULL) {
+    if (prev == NULL)
+    {
         q->head = p;
-    } else {
+    }
+    else
+    {
         prev->next = p;
     }
 
@@ -25,15 +33,22 @@ void add_process(queue *q, pcb_t *p) {
     q->length++;
 }
 
-pcb_t *remove_process(queue *q, pcb_t *p) {
+// remove a process from the queue, providing the queue and the process to remove
+pcb_t *remove_process(queue *q, pcb_t *p)
+{
     pcb_t *prev = NULL;
     pcb_t *tmp = q->head;
 
-    while (tmp) {
-        if (tmp == p) {
-            if (prev) {
+    while (tmp)
+    {
+        if (tmp == p)
+        {
+            if (prev)
+            {
                 prev->next = p->next;
-            } else {
+            }
+            else
+            {
                 q->head = p->next;
             }
             // p->next = NULL;
