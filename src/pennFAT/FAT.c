@@ -172,7 +172,7 @@ FAT* mount_fat(char* f_name) {
             }
             if((uint8_t)buf[0] == 0){
                 free(buf);
-                break;
+                continue;
             }
             count++;
             free(buf);
@@ -201,14 +201,14 @@ FAT* mount_fat(char* f_name) {
     lseek(fs_fd, 1*sizeof(uint16_t), SEEK_SET);
     // j mark the index in 
     int entry_num = 0;
-  
+    int num = 0;
     while (directory_block != 0XFFFF && entry_num < count) {
         if (read(fs_fd, &directory_block, sizeof(uint16_t)) == -1) {
             perror("read");
             return NULL;
         }
         int starting_index = block * (int)entry_size;
-        printf("strange shit right here, starting index is %d\n",starting_index);
+        // printf("strange shit right here, starting index is %d\n",st////////////\arting_index);
         for (int i = 0; i < max_filenum; i++) {
             lseek(fs_fd, starting_index + SIZE_DIRECTORY_ENTRY * i, SEEK_SET);
             uint8_t buffer[SIZE_DIRECTORY_ENTRY];
@@ -221,17 +221,18 @@ FAT* mount_fat(char* f_name) {
             }
             // If not a directory_entry, exit the loop
             if ((uint8_t) buffer[0] == 0) {
-                break;
+                continue;
             }
             // Copy the contents of the buffer into the struct at the appropriate index in the entry_arr array
-            memcpy(&entry_arr[entry_num*max_filenum + i]->name, buffer, 32);
-            memcpy(&entry_arr[entry_num*max_filenum + i]->size, buffer + 32, sizeof(uint32_t));
-            memcpy(&entry_arr[entry_num*max_filenum + i]->firstBlock, buffer + 36, sizeof(uint16_t));
-            memcpy(&entry_arr[entry_num*max_filenum + i]->type, buffer + 38, sizeof(uint8_t));
-            memcpy(&entry_arr[entry_num*max_filenum + i]->perm, buffer + 39, sizeof(uint8_t));
-            memcpy(&entry_arr[entry_num*max_filenum + i]->mtime, buffer + 40, sizeof(time_t));
+            memcpy(&entry_arr[num]->name, buffer, 32);
+            memcpy(&entry_arr[num]->size, buffer + 32, sizeof(uint32_t));
+            memcpy(&entry_arr[num]->firstBlock, buffer + 36, sizeof(uint16_t));
+            memcpy(&entry_arr[num]->type, buffer + 38, sizeof(uint8_t));
+            memcpy(&entry_arr[num]->perm, buffer + 39, sizeof(uint8_t));
+            memcpy(&entry_arr[num]->mtime, buffer + 40, sizeof(time_t));
             // memcpy(entry_arr[entry_num*max_filenum + i], buffer, sizeof(directory_entry));
-            printf("debugging: just checking, entry_arr[entry_num*max_filenum + i]'s first block is %d\n", entry_arr[entry_num*max_filenum + i]->firstBlock);
+            // printf("debugging: just checking, entry_arr[entry_num*max_filenum + i]'s first block is %d\n", entry_arr[entry_num*max_filenum + i]->firstBlock);
+            num += 1;
         }
         entry_num += 1;
         block = (int) directory_block;
@@ -246,6 +247,7 @@ FAT* mount_fat(char* f_name) {
         }
         dir_node* new_node = malloc(sizeof(dir_node));
         new_node->dir_entry = entry_arr[i];
+        printf("%s, firstblock is %d", new_node->dir_entry->name, new_node->dir_entry->firstBlock);
         new_node->next = NULL;
         if (head == NULL) { 
             head = new_node; 
@@ -254,6 +256,7 @@ FAT* mount_fat(char* f_name) {
             curr_node->next = new_node; 
             curr_node = new_node; 
         }
+
     }
 
     // TODO: WRITE DATA REGION TO FAT
@@ -290,16 +293,18 @@ FAT* mount_fat(char* f_name) {
     res->first_dir_node = head;
     dir_node* curr = res->first_dir_node;
     while(curr != NULL) {
-        res->file_num += 1;
-        int* reside_index = malloc(sizeof(int));
-        if(write_directory_to_block(curr->dir_entry,res,reside_index)== FAILURE) {
-            printf("error: write directory entry to block");
-            return res;
-        }
-        if(curr->next ==NULL) {
-            res->last_dir_node = curr;
-        }
+    //     res->file_num += 1;
+    //     int* reside_index = malloc(sizeof(int));
+    //     if(write_directory_to_block(curr->dir_entry,res,reside_index)== FAILURE) {
+    //         printf("error: write directory entry to block");
+    //         return res;
+    //     }
+    //     if(curr->next ==NULL) {
+    //         res->last_dir_node = curr;
+    //     }
+        res->last_dir_node = curr;
         curr = curr->next;
+        res->file_num += 1;
     }
     close(fs_fd);
     int fs_wfd = open(f_name, O_WRONLY);
@@ -434,18 +439,39 @@ int delete_directory_from_block(directory_entry en, FAT* fat) {
     int entry_size = fat->block_size * fat->block_num;
     // //max filenum denots the maximum number of directory entries in a block
     int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
+    int prev=-1;
     int b_index = 1;
     while(b_index != 0XFFFF) {
+        int curr_num = 0;
         for(int i = 0; i<max_filenum; i++) {
             int curr_index = fat->directory_starting_index + ((b_index-1)*fat->block_size)/2 + i*32;
             directory_entry* curr_entry = (directory_entry*) &fat->block_arr[curr_index];
+            if(curr_entry->name[0] != '\0'){
+                curr_num += 1;
+            }
             if(strcmp(curr_entry->name, en.name) == 0) {
                 for (int j = 0; j<32; j++) {
                     fat->block_arr[curr_index + j] = ZERO;
                 }
+                if(fat->block_arr[b_index] == 0XFFFF && prev != -1 &&curr_num==1){
+                    i++;
+                    while(i<max_filenum) {
+                        curr_index = fat->directory_starting_index + ((b_index-1)*fat->block_size)/2 + i*32;
+                        curr_entry = (directory_entry*) &fat->block_arr[curr_index];
+                        if(curr_entry->name[0] != '\0'){
+                            break;
+                        } 
+                        i++;
+                    }
+                    if (i==max_filenum) {
+                        fat->block_arr[b_index] = ZERO;
+                        fat->block_arr[prev] = 0XFFFF;
+                    }
+                }
                 return SUCCESS;
             }
         }
+        prev = b_index;
         b_index =fat->block_arr[b_index];
     }
     printf("file not found\n");

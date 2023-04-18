@@ -20,12 +20,20 @@ int* reside_index;
 
 int parse_pennfat_command(char ***commands, int commandCount){
     char* cmd = commands[0][0];
-
+    if(curr_fat!=NULL) {
+        printf("fd saved\n");
+        save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
+    }
     if(strcmp(cmd, "mkfs") == 0) {
         if (commands[0][1] == NULL || commands[0][2] == NULL || commands[0][3] == NULL) {
             printf("insuffcient arguement\n");
             return FAILURE;
         }
+        if(curr_fat!=NULL) {
+            free_fat(curr_fat);
+            curr_fat = NULL;
+        }
+        
         return pennfat_mkfs(commands[0][1], (char) atoi(commands[0][2]), (char) atoi(commands[0][3]), &curr_fat);
     } else if (strcmp(cmd, "mount") == 0) {
         if(curr_fat != NULL) {
@@ -90,6 +98,8 @@ int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **fat)
     file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size * curr_fat->directory_starting_index / 64));
 
     file_d_size = curr_fat->block_size * curr_fat->directory_starting_index / 64;
+    //save fd information in a tmp file so that if we mount, we can update fds
+    save_fds(f_name, file_d_size, file_d, &file_d_size);
     return SUCCESS;
 }
 
@@ -104,14 +114,10 @@ FAT* pennfat_mount(char *f_name) {
     file_d = (int*) malloc(sizeof(int) * (curr_fat->block_size * curr_fat->directory_starting_index / 64));
     file_pos = (int*) malloc(sizeof(int) * (curr_fat->block_size * curr_fat->directory_starting_index / 64));
     file_d_size = curr_fat->block_size * curr_fat->directory_starting_index / 64;
+    char file_path[100];
+    sprintf(file_path, "%s_fd", f_name);
 
-    dir_node* tmp = curr_fat->first_dir_node;
-    int fd_index = 0;
-    while(tmp!=NULL) {
-        file_d[fd_index] = tmp->dir_entry->firstBlock;
-        fd_index++;
-        tmp = tmp->next;
-    }
+    load_fds(file_path);
     return fat;    
 }
 
@@ -1204,4 +1210,84 @@ int find_entry_block(char* f_name) {
     }while(curr_directory_index != 0XFFFF);
     
     return -1;
+}
+
+void save_fds(char *f_name, int file_d_size, int *file_d, int *file_pos) {
+    char file_path[100];
+    snprintf(file_path, sizeof(file_path), "%s_fd", f_name);
+
+
+    int fd = open(file_path, O_CREAT | O_RDWR, 0644);
+    if (fd == -1 && errno == ENOENT) {
+        // File does not exist, create it
+        fd = open(file_path, O_WRONLY | O_CREAT | O_EXCL, 0644);
+    }   
+    if (fd == -1) {
+        perror("Error opening temporary file");
+        exit(EXIT_FAILURE);
+    }
+
+    // Write the data to the temporary file
+    if (write(fd, &file_d_size, sizeof(int)) == -1) {
+        perror("Error writing file_d_size");
+        exit(EXIT_FAILURE);
+    }
+    if (write(fd, file_d, file_d_size * sizeof(int)) == -1) {
+        perror("Error writing file_d");
+        exit(EXIT_FAILURE);
+    }
+    if (write(fd, file_pos, file_d_size * sizeof(int)) == -1) {
+        perror("Error writing file_pos");
+        exit(EXIT_FAILURE);
+    }
+
+    // Close the temporary file
+    if (close(fd) == -1) {
+        perror("Error closing temporary file");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void load_fds(const char* f_name) {
+    // Open the temporary file for reading/writing
+    int fd = open(f_name, O_RDONLY);
+    if (fd == -1) {
+        perror("Error opening temporary file");
+        return;
+    }
+
+    // Read the file_d_size variable
+    int read_size = read(fd, &file_d_size, sizeof(int));
+    if (read_size != sizeof(int)) {
+        perror("Error reading file_d_size");
+        close(fd);
+        return;
+    }
+
+    // Allocate memory for file_d and file_pos arrays
+    file_d = malloc(file_d_size * sizeof(int));
+    file_pos = malloc(file_d_size * sizeof(int));
+
+    // Read the file_d array
+    read_size = read(fd, file_d, file_d_size * sizeof(int));
+    if (read_size != file_d_size * sizeof(int)) {
+        perror("Error reading file_d");
+        close(fd);
+        free(file_d);
+        free(file_pos);
+        return;
+    }
+
+    // Read the file_pos array
+    read_size = read(fd, file_pos, file_d_size * sizeof(int));
+    if (read_size != file_d_size * sizeof(int)) {
+        perror("Error reading file_pos");
+        close(fd);
+        free(file_d);
+        free(file_pos);
+        return;
+    }
+
+    // Close the temporary file
+    close(fd);
 }
