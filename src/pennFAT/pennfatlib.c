@@ -28,8 +28,6 @@ int parse_pennfat_command(char ***commands, int commandCount){
         }
         return pennfat_mkfs(commands[0][1], (char) atoi(commands[0][2]), (char) atoi(commands[0][3]), &curr_fat);
     } else if (strcmp(cmd, "mount") == 0) {
-        // printf("here in mount fract\n");
-
         if(curr_fat != NULL) {
             printf("A filesystem already mounted, please unmount first\n");
             return FAILURE;
@@ -118,7 +116,6 @@ FAT* pennfat_mount(char *f_name) {
 }
 
 int pennfat_touch(char **files, FAT *fat){
-    // printf("CURRENTLY CALLING TOUCH...");
     if (files[1] == NULL) {
         printf("insuffcient arguement\n");
         return FAILURE;
@@ -132,7 +129,6 @@ int pennfat_touch(char **files, FAT *fat){
                 file_node->dir_entry->mtime = time(0);
                 index += 1;
                 file_name = files[index];
-                printf("first block is %d\n", file_node->dir_entry->firstBlock);
                 continue;
             }
         int fd = f_open(file_name, F_WRITE);
@@ -168,7 +164,8 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
             printf("error: failed to write directory entry to block\n");
             free_directory_node(old_f);
             return FAILURE;
-        }   
+        }
+        old_f->dir_entry->mtime = time(0);
         return SUCCESS;
     } else {
         //overwrite new_f content and write everything from old_f to new_f
@@ -184,7 +181,6 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
         }
         memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
         memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
-        printf("old file name is now %s\n", old_f->dir_entry->name);
         int* reside_index = malloc(sizeof(int));
         if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
             free(reside_index);
@@ -192,12 +188,9 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
             free_directory_node(old_f);
             return FAILURE;
         }   
+        old_f->dir_entry->mtime = time(0);   
         return SUCCESS;
-
-
-
     }
-    
 }
 
 int pennfat_remove(char **commands, FAT *fat){
@@ -207,7 +200,7 @@ int pennfat_remove(char **commands, FAT *fat){
         count++;
     }
     if (count < 2) {
-        printf("insuffcient arguemtn\n");
+        printf("insuffcient arguement\n");
         return FAILURE;
     }
     index = 1;
@@ -252,7 +245,6 @@ int pennfat_remove(char **commands, FAT *fat){
 }
 
 int pennfat_cat(char **commands, FAT *fat){
-    // printf("CURRENTLY CALLING CAT...");
     int count = 0;
     while (commands[count] != NULL) {
         count++;
@@ -269,8 +261,8 @@ int pennfat_cat(char **commands, FAT *fat){
             return FAILURE;
         }
         file* f = read_file_from_fat(f_node, curr_fat);
-        char* buffer =(char*)f->file_bytes;
-        printf("%s",buffer);
+        // char* buffer =(char*)f->file_bytes;
+        // printf("%s",buffer);
     }
     for (int i = 0; i < count; i++) {
         if ((strcmp(commands[i], "-w") == 0 || strcmp(commands[i], "-a") == 0 )&& i != count - 2) {
@@ -301,7 +293,7 @@ int pennfat_cat(char **commands, FAT *fat){
             file* cur_file = read_file_from_fat(f_node, curr_fat);
             //clear out the file before reading;
             if (f_node->dir_entry->size != 0){
-                printf("DEBUGGING: size is not zero!!!");
+                // printf("DEBUGGING: size is not zero!!!");
             
                 delete_file_bytes(f_node->dir_entry->firstBlock, cur_file->size, curr_fat);
                 //clear fat region
@@ -325,10 +317,12 @@ int pennfat_cat(char **commands, FAT *fat){
                 return FAILURE;
             }
             f_close(fd);
+            f_node->dir_entry->mtime = time(0);
             return SUCCESS;
         } else if (appending)
         {
             int fd = f_open(f_name, F_APPEND);
+            dir_node* f_node = search_file(f_name, curr_fat,NULL);
             int status = f_write(fd, line, len);
 
             if(status == -1) {
@@ -336,6 +330,7 @@ int pennfat_cat(char **commands, FAT *fat){
                 return FAILURE;
             }
             f_close(fd);
+            f_node->dir_entry->mtime = time(0);
             return SUCCESS;
         }
         }
@@ -349,7 +344,7 @@ int pennfat_cat(char **commands, FAT *fat){
 
         int f1_fd = f_open(f1_name, F_READ);
         int f2_fd;
-        printf("DEBUGGING - f1_fd: %d\n", f1_fd);
+        // printf("DEBUGGING - f1_fd: %d\n", f1_fd);
 
         if(writing) {
             f2_fd = f_open(f2_name, F_WRITE);
@@ -360,18 +355,21 @@ int pennfat_cat(char **commands, FAT *fat){
             // printf("DEBUGGING - curr_fd: %d\n", curr_fd);
         }
         dir_node* f1_node = search_file(f1_name,curr_fat,NULL);
+        dir_node* f2_node = search_file(f2_name,curr_fat,NULL);
+
         char buff[f1_node->dir_entry->size];
         // printf("DEBUGGING - f1_node->dir_entry->size: %d\n", f1_node->dir_entry->size);
 
         int status = f_read(f1_fd, f1_node->dir_entry->size, buff);
-        printf("DEBUGGING - buff: %s\n", buff);
-        printf("DEBUGGING - status: %d\n", status);
+        // printf("DEBUGGING - buff: %s\n", buff);
+        // printf("DEBUGGING - status: %d\n", status);
 
         if(status >= 0 || status == EOF) {
             if(f_write(f2_fd,buff, sizeof(buff))==SUCCESS) {
-                printf("DEBUGGING - currently appending in f2!!!");
+                // printf("DEBUGGING - currently appending in f2!!!");
                 f_close(f1_fd);
                 f_close(f2_fd);
+                f2_node->dir_entry->mtime = time(0);
                 return SUCCESS;
             } else {
                 f_close(f1_fd);
@@ -642,6 +640,7 @@ int pennfat_chmod(char **commands, FAT *fat){
         printf("error: write entry to block");
         return FAILURE;
     }
+    file_node->dir_entry->mtime = time(0);
     return SUCCESS;
 }
 
@@ -741,7 +740,7 @@ int f_open(const char *f_name, int mode){
             write_directory_to_block(file_node->dir_entry, curr_fat, reside_index);
             printf("RESIDE INDEX: %d\n", *reside_index);
             // curr_fat->block_arr[i] = 0xffff;
-            // printf("debugging: %s resides in %dth block in fat entry\n", f_name, *reside_index);
+            // printf("debugging: f_open %s resides in %dth block in fat entry\n", f_name, *reside_index);
 
             // free(reside_index);
         } else if(file_node->dir_entry->perm == 4 || file_node->dir_entry->perm == 5) {
@@ -752,8 +751,7 @@ int f_open(const char *f_name, int mode){
             printf("f_open: F_WRITE\n");
             curr_fd = (int) file_node->dir_entry->firstBlock;
             printf("firstblock for file %s is %d\n", file_node->dir_entry->name, curr_fd);
-
-        
+       
         }
 
         int fd = (int) file_node->dir_entry->firstBlock;
