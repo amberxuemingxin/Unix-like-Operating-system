@@ -30,8 +30,8 @@ dir_node* search_file(char* file_name, FAT* fat, dir_node** prev);
 int find_entry_block(char* f_name);
 
 
-
-
+void save_fds(char *f_name, int file_d_size, int *file_d, int *file_pos);
+void load_fds(const char* file_path);
 
 int f_open(const char *f_name, int mode);
 
