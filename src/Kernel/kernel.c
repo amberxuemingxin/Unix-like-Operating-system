@@ -91,6 +91,10 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
 {
     getcontext(ucp);
 
+    if (argv) {
+        printf("args: %s\n", *argv);
+    }
+
     sigemptyset(&ucp->uc_sigmask);
     set_stack(&ucp->uc_stack);
     if (func == schedule) {
