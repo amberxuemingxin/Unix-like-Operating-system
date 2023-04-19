@@ -27,8 +27,7 @@ void zombify()
 {
     char *zombie_arg[2] = {"zombie_child", NULL};
     p_spawn(zombie_child, (void *)zombie_arg, 0, STDIN_FILENO, STDOUT_FILENO, 0, false);
-    while (1)
-        ;
+    while (1);
     return;
 }
 
