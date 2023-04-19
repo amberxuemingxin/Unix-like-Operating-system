@@ -949,6 +949,13 @@ int f_read(int fd, int n, char *buf){
 }
 
 int f_write(int fd, const char *str, int n){
+    if(fd == PENNOS_STDOUT) {
+        if(write(STDOUT_FILENO, str, strlen(str)) ==-1) {
+            perror("write STDOUT\n");
+            return FAILURE;
+        }
+        return SUCCESS;
+    }
     printf("CURRENTLY CALLING F_WRITE...\n");
     uint32_t byte_write = 0;
     int curr_block = fd;    // 3
