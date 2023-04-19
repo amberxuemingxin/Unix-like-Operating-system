@@ -3,6 +3,10 @@
 #include "user.h"
 #include "logger.h"
 #include "shell.h"
+#include "./pennFAT/FAT.h"
+#include "./pennFAT/macro.h"
+#include "./pennFAT/pennfatlib.h"
+
 
 ucontext_t scheduler_context;
 ucontext_t idle_context;
@@ -18,8 +22,21 @@ extern char *log_name;
 int main(int argc, char *argv[])
 {
     //// SHUFAN
-
-
+    char* f_name = argv[1];
+    struct parsed_command* parsed_cmd = NULL;
+    char *cmd = "unmount";
+    parse_command(cmd, &parsed_cmd);
+    //unmount curr_fat first    
+    if(parse_pennfat_command(parsed_cmd->commands,1)==FAILURE) {
+        printf("error: failed to unmount current file system");
+    }
+    //mount fat
+    char* cmd_f_name = malloc(strlen(cmd) + strlen(f_name) + 2);
+    sprintf(cmd_f_name, "%s %s", cmd, f_name);
+    parse_command(cmd_f_name, &parse_command);
+    if(parse_pennfat_command(parsed_cmd->commands,2)==FAILURE) {
+        printf("error: failed to mount %s\n", f_name);
+    }
     //// SHUFAN
 
     // initialize the scheduler
