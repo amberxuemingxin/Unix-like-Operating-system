@@ -15,17 +15,15 @@ LOG_DIR = ./log
 
 SRCS_K = $(wildcard $(SRC_DIR_K)/*.c) $(wildcard $(SRCDIR)/built-ins/*.c)
 SRCS_F = $(wildcard $(SRC_DIR_F)/*.c)
+SRCS_F := $(filter-out $(SRC_DIR_F)/pennFAT.c, $(SRCS_F))
 OBJS_K = $(patsubst $(SRC_DIR_K)/%.c,$(BIN_DIR_K)/%.o,$(SRCS_K))
-OBJS_K += $(patsubst $(SRC_DIR_K)/built-ins/%.c,$(BIN_DIR_K)/%.o,$(wildcard $(SRC_DIR_K)/built-ins/*.c))
+OBJS_K += $(patsubst $(SRC_DIR_F)/%.c, $(BIN_DIR_F)/%.o, $(SRCS_F))
 OBJS_F = $(patsubst $(SRC_DIR_F)/%.c, $(BIN_DIR_F)/%.o, $(SRCS_F))
-# FINAL_OBJS_K = $(BIN_DIR_K)/PennOS.o  $(BIN_DIR_K)/scheduler.o $(BIN_DIR_K)/kernel.o $(BIN_DIR_K)/queue.o $(BIN_DIR_K)/shell.o $(BIN_DIR_K)/prompts.o $(BIN_DIR_K)/logger.o parser.o
+OBJS_F := $(filter-out $(SRC_DIR_F)/pennFAT.o, $(OBJS_F))
 
 .PHONY: all $(PENNOS) $(PENNFAT) clean
 
 all: $(PENNOS) $(PENNFAT)
-
-#  $(PENNOS): $(FINAL_OBJS_K)
-# 	$(CC) $(CFLAGS) $(FINAL_OBJS_K) -o $(PENNOS)
 
  $(PENNOS): $(OBJS_K)
 	$(CC) $(CFLAGS) $(OBJS_K) parser.o -o $(PENNOS)
@@ -33,14 +31,11 @@ all: $(PENNOS) $(PENNFAT)
 $(BIN_DIR_K)/%.o: $(SRC_DIR_K)/%.c | $(BIN_DIR_K)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-$(BIN_DIR_K)/%.o: $(SRC_DIR_K)/built-ins/%.c | $(BIN_DIR_K)
-	$(CC) $(CFLAGS) -c -o $@ $<
-
 # $(PENNFAT) : $(FINAL_OBJS_F)
 # 	$(CC) $(CFLAGS) $(FINAL_OBJS_F) -o $(PENNFAT)
 
-# $(BIN_DIR_F)/%.o: $(SRC_DIR_F)/%.c
-# 	$(CC) $(CFLAGS) -c $< -o $@
+$(BIN_DIR_F)/%.o: $(SRC_DIR_F)/%.c
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	rm -f $(BIN_DIR_K)/*.o $(LOG_DIR)/*.txt

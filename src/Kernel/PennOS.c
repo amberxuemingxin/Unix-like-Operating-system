@@ -3,9 +3,9 @@
 #include "user.h"
 #include "logger.h"
 #include "shell.h"
-#include "./pennFAT/FAT.h"
-#include "./pennFAT/macro.h"
-#include "./pennFAT/pennfatlib.h"
+#include "../pennFAT/FAT.h"
+#include "../pennFAT/macro.h"
+#include "../pennFAT/pennfatlib.h"
 
 
 ucontext_t scheduler_context;
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
     //mount fat
     char* cmd_f_name = malloc(strlen(cmd) + strlen(f_name) + 2);
     sprintf(cmd_f_name, "%s %s", cmd, f_name);
-    parse_command(cmd_f_name, &parse_command);
+    parse_command(cmd_f_name, &parsed_cmd);
     if(parse_pennfat_command(parsed_cmd->commands,2)==FAILURE) {
         printf("error: failed to mount %s\n", f_name);
     }
