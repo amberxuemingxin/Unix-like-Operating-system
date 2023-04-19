@@ -6,6 +6,9 @@
 #include "execute.h"
 #include "jobs.h"
 #include "handler.h"
+#include "../pennFAT/pennfatlib.h" /* f_write */
+#include "../pennFAT/macro.h" /* PENNOS_STDOUT */
+#include "../pennFAT/FAT.h"
 
 job_list *list;
 bool interactive;
@@ -86,7 +89,8 @@ void shell_loop()
         // first prompt to the user
         if (interactive)
         {
-            int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
+            // int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
+            int return_value = f_write(PENNOS_STDOUT, "$ ", 3);
             if (return_value == -1)
             {
                 perror("Fail to write!\n");

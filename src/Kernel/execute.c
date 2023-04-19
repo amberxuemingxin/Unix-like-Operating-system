@@ -12,6 +12,47 @@
 extern job_list *list;
 extern bool file_system;
 
+// int redirect_in(const char *filename, job *j)
+// {
+//     int fd_0;
+//     if ((fd_0 = open(filename, O_RDONLY, 0644)) < 0)
+//     {
+//         remove_job(j, list, false);
+//         free_job(j);
+//         return FAILURE;
+//     }
+
+//     j->fd0 = fd_0;
+// }
+
+// void redirect_out(const char *filename, bool is_append, job *j)
+// {
+//     int fd_1;
+
+//     // standard output redirection
+//     if (!is_append)
+//     {
+//         if ((fd_1 = creat(filename, 0644)) < 0)
+//         {
+//             remove_job(j, list, false);
+//             free_job(j);
+//             return FAILURE;
+//         }
+//         // append output redirection
+//     }
+//     else
+//     {
+//         if ((fd_1 = open(filename, O_RDWR | O_APPEND, 0644)) < 0)
+//         {
+//             remove_job(j, list, false);
+//             free_job(j);
+//             return FAILURE;
+//         }
+//     }
+
+//     j->fd1 = fd_1;
+// }
+
 /* execute the commands
 * return = 0: success
 * return = -1: failure
@@ -20,7 +61,16 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
     char *buf;
     int size;
     pid_t child = 0;
-    // place holder
+    
+
+    // file redirection
+    // if (cmd->stdin_file) {
+    //     redirect_in(cmd->stdin_file, j);
+    // }
+
+    // if (cmd->stdout_file) {
+    //     redirect_out(cmd->stdout_file, cmd->is_file_append, j);
+    // }
 
     if (strcmp(cmd->commands[0][0], "sleep") == 0) {
         if (!cmd->commands[0][1]) {
