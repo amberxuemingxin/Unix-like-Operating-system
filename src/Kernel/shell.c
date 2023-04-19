@@ -89,8 +89,8 @@ void shell_loop()
         // first prompt to the user
         if (interactive)
         {
-            // int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
-            int return_value = f_write(PENNOS_STDOUT, "$ ", 3);
+            int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
+            // int return_value = f_write(PENNOS_STDOUT, "$ ", 2);
             if (return_value == -1)
             {
                 perror("Fail to write!\n");

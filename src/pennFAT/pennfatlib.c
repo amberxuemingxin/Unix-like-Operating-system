@@ -20,10 +20,7 @@ int* reside_index;
 
 int parse_pennfat_command(char ***commands, int commandCount){
     char* cmd = commands[0][0];
-    if(curr_fat!=NULL) {
-        printf("fd saved\n");
-        save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
-    }
+
     if(strcmp(cmd, "mkfs") == 0) {
         if (commands[0][1] == NULL || commands[0][2] == NULL || commands[0][3] == NULL) {
             printf("insuffcient arguement\n");
@@ -65,11 +62,7 @@ int parse_pennfat_command(char ***commands, int commandCount){
         return pennfat_ls(curr_fat);
     } else if (strcmp(cmd, "chmod") == 0) {
         return pennfat_chmod(commands[0]);
-    } else if (strcmp(cmd, "echo") == 0) {
-        return pennfat_echo(commands[0]);
-    } 
-    
-    else if (strcmp(cmd, "describe") == 0) {
+    }else if (strcmp(cmd, "describe") == 0) {
         printf("File system name : %s\n", (curr_fat)->f_name);
         printf("Number of block in the filesystem : %d\n", (curr_fat)->block_num);
         printf("Block size : %d\n", (curr_fat)->block_size);
@@ -151,7 +144,7 @@ int pennfat_touch(char **files){
         index += 1;
         file_name = files[index];
     }
-
+    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
     return SUCCESS;
 }
 
@@ -216,7 +209,7 @@ int pennfat_mv(char *oldFileName, char *newFileName){
         printf("MV - desired_entry_index: %d\n", desired_entry_index);
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[desired_entry_index];
         *entry_ptr = *old_f_entry;
-
+        save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
         return SUCCESS;
     }
 }
@@ -252,9 +245,9 @@ int pennfat_remove(char **commands){
             }
             free(curr_file);
 //----------------------------------------------------------------------
-            uint16_t file_block = filenode->dir_entry->firstBlock;
+            uint32_t file_block = filenode->dir_entry->firstBlock;
             do {
-                uint16_t prev = file_block;
+                uint32_t prev = file_block;
                 file_block = curr_fat->block_arr[file_block];
                 curr_fat->block_arr[prev] =0X0000;
                 
@@ -269,6 +262,7 @@ int pennfat_remove(char **commands){
             index += 1;
         }
     }
+    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
     return SUCCESS;
 }
 
@@ -288,9 +282,9 @@ int pennfat_cat(char **commands){
             printf("error: file not found\n");
             return FAILURE;
         }
-        // file* f = read_file_from_fat(f_node, curr_fat);
-        // char* buffer =(char*)f->file_bytes;
-        // printf("%s",buffer);
+        file* f = read_file_from_fat(f_node, curr_fat);
+        f_write(PENNOS_STDOUT, (char*)f->file_bytes, f->size);
+        return SUCCESS;
     }
     for (int i = 0; i < count; i++) {
         if ((strcmp(commands[i], "-w") == 0 || strcmp(commands[i], "-a") == 0 )&& i != count - 2) {
@@ -307,12 +301,13 @@ int pennfat_cat(char **commands){
         char *line = NULL;
         size_t len = 0;
         printf("Please enter here:\n");
-        if (getline(&line, &len, stdin) == - 1) {
-            perror("getline");
-            return FAILURE;
-        }
+        // if (getline(&line, &len, stdin) == - 1) {
+        //     perror("getline");
+        //     return FAILURE;
+        // }
+        len = getline(&line, &len, stdin);
+        
         // writing line to the destination file. 
-
         char* f_name = commands[count-1];
         if(writing) {
             int fd = f_open(f_name, F_WRITE);
@@ -326,10 +321,10 @@ int pennfat_cat(char **commands){
             
                 delete_file_bytes(f_node->dir_entry->firstBlock, cur_file->size, curr_fat);
                 //clear fat region
-                uint16_t file_block = f_node->dir_entry->firstBlock;
-                uint16_t first_block = file_block;
+                uint32_t file_block = f_node->dir_entry->firstBlock;
+                uint32_t first_block = file_block;
                 do {
-                    uint16_t prev = file_block;
+                    uint32_t prev = file_block;
                     file_block = curr_fat->block_arr[file_block];
                     curr_fat->block_arr[prev] =0X0000;
                     
@@ -347,6 +342,7 @@ int pennfat_cat(char **commands){
             }
             f_close(fd);
             f_node->dir_entry->mtime = time(0);
+            save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
             return SUCCESS;
         } else if (appending)
         {
@@ -360,6 +356,7 @@ int pennfat_cat(char **commands){
             }
             f_close(fd);
             f_node->dir_entry->mtime = time(0);
+            save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
             return SUCCESS;
         }
         }
@@ -417,6 +414,7 @@ int pennfat_cat(char **commands){
 
     }
     }
+    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
     return SUCCESS;
 }
 
@@ -497,6 +495,7 @@ int pennfat_cp(char **commands){
             return FAILURE;
         }
         f_close(d_fd);
+        save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
         return SUCCESS;
     }
 
@@ -598,9 +597,10 @@ int pennfat_cp(char **commands){
 
 
     }
+    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
+
     return SUCCESS;
 }
-
 
 int pennfat_ls(){
     dir_node *node = curr_fat->first_dir_node;
@@ -657,7 +657,7 @@ int pennfat_chmod(char **commands){
     } else if (strcmp(commands[2], "--") == 0) {
         perm = NO_PERMS;
     } else {
-        printf("Permission type must be one of -w, r-, rw, and --\n");
+        printf("Permission type must be one of -w, r-, rw, +x, and --\n");
     }
 
     dir_node* file_node = search_file(commands[1], curr_fat, NULL);
@@ -673,17 +673,10 @@ int pennfat_chmod(char **commands){
         return FAILURE;
     }
     file_node->dir_entry->mtime = time(0);
+    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
     return SUCCESS;
 }
 
-int pennfat_echo(char** commands) {
-    // while (commands[count] != NULL) {
-    //     count++;
-    // }
-
-
-    return SUCCESS;
-}
 // mode 0: search file_d, find fd location
 // mode 1: search file_d, find empty spot
 // mode 2: search file_d, delete fd information
@@ -735,7 +728,7 @@ int f_open(const char *f_name, int mode){
         }
         //create new file
         if (file_node == NULL) {
-            uint16_t firstBlock = -1;
+            uint32_t firstBlock = -1;
             // search in FAT REGION to find a empty block to place the fat entry
             if(firstBlock == 0) return FAILURE;
             // new a dir entry NODE with 0 byte (empty file)
@@ -817,8 +810,8 @@ int f_read(int fd, int n, char *buf){
     int i = file_d_search(fd, 0);
     int pos = file_pos[i];
 
-    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;    // start_index = 256 + 0 * 128 = 256
-    uint16_t index = start_index;
+    uint32_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;    // start_index = 256 + 0 * 128 = 256
+    uint32_t index = start_index;
     int curr_pos = pos;
 
     // printf("DEBUGGING - i: %d, curr_pos: %d, start_index: %d\n", i, curr_pos, start_index);
@@ -903,17 +896,14 @@ int f_read(int fd, int n, char *buf){
 
 int f_write(int fd, const char *str, int n){
     if(fd == PENNOS_STDOUT) {
-        if(write(STDOUT_FILENO, str, strlen(str)) ==-1) {
-            perror("write STDOUT\n");
-            return FAILURE;
-        }
+        printf("%s",str);
         return SUCCESS;
     }
     printf("CURRENTLY CALLING F_WRITE...\n");
     uint32_t byte_write = 0;
-    int curr_block = fd;    // 3
-    uint16_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;    // 384
-    uint16_t index = start_index;
+    uint32_t curr_block = fd;    // 3
+    uint32_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;    // 384
+    uint32_t index = start_index;
     // printf("curr fd: %d, start_index: %d\n", fd, start_index);
 
     //write mode
@@ -982,7 +972,7 @@ int f_write(int fd, const char *str, int n){
         int desired_entry_index;
         for (desired_entry_index = dir_entry_block_start_index; desired_entry_index < dir_entry_block_start_index + curr_fat->directory_starting_index; desired_entry_index += 32){
             // fd在哪个位置呢？name: 32bytes. size: 4bytes. next is fd: 2 bytes 
-            if (curr_fat->block_arr[desired_entry_index + 18] == (uint16_t) fd){
+            if (curr_fat->block_arr[desired_entry_index + 18] == (uint32_t) fd){
                 break;
             }
         }
@@ -1149,7 +1139,7 @@ int f_lseek(int fd, int offset, int whence){
 int find_entry_block(char* f_name) {
     int curr_directory_index = 1;
     //block_len in bytes
-    uint16_t block_len = curr_fat->block_size * curr_fat->block_num;
+    uint32_t block_len = curr_fat->block_size * curr_fat->block_num;
     block_len /= 2;
     //block len in 2 bytes
       do{
@@ -1246,4 +1236,8 @@ void load_fds(const char* f_name) {
 
     // Close the temporary file
     close(fd);
+}
+
+void os_updatefds() {
+    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
 }

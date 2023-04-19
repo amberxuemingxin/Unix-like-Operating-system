@@ -25,7 +25,7 @@ int pennfat_ls();
 
 int pennfat_chmod(char **commands);
 
-int pennfat_echo(char** commands);
+void pennfat_update_fd();
 
 dir_node* search_file(char* file_name, FAT* fat, dir_node** prev);
 
@@ -33,7 +33,10 @@ int find_entry_block(char* f_name);
 
 
 void save_fds(char *f_name, int file_d_size, int *file_d, int *file_pos);
+
 void load_fds(const char* file_path);
+
+void os_updatefds();
 
 int f_open(const char *f_name, int mode);
 
@@ -46,5 +49,6 @@ int f_close(int fd);
 int f_lseek(int fd, int offset, int whence);
 
 int find_entry_block(char* f_name);
+
 
 #endif
