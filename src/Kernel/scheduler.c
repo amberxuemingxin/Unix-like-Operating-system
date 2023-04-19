@@ -4,6 +4,7 @@
 #include "PCB.h"
 #include "user.h"
 #include "jobs.h"
+#include <sys/time.h>
 
 pcb_t *active_process;
 pcb_t *active_sleep;
@@ -63,7 +64,6 @@ void set_alarm_handler()
 void set_timer()
 {
     struct itimerval it;
-
     it.it_interval = (struct timeval){.tv_usec = CENTISECOND * 10};
     it.it_value = it.it_interval;
 

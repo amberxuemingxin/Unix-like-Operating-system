@@ -4,7 +4,11 @@
         "FAT.C": "cpp",
         "typeinfo": "cpp",
         "fat.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "scheduler.h": "c",
+        "kernel.h": "c",
+        "time.h": "c",
+        "pennfatlib.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }
