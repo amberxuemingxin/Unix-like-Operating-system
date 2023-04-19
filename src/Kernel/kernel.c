@@ -87,13 +87,13 @@ void set_stack(stack_t *stack)
 * @param argc, the number of arguments that will be passed into the function
 * @param argv, the string array of all necessary arguments
 */
-void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[])
+void make_context(ucontext_t *ucp, void (*func)(), int argc, void *argv[])
 {
     getcontext(ucp);
 
-    if (argv) {
-        printf("args: %s\n", *argv);
-    }
+    // if (argv) {
+    //     printf("args: %s\n", *argv);
+    // }
 
     sigemptyset(&ucp->uc_sigmask);
     set_stack(&ucp->uc_stack);

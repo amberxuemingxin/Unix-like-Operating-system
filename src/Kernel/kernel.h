@@ -31,7 +31,7 @@ void exit_process();
  * @param argc The number of arguments.
  * @param argv The list of arguments.
 */
-void make_context(ucontext_t *ucp, void (*func)(), int argc, char *argv[]);
+void make_context(ucontext_t *ucp, void (*func)(), int argc, void *argv[]);
 
 /**
  * @brief Block a process.

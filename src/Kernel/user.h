@@ -25,7 +25,7 @@
  * @param background If the process is a background process.
  * @return A pointer to the spawned process.
 */
-pid_t p_spawn(void (*func)(), char **argv, int num_arg, int fd0, int fd1, int priority, bool background);
+pid_t p_spawn(void (*func)(), void *argv[], int num_arg, int fd0, int fd1, int priority, bool background);
 
 /**
  * @brief A function that will stay idle for the specified amount of ticks.

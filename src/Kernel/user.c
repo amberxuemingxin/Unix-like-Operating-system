@@ -11,7 +11,7 @@ extern int global_ticks;
 /* fork a new process
  * return = the pid of the new process
  */
-pid_t p_spawn(void (*func)(), char *argv[], int num_arg, int fd0, int fd1, int priority, bool background)
+pid_t p_spawn(void (*func)(), void *argv[], int num_arg, int fd0, int fd1, int priority, bool background)
 {
     bool is_shell = false;
     // decide if the process spawned is the shell
