@@ -208,6 +208,7 @@ job_list *init_job_list()
     list->max_jid = 0;
     list->queue_running = NULL;
     list->queue_stopped = NULL;
+    list->fg_job = NULL;
 
     return list;
 }

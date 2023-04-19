@@ -21,22 +21,22 @@ void sigint_handler(int signo)
 void sigtstp_handler(int signo)
 {
     job *j = list->fg_job;
-    if (j)
+    if (j && j->pid != 1)
     {
         p_kill(j->pid, S_SIGSTOP);
+        // change the status of the job to STOPPED
+        j->status = STOPPED_P;
+
+        // remove the job from the previous list
+        remove_job(j, list, false);
+        // and add to the stopped list
+        add_to_head(j, list, true);
+
+        list->fg_job = NULL;
+
+        printf("Stopped: %s\n", j->cmd);
     }
     
-    // change the status of the job to STOPPED
-    j->status = STOPPED_P;
-
-    // remove the job from the previous list
-    remove_job(j, list, false);
-    // and add to the stopped list
-    add_to_head(j, list, true);
-
-    list->fg_job = NULL;
-
-    printf("Stopped: %s\n", j->cmd);
 }
 
 void shell_loop()
