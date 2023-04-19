@@ -41,7 +41,6 @@ int parse_pennfat_command(char ***commands, int commandCount){
             return FAILURE;
         }
         // printf("here, before calling pennfat_mount\n");
-
         curr_fat = pennfat_mount(commands[0][1]);
         if (curr_fat == NULL) return FAILURE;
         return SUCCESS;
