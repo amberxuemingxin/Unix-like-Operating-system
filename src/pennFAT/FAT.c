@@ -32,7 +32,7 @@ void free_directory_node(dir_node *node) {
     free(node);
 }
 
-FAT* make_fat(char* f_name, uint8_t block_num, uint32_t block_size) {
+FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
     if (block_num > 32 || block_num < 1) {
         perror("number of blocks needs to be within 1-32");
         return NULL;

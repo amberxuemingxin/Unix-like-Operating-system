@@ -65,7 +65,11 @@ int parse_pennfat_command(char ***commands, int commandCount){
         return pennfat_ls(curr_fat);
     } else if (strcmp(cmd, "chmod") == 0) {
         return pennfat_chmod(commands[0], curr_fat);
-    } else if (strcmp(cmd, "describe") == 0) {
+    } else if (strcmp(cmd, "echo") == 0) {
+        return pennfat_echo(commands[0], curr_fat);
+    } 
+    
+    else if (strcmp(cmd, "describe") == 0) {
         printf("File system name : %s\n", (curr_fat)->f_name);
         printf("Number of block in the filesystem : %d\n", (curr_fat)->block_num);
         printf("Block size : %d\n", (curr_fat)->block_size);
@@ -86,7 +90,7 @@ int parse_pennfat_command(char ***commands, int commandCount){
     return FAILURE;
 }
 
-int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **fat) {
+int pennfat_mkfs(char *f_name, uint8_t block_num, uint8_t block_size, FAT **fat){
     // if FAT exist, we need to overwrite the origianl FAT
     if (fat != NULL) {
         free_fat(*fat);
@@ -730,7 +734,11 @@ int pennfat_chmod(char **commands, FAT *fat){
     return SUCCESS;
 }
 
+int pennfat_echo(char** commands, FAT* fat) {
 
+
+    return SUCCESS;
+}
 // mode 0: search file_d, find fd location
 // mode 1: search file_d, find empty spot
 // mode 2: search file_d, delete fd information
