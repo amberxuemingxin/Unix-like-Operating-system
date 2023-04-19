@@ -41,7 +41,6 @@ int parse_pennfat_command(char ***commands, int commandCount){
             return FAILURE;
         }
         // printf("here, before calling pennfat_mount\n");
-
         curr_fat = pennfat_mount(commands[0][1]);
         if (curr_fat == NULL) return FAILURE;
         return SUCCESS;
@@ -66,7 +65,11 @@ int parse_pennfat_command(char ***commands, int commandCount){
         return pennfat_ls(curr_fat);
     } else if (strcmp(cmd, "chmod") == 0) {
         return pennfat_chmod(commands[0], curr_fat);
-    } else if (strcmp(cmd, "describe") == 0) {
+    } else if (strcmp(cmd, "echo") == 0) {
+        return pennfat_echo(commands[0], curr_fat);
+    } 
+    
+    else if (strcmp(cmd, "describe") == 0) {
         printf("File system name : %s\n", (curr_fat)->f_name);
         printf("Number of block in the filesystem : %d\n", (curr_fat)->block_num);
         printf("Block size : %d\n", (curr_fat)->block_size);
@@ -731,7 +734,11 @@ int pennfat_chmod(char **commands, FAT *fat){
     return SUCCESS;
 }
 
+int pennfat_echo(char** commands, FAT* fat) {
 
+
+    return SUCCESS;
+}
 // mode 0: search file_d, find fd location
 // mode 1: search file_d, find empty spot
 // mode 2: search file_d, delete fd information
@@ -950,6 +957,13 @@ int f_read(int fd, int n, char *buf){
 }
 
 int f_write(int fd, const char *str, int n){
+    if(fd == PENNOS_STDOUT) {
+        if(write(STDOUT_FILENO, str, strlen(str)) ==-1) {
+            perror("write STDOUT\n");
+            return FAILURE;
+        }
+        return SUCCESS;
+    }
     printf("CURRENTLY CALLING F_WRITE...\n");
     uint32_t byte_write = 0;
     int curr_block = fd;    // 3
@@ -1224,27 +1238,24 @@ void save_fds(char *f_name, int file_d_size, int *file_d, int *file_pos) {
     }   
     if (fd == -1) {
         perror("Error opening temporary file");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // Write the data to the temporary file
     if (write(fd, &file_d_size, sizeof(int)) == -1) {
         perror("Error writing file_d_size");
-        exit(EXIT_FAILURE);
+        return;
     }
     if (write(fd, file_d, file_d_size * sizeof(int)) == -1) {
-        perror("Error writing file_d");
-        exit(EXIT_FAILURE);
+        return;
     }
     if (write(fd, file_pos, file_d_size * sizeof(int)) == -1) {
-        perror("Error writing file_pos");
-        exit(EXIT_FAILURE);
+        return;
     }
 
     // Close the temporary file
     if (close(fd) == -1) {
-        perror("Error closing temporary file");
-        exit(EXIT_FAILURE);
+        return;
     }
 }
 
@@ -1252,14 +1263,14 @@ void load_fds(const char* f_name) {
     // Open the temporary file for reading/writing
     int fd = open(f_name, O_RDONLY);
     if (fd == -1) {
-        perror("Error opening temporary file");
+        // perror("Error opening temporary file");
         return;
     }
 
     // Read the file_d_size variable
     int read_size = read(fd, &file_d_size, sizeof(int));
     if (read_size != sizeof(int)) {
-        perror("Error reading file_d_size");
+        // perror("Error reading file_d_size");
         close(fd);
         return;
     }
@@ -1271,7 +1282,7 @@ void load_fds(const char* f_name) {
     // Read the file_d array
     read_size = read(fd, file_d, file_d_size * sizeof(int));
     if (read_size != file_d_size * sizeof(int)) {
-        perror("Error reading file_d");
+        // perror("Error reading file_d");
         close(fd);
         free(file_d);
         free(file_pos);
@@ -1281,7 +1292,7 @@ void load_fds(const char* f_name) {
     // Read the file_pos array
     read_size = read(fd, file_pos, file_d_size * sizeof(int));
     if (read_size != file_d_size * sizeof(int)) {
-        perror("Error reading file_pos");
+        // perror("Error reading file_pos");
         close(fd);
         free(file_d);
         free(file_pos);

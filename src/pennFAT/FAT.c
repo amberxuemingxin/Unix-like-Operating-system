@@ -55,7 +55,7 @@ FAT* make_fat(char* f_name, uint8_t block_num, uint8_t block_size) {
 
     strcpy(res->f_name, f_name);
     res->f_name[len] =  '\0';
-    res->block_num = block_num;
+    res->block_num = (uint8_t)block_num;
 
     if (block_size == 0) {
         res->block_size = 256;

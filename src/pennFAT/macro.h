@@ -21,3 +21,4 @@
 #define F_SEEK_SET 1
 #define F_SEEK_CURR 2
 #define F_SEEK_END 3
+#define PENNOS_STDOUT -100
