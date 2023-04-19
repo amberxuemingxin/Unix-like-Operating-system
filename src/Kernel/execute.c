@@ -147,7 +147,7 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
     } else if (file_system && strcmp(cmd->commands[0][0], "cat") == 0) {
         char *arg_name = "cat";
         void *cat_arg[2] = {arg_name, cmd->commands[0]};
-        child = p_spawn((void *)pennfat_cat, (void *)cat_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
+        child = p_spawn((void *)pennfat_cat, cat_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "echo") == 0) {
         // TODO
 
@@ -160,7 +160,7 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
         child = p_spawn((void *)pennfat_touch, touch_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
         // parse_pennfat_command(cmd->commands, cmd->num_commands);
     } else if (file_system && strcmp(cmd->commands[0][0], "mv") == 0) {
-        if (!cmd->commands[0][1] && !cmd->commands[0][2]) {
+        if (!cmd->commands[0][1] || !cmd->commands[0][2]) {
             printf("Please input an argument for mv!\n");
             remove_job(j, list, false);
             free_job(j);
@@ -169,14 +169,17 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
         char *mv_arg[4] = {"mv", cmd->commands[0][1], cmd->commands[0][2], NULL};
         child = p_spawn((void *)pennfat_mv, (void *)mv_arg, 2, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "cp") == 0) {
-        char **cp_arg = cmd->commands[0];
-        child = p_spawn((void *)pennfat_cp, (void *)cp_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
+        char *arg_name = "cp";
+        void *cp_arg[2] = {arg_name, cmd->commands[0]};
+        child = p_spawn((void *)pennfat_cp, cp_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "rm") == 0) {
-        char **rm_arg = cmd->commands[0];
-        child = p_spawn((void *)pennfat_remove, (void *)rm_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
+        char *arg_name = "rm";
+        void *rm_arg[2] = {arg_name, cmd->commands[0]};
+        child = p_spawn((void *)pennfat_remove, rm_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "chmod") == 0) {
-        char **ch_arg = cmd->commands[0];
-        child = p_spawn((void *)pennfat_chmod, (void *)ch_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
+        char *arg_name = "chmod";
+        void *ch_arg[2] = {arg_name, cmd->commands[0]};
+        child = p_spawn((void *)pennfat_chmod, ch_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
     } else {
         /* invalid input */
         remove_job(j, list, false);
