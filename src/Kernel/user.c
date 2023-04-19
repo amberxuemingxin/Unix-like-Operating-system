@@ -180,7 +180,6 @@ void p_exit()
     p_kill(cur_pid, S_SIGTERM);
     k_process_cleanup(active_process);
 
-    // check zombie & orphan everytime after p_kill
     if (cur_pid == 1)
     {
         free(idle_context.uc_stack.ss_sp);

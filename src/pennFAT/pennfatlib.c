@@ -52,21 +52,21 @@ int parse_pennfat_command(char ***commands, int commandCount){
         curr_fat = NULL;
         return SUCCESS;
     } else if (strcmp(cmd, "touch") == 0) {
-        return pennfat_touch(commands[0], curr_fat);
+        return pennfat_touch(commands[0]);
     } else if (strcmp(cmd, "mv") == 0) {
-        return pennfat_mv(commands[0][1], commands[0][2], curr_fat);
+        return pennfat_mv(commands[0][1], commands[0][2]);
     } else if (strcmp(cmd, "rm") == 0) {
-        return pennfat_remove(commands[0], curr_fat);
+        return pennfat_remove(commands[0]);
     }  else if (strcmp(cmd, "cat") == 0) {
-        return pennfat_cat(commands[0], curr_fat);
+        return pennfat_cat(commands[0]);
     } else if (strcmp(cmd, "cp") == 0) {
-        return pennfat_cp(commands[0], curr_fat);
+        return pennfat_cp(commands[0]);
     } else if (strcmp(cmd, "ls") == 0) {
         return pennfat_ls(curr_fat);
     } else if (strcmp(cmd, "chmod") == 0) {
-        return pennfat_chmod(commands[0], curr_fat);
+        return pennfat_chmod(commands[0]);
     } else if (strcmp(cmd, "echo") == 0) {
-        return pennfat_echo(commands[0], curr_fat);
+        return pennfat_echo(commands[0]);
     } 
     
     else if (strcmp(cmd, "describe") == 0) {
@@ -124,7 +124,7 @@ FAT* pennfat_mount(char *f_name) {
     return fat;    
 }
 
-int pennfat_touch(char **files, FAT *fat){
+int pennfat_touch(char **files){
     if (files[1] == NULL) {
         printf("insuffcient arguement\n");
         return FAILURE;
@@ -133,7 +133,7 @@ int pennfat_touch(char **files, FAT *fat){
 
     char *file_name = files[index];
     while (file_name != NULL) {
-        dir_node* file_node = search_file(file_name, fat, NULL);
+        dir_node* file_node = search_file(file_name, curr_fat, NULL);
         if (file_node != NULL){    // the file already exists, updates timestamp
                 file_node->dir_entry->mtime = time(0);
                 index += 1;
@@ -155,7 +155,7 @@ int pennfat_touch(char **files, FAT *fat){
     return SUCCESS;
 }
 
-int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
+int pennfat_mv(char *oldFileName, char *newFileName){
     dir_node* old_f = search_file(oldFileName, curr_fat, NULL);
     if(old_f == NULL) {
         printf("error mv: the original file does not exist\n");
@@ -178,69 +178,11 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
         old_f->dir_entry->mtime = time(0);
         return SUCCESS;
     } else {
-        //overwrite new_f content and write everything from old_f to new_f
-        // file* src = read_file_from_fat(old_f,curr_fat);
 
-        // uint8_t* buffer = read_file_bytes(src->block_arr_start, src->size, curr_fat);        
-        // //write content from oldfile to newfile
-        // int fd =f_open(newFileName, F_WRITE);
-        // if(fd <0) {
-        //     printf("error: mv failed to f_open\n");
-        //     return FAILURE;
-        // }
-        // if(f_write(fd, (char*)buffer, src->size) == FAILURE) {
-        //     printf("error: mv failed to f_write\n");
-        //     return FAILURE;
-        // }
-        // f_close(fd);
-
-        /*
-        char** cat_cmd = malloc(4*sizeof(char*));
-        cat_cmd[0] = "cat";
-        cat_cmd[1] = oldFileName;
-        cat_cmd[2] = "-w";
-        cat_cmd[3] = newFileName;
-        if (pennfat_cat(cat_cmd,curr_fat)==FAILURE) {
-            free(cat_cmd);
-            printf("error: mv unable to overwrite content\n");
-            return FAILURE;
-        }
-        free(cat_cmd);
-
-        //delete old file
-        char** rm_cmd = malloc(2 * sizeof(char*));
-        rm_cmd[0] = "rm";
-        rm_cmd[1] = oldFileName;
-        if(pennfat_remove(rm_cmd, curr_fat) ==FAILURE){
-            // free(cat_cmd);
-            free(rm_cmd);
-            printf("error: mv unable to delete file\n");
-            return FAILURE;
-        }
-
-        
-        // if (delete_directory_from_block(*old_f->dir_entry,curr_fat) == FAILURE) {
-        //         return FAILURE;
-        // }
-        // memset(old_f->dir_entry->name, 0, strlen(old_f->dir_entry->name));
-        // memcpy(old_f->dir_entry->name, newFileName,strlen(newFileName));
-        // int* reside_index = malloc(sizeof(int));
-        // if (write_directory_to_block(old_f->dir_entry,curr_fat,reside_index)== -1 ) {
-        //     free(reside_index);
-        //     printf("error: failed to write directory entry to block\n");
-        //     free_directory_node(old_f);
-        //     return FAILURE;
-        // }   
-        new_f->dir_entry->mtime = time(0);   
-        // free(cat_cmd);
-        free(rm_cmd);
-        */
-
-        //delete dest file
         char** rm_cmd = malloc(2 * sizeof(char*));
         rm_cmd[0] = "rm";
         rm_cmd[1] = newFileName;
-        if(pennfat_remove(rm_cmd, curr_fat) ==FAILURE){
+        if(pennfat_remove(rm_cmd) ==FAILURE){
             // free(cat_cmd);
             free(rm_cmd);
             printf("error: mv unable to delete file\n");
@@ -279,7 +221,7 @@ int pennfat_mv(char *oldFileName, char *newFileName, FAT *fat){
     }
 }
 
-int pennfat_remove(char **commands, FAT *fat){
+int pennfat_remove(char **commands){
     int index = 1;
     int count = 0;
     while (commands[count] != NULL) {
@@ -293,13 +235,13 @@ int pennfat_remove(char **commands, FAT *fat){
     char *file_name = commands[index];
     while (index < count) {
         dir_node* prev_node;
-        dir_node* filenode = search_file(file_name, fat, &prev_node);
+        dir_node* filenode = search_file(file_name, curr_fat, &prev_node);
         if (filenode != NULL){    
-            fat->file_num -= 1;
+            curr_fat->file_num -= 1;
             index += 1;
             file_name = commands[index];
-            if (filenode == fat->first_dir_node) {
-                fat->first_dir_node = filenode->next;
+            if (filenode == curr_fat->first_dir_node) {
+                curr_fat->first_dir_node = filenode->next;
             }
             else{
                 prev_node->next = filenode->next;
@@ -318,10 +260,10 @@ int pennfat_remove(char **commands, FAT *fat){
                 
             } while (file_block!=0XFFFF);
 
-            delete_directory_from_block(*filenode->dir_entry, fat);
+            delete_directory_from_block(*filenode->dir_entry, curr_fat);
             // set last node pointer to the prev entry if this entry is the last entry
             //TODO: REMOVE FAT ENTRY INFOMATION
-            if (filenode == fat->last_dir_node) fat->last_dir_node = prev_node;
+            if (filenode == curr_fat->last_dir_node) curr_fat->last_dir_node = prev_node;
         }else {
             printf("%s file not found\n", file_name);
             index += 1;
@@ -330,7 +272,7 @@ int pennfat_remove(char **commands, FAT *fat){
     return SUCCESS;
 }
 
-int pennfat_cat(char **commands, FAT *fat){
+int pennfat_cat(char **commands){
     int count = 0;
     while (commands[count] != NULL) {
         count++;
@@ -478,7 +420,7 @@ int pennfat_cat(char **commands, FAT *fat){
     return SUCCESS;
 }
 
-int pennfat_cp(char **commands, FAT *fat){
+int pennfat_cp(char **commands){
     int count = 0;
     bool host = false;
     bool source_host = false;
@@ -660,8 +602,8 @@ int pennfat_cp(char **commands, FAT *fat){
 }
 
 
-int pennfat_ls(FAT *fat){
-    dir_node *node = fat->first_dir_node;
+int pennfat_ls(){
+    dir_node *node = curr_fat->first_dir_node;
 
     while (node != NULL) {
         directory_entry *entry = node->dir_entry;
@@ -693,7 +635,7 @@ int pennfat_ls(FAT *fat){
     return SUCCESS;
 }
 
-int pennfat_chmod(char **commands, FAT *fat){
+int pennfat_chmod(char **commands){
     if (commands[1] == NULL) {
         printf("error: No file name entered\n");
         return FAILURE;
@@ -734,7 +676,10 @@ int pennfat_chmod(char **commands, FAT *fat){
     return SUCCESS;
 }
 
-int pennfat_echo(char** commands, FAT* fat) {
+int pennfat_echo(char** commands) {
+    // while (commands[count] != NULL) {
+    //     count++;
+    // }
 
 
     return SUCCESS;

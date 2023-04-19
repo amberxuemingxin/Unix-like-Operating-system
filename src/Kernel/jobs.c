@@ -1,5 +1,6 @@
 #include "jobs.h"
 #include "PCB.h"
+#include <unistd.h>
 
 const char STATUS[3][9] = {"Running", "Stopped", "Finished"};
 
@@ -193,6 +194,8 @@ job *init_job(struct parsed_command *cmd, job_list *list)
     j->background = cmd->is_background;
     j->status = RUNNING_P;
     j->next = NULL;
+    j->fd0 = STDIN_FILENO;
+    j->fd1 = STDOUT_FILENO;
 
     j->jid = list->max_jid + 1;
     list->max_jid++;
