@@ -12,6 +12,7 @@ ucontext_t scheduler_context;
 ucontext_t idle_context;
 ucontext_t exit_context;
 bool idle;
+bool file_system = false;
 
 extern char *log_name;
 

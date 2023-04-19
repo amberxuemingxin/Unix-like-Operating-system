@@ -7,6 +7,7 @@
 #include "stress.h"
 
 extern job_list *list;
+extern bool file_system;
 
 /* execute the commands
 * return = 0: success
@@ -84,6 +85,22 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
 
         /* kill the process */
         child = p_spawn(my_kill, kill_arg, 2, STDIN_FILENO, STDOUT_FILENO, priority, cmd->is_background);
+    } else if (file_system && strcmp(cmd->commands[0][0], "cat") == 0) {
+        // TODO
+    } else if (file_system && strcmp(cmd->commands[0][0], "echo") == 0) {
+        // TODO
+    } else if (file_system && strcmp(cmd->commands[0][0], "ls") == 0) {
+        // TODO
+    } else if (file_system && strcmp(cmd->commands[0][0], "touch") == 0) {
+        // TODO
+    } else if (file_system && strcmp(cmd->commands[0][0], "mv") == 0) {
+        // TODO
+    } else if (file_system && strcmp(cmd->commands[0][0], "cp") == 0) {
+        // TODO
+    } else if (file_system && strcmp(cmd->commands[0][0], "rm") == 0) {
+        // TODO
+    } else if (file_system && strcmp(cmd->commands[0][0], "chmod") == 0) {
+        // TODO
     } else {
         /* invalid input */
         remove_job(j, list, false);

@@ -217,6 +217,22 @@ void cmd_handler(struct parsed_command *cmd)
         printf("lists all processes on PennOS\n");
         printf("  kill [arg1] [arg2]\t");
         printf("sends a specified signal [arg1] to the specified process [arg2]\n");
+        printf("-------------------------------------------\n");
+        printf("Subroutines: (args with * are optional)\n");
+        printf("  nice [arg1] [arg2]\t");
+        printf("set the priority of command [arg2] as [arg1], then execute the command\n");
+        printf("  nice_pid [arg1] [arg2]");
+        printf("adjust the nice value for [arg2] to [arg1]\n");
+        printf("  man\t\t\t");
+        printf("list all available commands\n");
+        printf("  bg [args]*\t\t");
+        printf("continue the last stopped job, or the job specified by [args]\n");
+        printf("  fg [args]*\t\t");
+        printf("bring the last stopped or backgrounded job to the foreground, or the job specified by [args]\n");
+        printf("  jobs\t\t\t");
+        printf("list all jobs\n");
+        printf("  logout\t\t");
+        printf("exit the shell and shutdown PennOS\n");
         return;
     }
     // logout :)
