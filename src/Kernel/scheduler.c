@@ -5,6 +5,8 @@
 #include "user.h"
 #include "jobs.h"
 #include <sys/time.h>
+#include "../pennFAT/macro.h"
+#include "../pennFAT/pennfatlib.h"
 
 pcb_t *active_process;
 pcb_t *active_sleep;
@@ -301,7 +303,8 @@ void exit_scheduler()
 
 void print_all_process()
 {
-    printf("%8s%8s%8s%8s\t%s\n", "PID", "PPID", "PRI", "STAT", "CMD");
+
+    f_write(PENNOS_STDOUT, "%8s%8s%8s%8s\t%s\n", 0, "PID", "PPID", "PRI", "STAT", "CMD");
 
     for (pid_t i = 0; i <= max_pid; i++)
     {
@@ -326,7 +329,7 @@ void print_all_process()
             {
                 status = "R"; /* RUNNING */
             }
-            printf("%8d%8d%8d%8s\t%s\n", p->pid, p->ppid, p->priority, status, p->process);
+            f_write(PENNOS_STDOUT, "%8d%8d%8d%8s\t%s\n", 0, p->pid, p->ppid, p->priority, status, p->process);
         }
     }
 }

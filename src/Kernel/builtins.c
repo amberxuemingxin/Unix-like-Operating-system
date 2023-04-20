@@ -4,6 +4,8 @@
 
 #include "user.h"
 #include "scheduler.h"
+#include "../pennFAT/macro.h"
+#include "../pennFAT/pennfatlib.h"
 
 void my_sleep(void *arg)
 {
@@ -73,16 +75,38 @@ void my_kill(char *signo, char *pid)
     }
     else
     {
-        printf("Wrong signal!\n");
+        f_write(PENNOS_STDOUT, "Wrong signal!\n", 0);
         return;
     }
 
     int pid_num = atoi(pid);
     if (pid_num == 0)
     {
-        printf("Fail to atoi\n");
+        f_write(PENNOS_STDOUT, "Fail to atoi\n", 0);
         return;
     }
     // call our p_kill function to kill the process
     p_kill(pid_num, sig);
 }
+
+// void my_echo (char** commands, int fd0, int fd1) {
+//     /* redirect in */
+//     // if (fd0 != PENNOS_IN) {
+
+//     // }
+//     int i = 1;
+//     while (argv[i] != NULL) {
+//         if (i != 1) {
+//             // printf(" "); 
+//             // Print a space between arguments
+//             f_write(fd1, " ", 1);
+//         }
+//         f_write(fd1, "%s")
+//         // printf("%s", argv[i]);
+//         i++;
+//     }
+//     // printf("\n"); 
+//     // Print a newline at the end
+//     f_write(fd1, "\n", 1);
+
+// }

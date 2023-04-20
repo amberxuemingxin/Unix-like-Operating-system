@@ -48,9 +48,8 @@ void p_sleep(unsigned int ticks)
 {
     pcb_t *sleep_process = active_process;
     sleep_process->ticks = ticks;
-    // pcb_t *parent = sleep_process->parent;
     /* block itself */
-    // printf("sleep block %s in p_sleep\n", active_process->process);
+
     k_block(active_process);
 }
 
@@ -79,7 +78,6 @@ int p_kill(pid_t pid, int sig)
         }
         else
         { /* pid not found */
-            //            printf("Pid not found\n");
             return FAILURE;
         }
     }
@@ -107,7 +105,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang)
         /* global as the caller */
         if (!nohang)
         {
-            // printf("%d block %s in waitpid\n", active_process->children->pid, active_process->process);
             k_block(active_process);
         }
 
@@ -142,7 +139,6 @@ pid_t p_waitpid(pid_t pid, int *wstatus, bool nohang)
 
         if (p == NULL)
         {
-            printf("Waitpid can't find the pid %d\n", pid);
             return 0;
         }
 

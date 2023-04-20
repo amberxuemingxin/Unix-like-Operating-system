@@ -80,7 +80,7 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
 
     if (strcmp(cmd->commands[0][0], "sleep") == 0) {
         if (!cmd->commands[0][1]) {
-            printf("Please input an argument for sleep!\n");
+            f_write(PENNOS_STDOUT, "Please input an argument for sleep!\n", 0);
             remove_job(j, list, false);
             free_job(j);
             return FAILURE;
@@ -114,7 +114,7 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
         child = p_spawn(busy, (void *)busy_arg, 0, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (strcmp(cmd->commands[0][0], "kill") == 0) {
         if (!cmd->commands[0][1] || !cmd->commands[0][2]) {
-            printf("Please input an argument for kill [signal] [pid]!\n");
+            f_write(PENNOS_STDOUT, "Please input an argument for kill [signal] [pid]!\n", 0);
             remove_job(j, list, false);
             free_job(j);
             return FAILURE;
@@ -124,7 +124,7 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
         int pid_num = atoi(cmd->commands[0][2]);
         if (pid_num == 0)
         {
-            printf("Fail to atoi\n");
+            f_write(PENNOS_STDOUT, "Fail to atoi\n", 0);
             remove_job(j, list, false);
             free_job(j);
             return FAILURE;
@@ -161,7 +161,7 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
         // parse_pennfat_command(cmd->commands, cmd->num_commands);
     } else if (file_system && strcmp(cmd->commands[0][0], "mv") == 0) {
         if (!cmd->commands[0][1] || !cmd->commands[0][2]) {
-            printf("Please input an argument for mv!\n");
+            f_write(PENNOS_STDOUT, "Please input an argument for mv!\n", 0);
             remove_job(j, list, false);
             free_job(j);
             return FAILURE;

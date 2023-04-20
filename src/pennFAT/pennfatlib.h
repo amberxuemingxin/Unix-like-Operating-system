@@ -1,5 +1,6 @@
 #ifndef PENNFATLIB_H
 #define PENNFATLIB_H
+#include <stdarg.h>
 
 #include "FAT.h"
 
@@ -42,7 +43,7 @@ int f_open(const char *f_name, int mode);
 
 int f_read(int fd, int n, char *buf);
 
-int f_write(int fd, const char *str, int n);
+int f_write(int fd, const char *content, int n,...);
 
 int f_close(int fd);
 

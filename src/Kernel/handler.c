@@ -3,6 +3,8 @@
 #include "execute.h"
 #include "user.h"
 #include "queue.h"
+#include "../pennFAT/macro.h"
+#include "../pennFAT/pennfatlib.h"
 
 extern job_list *list;
 extern queue *queue_block;
@@ -53,21 +55,21 @@ void cmd_handler(struct parsed_command *cmd)
         // throw an error if job doesn't exist
         if (job == NULL)
         {
-            fprintf(stderr, "Job not exist!\n");
+            f_write(PENNOS_STDOUT, "Job not exist!\n", 0);
             return;
         }
 
         // if the job is stopped, resume it
         if (job->status == STOPPED_P)
         {
-            fprintf(stderr, "Restarting: %s\n", job->cmd);
+            f_write(PENNOS_STDOUT, "Restarting: %s\n", 0, job->cmd);
             job->status = RUNNING_P;
             remove_job(job, list, true);
             add_to_head(job, list, false);
         }
         else
         {
-            fprintf(stderr, "%s\n", job->cmd);
+            f_write(PENNOS_STDOUT, "%s\n", 0, job->cmd);
         }
 
         // bring job to fg
@@ -109,13 +111,13 @@ void cmd_handler(struct parsed_command *cmd)
         // throw an error if job doesn't exist
         if (job == NULL)
         {
-            fprintf(stderr, "Job not exist!\n");
+            f_write(PENNOS_STDOUT, "Job not exist!\n", 0);
             return;
         }
 
         if (job->status != STOPPED_P)
         {
-            fprintf(stderr, "Job is running already!\n");
+            f_write(PENNOS_STDOUT, "Job is running already!\n", 0);
             return;
         }
 
@@ -123,7 +125,7 @@ void cmd_handler(struct parsed_command *cmd)
         job->status = RUNNING_P;
         remove_job(job, list, true);
         add_to_head(job, list, false);
-        fprintf(stderr, "Running: %s\n", job->cmd);
+        f_write(PENNOS_STDOUT, "Running: %s\n", 0, job->cmd);
 
         return;
         // give the job a nice value when "nice" flag is detected
@@ -146,7 +148,7 @@ void cmd_handler(struct parsed_command *cmd)
         }
         else
         {
-            fprintf(stderr, "Please enter the correct priority value\n");
+            f_write(PENNOS_STDOUT, "Please enter the correct priority value\n", 0);
             return;
         }
 
@@ -174,14 +176,14 @@ void cmd_handler(struct parsed_command *cmd)
         }
         else
         {
-            fprintf(stderr, "Please enter the correct priority value\n");
+            f_write(PENNOS_STDOUT, "Please enter the correct priority value\n", 0);
             return;
         }
 
         pid = atoi(pid_string);
         if (pid == 0)
         {
-            fprintf(stderr, "Please enter the correct pid value\n");
+            f_write(PENNOS_STDOUT, "Please enter the correct pid value\n", 0);
         }
 
         p_nice(pid, priority);
@@ -190,49 +192,49 @@ void cmd_handler(struct parsed_command *cmd)
     // print out the user manual when the "man" flag is detected
     else if (strcmp(cmd->commands[0][0], "man") == 0)
     {
-        printf("USER MANUAL OF PENNOS\n");
-        printf("-------------------------------------------\n");
-        printf("Shell Built-ins: (args with * are optional)\n");
-        printf("  cat [args]*\t\t");
-        printf("reads data from the file and gives their content as output\n");
-        printf("  sleep [args]\t\t");
-        printf("causes the calling thread to sleep [args] seconds; args should be some integers\n");
-        printf("  busy\t\t\t");
-        printf("waits indefinitely\n");
-        printf("  echo [args]*\t\t");
-        printf("displays a line of text from [args]\n");
-        printf("  ls [args]*\t\t");
-        printf("lists all files in the directory\n");
-        printf("  touch [args]\t\t");
-        printf("creates an empty file if it does not exist, or update its timestamp otherwise\n");
-        printf("  mv [arg1] [arg2]\t");
-        printf("rename arg1 to arg2\n");
-        printf("  cp [arg1] [arg2]\t");
-        printf("copy arg1 to arg2\n");
-        printf("  rm [args]\t\t");
-        printf("remove [args] from the directory\n");
-        printf("  chmod [args]\t\t");
-        printf("changes the file mode bits of each given file according to mode\n");
-        printf("  ps\t\t\t");
-        printf("lists all processes on PennOS\n");
-        printf("  kill [arg1] [arg2]\t");
-        printf("sends a specified signal [arg1] to the specified process [arg2]\n");
-        printf("-------------------------------------------\n");
-        printf("Subroutines: (args with * are optional)\n");
-        printf("  nice [arg1] [arg2]\t");
-        printf("set the priority of command [arg2] as [arg1], then execute the command\n");
-        printf("  nice_pid [arg1] [arg2]");
-        printf("adjust the nice value for [arg2] to [arg1]\n");
-        printf("  man\t\t\t");
-        printf("list all available commands\n");
-        printf("  bg [args]*\t\t");
-        printf("continue the last stopped job, or the job specified by [args]\n");
-        printf("  fg [args]*\t\t");
-        printf("bring the last stopped or backgrounded job to the foreground, or the job specified by [args]\n");
-        printf("  jobs\t\t\t");
-        printf("list all jobs\n");
-        printf("  logout\t\t");
-        printf("exit the shell and shutdown PennOS\n");
+        f_write(PENNOS_STDOUT, "USER MANUAL OF PENNOS\n",0);
+        f_write(PENNOS_STDOUT, "-------------------------------------------\n",0);
+        f_write(PENNOS_STDOUT, "Shell Built-ins: (args with * are optional)\n",0); 
+        f_write(PENNOS_STDOUT, "  cat [args]*\t\t",0);
+        f_write(PENNOS_STDOUT, "reads data from the file and gives their content as output\n",0);
+        f_write(PENNOS_STDOUT, "  sleep [args]\t\t",0);
+        f_write(PENNOS_STDOUT, "causes the calling thread to sleep [args] seconds; args should be some integers\n",0);
+        f_write(PENNOS_STDOUT, "  busy\t\t\t",0);
+        f_write(PENNOS_STDOUT, "waits indefinitely\n",0);
+        f_write(PENNOS_STDOUT, "  echo [args]*\t\t",0);
+        f_write(PENNOS_STDOUT, "displays a line of text from [args]\n",0);
+        f_write(PENNOS_STDOUT, "  ls [args]*\t\t",0);
+        f_write(PENNOS_STDOUT, "lists all files in the directory\n",0);
+        f_write(PENNOS_STDOUT, "  touch [args]\t\t",0);
+        f_write(PENNOS_STDOUT, "creates an empty file if it does not exist, or update its timestamp otherwise\n",0);
+        f_write(PENNOS_STDOUT, "  mv [arg1] [arg2]\t",0);
+        f_write(PENNOS_STDOUT, "rename arg1 to arg2\n",0);
+        f_write(PENNOS_STDOUT, "  cp [arg1] [arg2]\t",0);
+        f_write(PENNOS_STDOUT, "copy arg1 to arg2\n",0);
+        f_write(PENNOS_STDOUT, "  rm [args]\t\t",0);
+        f_write(PENNOS_STDOUT, "remove [args] from the directory\n",0);
+        f_write(PENNOS_STDOUT, "  chmod [args]\t\t",0);
+        f_write(PENNOS_STDOUT, "changes the file mode bits of each given file according to mode\n",0);
+        f_write(PENNOS_STDOUT, "  ps\t\t\t",0);
+        f_write(PENNOS_STDOUT, "lists all processes on PennOS\n",0);
+        f_write(PENNOS_STDOUT, "  kill [arg1] [arg2]\t",0);
+        f_write(PENNOS_STDOUT, "sends a specified signal [arg1] to the specified process [arg2]\n",0);
+        f_write(PENNOS_STDOUT, "-------------------------------------------\n",0);
+        f_write(PENNOS_STDOUT, "Subroutines: (args with * are optional)\n",0);
+        f_write(PENNOS_STDOUT, "  nice [arg1] [arg2]\t" ,0);
+        f_write(PENNOS_STDOUT, "set the priority of command [arg2] as [arg1], then execute the command\n",0);
+        f_write(PENNOS_STDOUT, "  nice_pid [arg1] [arg2]",0);
+        f_write(PENNOS_STDOUT, "adjust the nice value for [arg2] to [arg1]\n",0);
+        f_write(PENNOS_STDOUT, "  man\t\t\t",0);
+        f_write(PENNOS_STDOUT, "list all available commands\n",0);
+        f_write(PENNOS_STDOUT, "  bg [args]*\t\t",0);
+        f_write(PENNOS_STDOUT, "continue the last stopped job, or the job specified by [args]\n",0);
+        f_write(PENNOS_STDOUT, "  fg [args]*\t\t",0);
+        f_write(PENNOS_STDOUT, "bring the last stopped or backgrounded job to the foreground, or the job specified by [args]\n",0);
+        f_write(PENNOS_STDOUT, "  jobs\t\t\t",0);
+        f_write(PENNOS_STDOUT, "list all jobs\n",0);
+        f_write(PENNOS_STDOUT, "  logout\t\t",0);
+        f_write(PENNOS_STDOUT, "exit the shell and shutdown PennOS\n",0);
         return;
     }
     // logout :)
@@ -267,7 +269,7 @@ void cmd_handler(struct parsed_command *cmd)
             }
             else
             { /* else, won't block the parent */
-                printf("Running: %s\n", job->cmd);
+                f_write(PENNOS_STDOUT, "Running: %s\n", 0, job->cmd);
             }
         }
     }

@@ -9,6 +9,7 @@
 #include "pennfatlib.h"
 #include "macro.h"
 #include "FAT.h"
+
 // #include "file.h"
 
 int curr_fd = -1;
@@ -894,11 +895,36 @@ int f_read(int fd, int n, char *buf){
     return byte_read;
 }
 
-int f_write(int fd, const char *str, int n){
+
+
+int f_write(int fd, const char *content, int n,...){
+
+    va_list args;
+    va_list args_copy;
+    va_start(args,n);
+    va_copy(args_copy, args);
+
+// Allocate a buffer to hold the formatted string
+    char *str = NULL;
+    int len = vsnprintf(str, 0, content, args_copy);
+    va_end(args_copy);
+
+
+    if (len >= 0) {
+        str = malloc(len + 1);  // Add space for the terminating null character
+        if (str != NULL) {
+            vsnprintf(str, len + 1, content, args);  // Format the string into the buffer
+        }
+    }
+    va_end(args);
+
+
     if(fd == PENNOS_STDOUT) {
         printf("%s",str);
         return SUCCESS;
     }
+
+    
     printf("CURRENTLY CALLING F_WRITE...\n");
     uint32_t byte_write = 0;
     uint32_t curr_block = fd;    // 3

@@ -37,7 +37,7 @@ void sigtstp_handler(int signo)
 
         list->fg_job = NULL;
 
-        printf("Stopped: %s\n", j->cmd);
+        f_write(PENNOS_STDOUT, "Stopped: %s\n", 0, j->cmd);
     }
     
 }
@@ -79,7 +79,7 @@ void shell_loop()
                 {
                     // remove the job from the current list and free job
                     remove_job(j, list, false);
-                    printf("Finished: %s\n", j->cmd);
+                    f_write(PENNOS_STDOUT, "Finished: %s\n", 0, j->cmd);
                     free_job(j);
                 }
             }
@@ -89,8 +89,8 @@ void shell_loop()
         // first prompt to the user
         if (interactive)
         {
-            int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
-            // int return_value = f_write(PENNOS_STDOUT, "$ ", 2);
+            // int return_value = write(STDERR_FILENO, "$ ", strlen("$ "));
+            int return_value = f_write(PENNOS_STDOUT, "$ ", 0);
             if (return_value == -1)
             {
                 perror("Fail to write!\n");
@@ -117,12 +117,12 @@ void shell_loop()
 
         if (flag < 0)
         {
-            perror("invalid");
+            f_write(PENNOS_STDOUT, "invalid\n", 0);
             continue;
         }
         if (flag > 0)
         {
-            perror("invalid");
+            f_write(PENNOS_STDOUT, "invalid\n", 0);
             continue;
         }
 

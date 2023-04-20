@@ -1,5 +1,7 @@
 #include "jobs.h"
 #include "PCB.h"
+#include "../pennFAT/macro.h"
+#include "../pennFAT/pennfatlib.h"
 #include <unistd.h>
 
 const char STATUS[3][9] = {"Running", "Stopped", "Finished"};
@@ -304,7 +306,7 @@ void print_all_jobs(job_list *list)
         job *curr = find_by_jid(i, list);
         if (curr != NULL)
         {
-            fprintf(stderr, "[%d] %s (%s)\n", curr->jid, curr->cmd, STATUS[curr->status]);
+            f_write(PENNOS_STDOUT, "[%d] %s (%s)\n", 0, curr->jid, curr->cmd, STATUS[curr->status]);
         }
     }
 }

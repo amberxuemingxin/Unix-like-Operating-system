@@ -7,6 +7,8 @@
 #include "queue.h"
 #include "builtins.h"
 #include "jobs.h"
+#include "../pennFAT/macro.h"
+#include "../pennFAT/pennfatlib.h"
 
 #define STACKSIZE 819200
 
@@ -33,7 +35,7 @@ void orphan_check(pcb_t *process) {
         pcb_t *p = search_in_scheduler(child->pid) ? search_in_scheduler(child->pid) : search_in_zombies(child->pid);
         children_list *tmp = child->next;
         if (p == NULL) {
-            printf("Can't find child's pid\n");
+            f_write(PENNOS_STDOUT, "Can't find child's pid\n", 0);
             return;
         }
         log_events(ORPHAN, global_ticks, p->pid, p->priority, p->process);
@@ -90,10 +92,6 @@ void set_stack(stack_t *stack)
 void make_context(ucontext_t *ucp, void (*func)(), int argc, void *argv[])
 {
     getcontext(ucp);
-
-    // if (argv) {
-    //     printf("args: %s\n", *argv);
-    // }
 
     sigemptyset(&ucp->uc_sigmask);
     set_stack(&ucp->uc_stack);
