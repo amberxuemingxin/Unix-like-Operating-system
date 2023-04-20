@@ -284,24 +284,17 @@ int pennfat_cat(char **commands, int *fd0, int *fd1){
     }
 
     if(redirect_in || redirect_out) {
-        char *buf = malloc(1); // allocate initial buffer of size 1
-        int bytes_read = 0;
-        int total_bytes_read = 0;
-        bytes_read = f_read(*fd0, 1, buf + total_bytes_read); // read 1 byte into buffer
-        while(bytes_read!=EOF){
-            total_bytes_read += bytes_read; // increment total bytes read
-            if (total_bytes_read % 1024 == 0) { // increase buffer size in chunks of 1024 bytes
-                buf = realloc(buf, total_bytes_read + 1024);
-            }
-            bytes_read = f_read(*fd0, 1, buf + total_bytes_read); // read 1 byte into buffer
-            }
-            if(bytes_read == EOF) {
-                f_write(*fd1, buf, total_bytes_read);
+        dir_node* iter = curr_fat->first_dir_node;
+        while(iter!=NULL) {
+            if(iter->dir_entry->firstBlock == *fd0) {
+                file* f = read_file_from_fat(iter, curr_fat);
+                f_write(*fd1, (char*)f->file_bytes, f->size);
                 save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
-                return SUCCESS;
+                return SUCCESS;        
             }
-            
-        }
+            iter = iter->next;
+        }        
+    }
         
     // }
     
@@ -884,7 +877,7 @@ int f_read(int fd, int n, char *buf){
             index = start_index + curr_pos / 2;
             
         } else {
-            return 0;
+            return EOF;
         }
     }
     // printf("curr_block: %d, curr_pos: %d, start_index: %d\n", curr_block, curr_pos, start_index);
@@ -1335,4 +1328,16 @@ bool is_file_executable(char* f_name) {
 
 void os_savefds() {
     save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
+}
+
+char* get_file_content(int fd) {
+    dir_node* iter = curr_fat->first_dir_node;
+        while(iter!=NULL) {
+            if(iter->dir_entry->firstBlock == fd) {
+                file* f = read_file_from_fat(iter, curr_fat);
+                return (char*)f->file_bytes;     
+            }   
+        }
+    printf("error: fd provided is invalid\n");
+    return NULL;
 }
