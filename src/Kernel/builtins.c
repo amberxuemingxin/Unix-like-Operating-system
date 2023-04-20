@@ -89,24 +89,25 @@ void my_kill(char *signo, char *pid)
     p_kill(pid_num, sig);
 }
 
-// void my_echo (char** commands, int fd0, int fd1) {
-//     /* redirect in */
-//     // if (fd0 != PENNOS_IN) {
+void my_echo (char** commands, int *fd0, int *fd1) {
+    /* redirect in */
+    // if (fd0 != PENNOS_IN) {
 
-//     // }
-//     int i = 1;
-//     while (argv[i] != NULL) {
-//         if (i != 1) {
-//             // printf(" "); 
-//             // Print a space between arguments
-//             f_write(fd1, " ", 1);
-//         }
-//         f_write(fd1, "%s")
-//         // printf("%s", argv[i]);
-//         i++;
-//     }
-//     // printf("\n"); 
-//     // Print a newline at the end
-//     f_write(fd1, "\n", 1);
+    // }
+    int i = 1;
+    // printf("%d\n", fd0);
+    while (commands[i] != NULL) {
+        if (i != 1) {
+            // printf(" "); 
+            // Print a space between arguments
+            f_write(*fd1, " ", 0);
+        }
+        f_write(*fd1, "%s", 0, commands[i]);
+        // printf("%s", argv[i]);
+        i++;
+    }
+    // printf("\n"); 
+    // Print a newline at the end
+    f_write(*fd1, "\n", 0);
 
-// }
+}

@@ -114,6 +114,8 @@ void make_context(ucontext_t *ucp, void (*func)(), int argc, void *argv[])
     case 2:
         makecontext(ucp, func, 2, argv[0], argv[1]);
         break;
+    case 3:
+        makecontext(ucp, func, 3, argv[0], argv[1], argv[2]);
     default:
         break;
     }

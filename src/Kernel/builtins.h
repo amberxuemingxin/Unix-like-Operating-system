@@ -35,3 +35,5 @@ void busy();
  * @param pid the pid that the user wants to kill
  */
 void my_kill(char *signo, char *pid);
+
+void my_echo (char** commands, int fd0, int fd1);

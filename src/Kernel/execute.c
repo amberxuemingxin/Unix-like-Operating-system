@@ -12,52 +12,46 @@
 extern job_list *list;
 extern bool file_system;
 
-// void my_truncate(char ***arr)
-// {
-//     (*arr) += 1; // increment the pointer by 2
-//     // now (*arr) points to the third element of the original array
-// }
+void redirect_in(const char *filename, job *j)
+{
+    int fd_0;
+    if ((fd_0 = f_open(filename, F_READ)) < 0)
+    {
+        remove_job(j, list, false);
+        free_job(j);
+        return;
+    }
 
-// int redirect_in(const char *filename, job *j)
-// {
-//     int fd_0;
-//     if ((fd_0 = open(filename, O_RDONLY, 0644)) < 0)
-//     {
-//         remove_job(j, list, false);
-//         free_job(j);
-//         return FAILURE;
-//     }
+    j->fd0 = fd_0;
+}
 
-//     j->fd0 = fd_0;
-// }
+void redirect_out(const char *filename, bool is_append, job *j)
+{
+    int fd_1;
 
-// void redirect_out(const char *filename, bool is_append, job *j)
-// {
-//     int fd_1;
+    // standard output redirection
+    if (!is_append)
+    {
+        if ((fd_1 = f_open(filename, F_WRITE)) < 0)
+        {
+            remove_job(j, list, false);
+            free_job(j);
+            return;
+        }
+        // append output redirection
+    }
+    else
+    {
+        if ((fd_1 = f_open(filename, F_APPEND)) < 0)
+        {
+            remove_job(j, list, false);
+            free_job(j);
+            return;
+        }
+    }
 
-//     // standard output redirection
-//     if (!is_append)
-//     {
-//         if ((fd_1 = creat(filename, 0644)) < 0)
-//         {
-//             remove_job(j, list, false);
-//             free_job(j);
-//             return FAILURE;
-//         }
-//         // append output redirection
-//     }
-//     else
-//     {
-//         if ((fd_1 = open(filename, O_RDWR | O_APPEND, 0644)) < 0)
-//         {
-//             remove_job(j, list, false);
-//             free_job(j);
-//             return FAILURE;
-//         }
-//     }
-
-//     j->fd1 = fd_1;
-// }
+    j->fd1 = fd_1;
+}
 
 /* execute the commands
 * return = 0: success
@@ -70,13 +64,13 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
     
 
     // file redirection
-    // if (cmd->stdin_file) {
-    //     redirect_in(cmd->stdin_file, j);
-    // }
+    if (cmd->stdin_file) {
+        redirect_in(cmd->stdin_file, j);
+    }
 
-    // if (cmd->stdout_file) {
-    //     redirect_out(cmd->stdout_file, cmd->is_file_append, j);
-    // }
+    if (cmd->stdout_file) {
+        redirect_out(cmd->stdout_file, cmd->is_file_append, j);
+    }
 
     if (strcmp(cmd->commands[0][0], "sleep") == 0) {
         if (!cmd->commands[0][1]) {
@@ -149,8 +143,10 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
         void *cat_arg[2] = {arg_name, cmd->commands[0]};
         child = p_spawn((void *)pennfat_cat, cat_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "echo") == 0) {
-        // TODO
+        char *arg_name = "echo";
+        void *echo_arg[4] = {arg_name, cmd->commands[0], &j->fd0, &j->fd1};
 
+        child = p_spawn(my_echo, echo_arg, 3, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "ls") == 0) {
         char *ls_arg[2] = {"ls", NULL};
         child = p_spawn((void *)pennfat_ls, (void *)ls_arg, 0, j->fd0, j->fd1, priority, cmd->is_background);

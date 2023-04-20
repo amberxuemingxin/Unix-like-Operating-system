@@ -196,8 +196,8 @@ job *init_job(struct parsed_command *cmd, job_list *list)
     j->background = cmd->is_background;
     j->status = RUNNING_P;
     j->next = NULL;
-    j->fd0 = STDIN_FILENO;
-    j->fd1 = STDOUT_FILENO;
+    j->fd0 = PENNOS_STDIN;
+    j->fd1 = PENNOS_STDOUT;
 
     j->jid = list->max_jid + 1;
     list->max_jid++;
