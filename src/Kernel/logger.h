@@ -6,7 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Macros for the logger */
+/**
+ * @{ \name Status for logging
+ */
 #define CREATE 0
 #define SIGNALED 1
 #define EXITED 2
@@ -18,6 +20,9 @@
 #define UNBLOCKED 8
 #define STOPPED 9
 #define CONTINUED 10
+/**
+ * @}
+ */
 
 /**
  * @brief Generate the current time stamp and format it as a char array to print out to the log file

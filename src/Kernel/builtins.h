@@ -36,4 +36,10 @@ void busy();
  */
 void my_kill(char *signo, char *pid);
 
-void my_echo (char** commands, int fd0, int fd1);
+/**
+ * @brief echo the typed-in message back to the designated file descriptor
+ * @param commands the commands wish to echo
+ * @param fd0 the file descriptor to echo from
+ * @param fd1 the file descriptor to echo to
+ */
+void my_echo(char **commands, int fd0, int fd1);
