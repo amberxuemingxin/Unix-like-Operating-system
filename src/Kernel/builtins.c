@@ -123,22 +123,27 @@ void my_echo (char** commands, int *fd0, int *fd1) {
     }
 
     int i = 0;
-    int return_value; //DEBUG
+    //int return_value; //DEBUG
     // printf("%d\n", fd0);
     while (buf[i] != NULL) {
         if (i != 0) {
             // Print a space between arguments
-            return_value = f_write(*fd1, " ", 0);
-            printf("return val = %d\n", return_value);
+            f_write(*fd1, " ", 0);
+            // printf("return val = %d\n", return_value);
         }
-        return_value = f_write(*fd1, "%s", 0, buf[i]);
-        printf("return val = %d\n", return_value);
+        f_write(*fd1, "%s", 0, buf[i]);
+        // printf("return val = %d\n", return_value);
 
         i++;
     }
 
     // Print a newline at the end
-    return_value = f_write(*fd1, "\n", 0);
-    printf("return val = %d\n", return_value);
+    f_write(*fd1, "\n", 0);
+    // printf("return val = %d\n", return_value);
+
+    if (*fd1 != PENNOS_STDOUT) {
+        os_savefds();
+        printf("yeah");
+    }
 
 }

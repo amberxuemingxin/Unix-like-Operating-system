@@ -153,7 +153,7 @@ FAT* mount_fat(char* f_name) {
     // # of FAT entries = block size * number of blocks in FAT / 2
     entry_size = actual_block_size * numBlocks;
     //max filenum denots the maximum number of directory entries in a block
-    int max_filenum = entry_size / SIZE_DIRECTORY_ENTRY;
+    int max_filenum = actual_block_size / SIZE_DIRECTORY_ENTRY;
     int count = 0;
     uint16_t directory_block = 0;
     int block = 1;
@@ -247,7 +247,7 @@ FAT* mount_fat(char* f_name) {
         }
         dir_node* new_node = malloc(sizeof(dir_node));
         new_node->dir_entry = entry_arr[i];
-        printf("%s, firstblock is %d", new_node->dir_entry->name, new_node->dir_entry->firstBlock);
+        // printf("%s, firstblock is %d", new_node->dir_entry->name, new_node->dir_entry->firstBlock);
         new_node->next = NULL;
         if (head == NULL) { 
             head = new_node; 
@@ -361,7 +361,7 @@ void free_fat(FAT* fat){
 int write_directory_to_block(directory_entry* en, FAT* fat, int* reside_block) {
     *reside_block = 1;
     //block_len in bytes
-    uint16_t block_len = fat->block_size * fat->block_num;
+    int block_len = fat->block_size * fat->block_num;
     //block len in 2 bytes
 
     int curr_directory_index = 1;
@@ -494,7 +494,7 @@ file* read_file_from_fat(dir_node *f_node, FAT* fat) {
     return res;
 }
 
-uint8_t *read_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
+uint8_t *read_file_bytes(uint32_t startIndex, uint32_t length, FAT *fat) {
     uint8_t *result = malloc(length * sizeof(uint8_t) + 1);
     if (result == NULL) {
         perror("malloc");
@@ -513,7 +513,7 @@ uint8_t *read_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
 
     // seek to the first empty block
     uint32_t fatSize = fat->block_num * fat->block_size;
-    uint16_t currIndex = startIndex;
+    uint32_t currIndex = startIndex;
 
     if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
         perror("lseek");
@@ -555,7 +555,7 @@ uint8_t *read_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
     return result;
 }
 
-int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
+int delete_file_bytes(uint32_t startIndex, uint32_t length, FAT *fat) {
     int fd;
     if ((fd = open(fat->f_name, O_WRONLY, 0644)) == -1) {
         perror("open\n");
@@ -566,7 +566,7 @@ int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat) {
     }
     // seek to the first empty block
     uint32_t fatSize = fat->block_num * fat->block_size;
-    uint16_t currIndex = startIndex;
+    uint32_t currIndex = startIndex;
 
     if (lseek(fd, fatSize + ((currIndex - 1) * fat->block_size), SEEK_SET) == -1) {
         perror("lseek\n");

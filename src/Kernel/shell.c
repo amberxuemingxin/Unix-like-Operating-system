@@ -3,7 +3,6 @@
 #include "shell.h"
 #include "parser.h"
 #include "user.h"
-#include "execute.h"
 #include "jobs.h"
 #include "handler.h"
 #include "../pennFAT/pennfatlib.h" /* f_write */

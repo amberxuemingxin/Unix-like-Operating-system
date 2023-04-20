@@ -38,7 +38,6 @@ int parse_pennfat_command(char ***commands, int commandCount){
             printf("A filesystem already mounted, please unmount first\n");
             return FAILURE;
         }
-        // printf("here, before calling pennfat_mount\n");
         curr_fat = pennfat_mount(commands[0][1]);
         if (curr_fat == NULL) return FAILURE;
         return SUCCESS;
@@ -135,7 +134,6 @@ int pennfat_touch(char **files){
                 file_node->dir_entry->mtime = time(0);
                 index += 1;
                 file_name = files[index];
-                // printf("first block is %d\n", file_node->dir_entry->firstBlock);
                 continue;
             }
         int fd = f_open(file_name, F_WRITE);
@@ -193,24 +191,24 @@ int pennfat_mv(char *oldFileName, char *newFileName){
         old_f_entry->mtime = time(0);
 
         int desired_entry_block = find_entry_block(oldFileName);
-        printf("MV - desired_entry_block: %d\n", desired_entry_block);
+        // printf("MV - desired_entry_block: %d\n", desired_entry_block);
         int dir_entry_block_start_index = desired_entry_block * curr_fat->directory_starting_index;    // directory entry. f1: 128
         int desired_entry_index;
         for (desired_entry_index = dir_entry_block_start_index; desired_entry_index < dir_entry_block_start_index + curr_fat->directory_starting_index; desired_entry_index += 32){
             directory_entry* finder = (directory_entry*) &curr_fat->block_arr[desired_entry_index];
-            printf("finder->name: %s\n, oldFileName: %s\n", finder->name, oldFileName);
+            // printf("finder->name: %s\n, oldFileName: %s\n", finder->name, oldFileName);
 
             if (curr_fat->block_arr[desired_entry_index] == *oldFileName){
-                printf("MV - find desired dir entry name!! 1\n");
+                // printf("MV - find desired dir entry name!! 1\n");
                 break;
             }
             if (strcmp(finder->name, oldFileName) == 0){
-                printf("MV - find desired dir entry name!! 2\n");
+                // printf("MV - find desired dir entry name!! 2\n");
                 break;
             }
 
         }
-        printf("MV - desired_entry_index: %d\n", desired_entry_index);
+        // printf("MV - desired_entry_index: %d\n", desired_entry_index);
         directory_entry* entry_ptr = (directory_entry*) &curr_fat->block_arr[desired_entry_index];
         *entry_ptr = *old_f_entry;
         save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
@@ -299,6 +297,7 @@ int pennfat_cat(char **commands, int *fd0, int *fd1){
             }
             if(bytes_read == EOF) {
                 f_write(*fd1, buf, total_bytes_read);
+                save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
                 return SUCCESS;
             }
             
@@ -323,6 +322,7 @@ int pennfat_cat(char **commands, int *fd0, int *fd1){
         }
         file* f = read_file_from_fat(f_node, curr_fat);
         f_write(PENNOS_STDOUT, (char*)f->file_bytes, f->size);
+        save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
         return SUCCESS;
     }
     for (int i = 0; i < count; i++) {
@@ -428,8 +428,8 @@ int pennfat_cat(char **commands, int *fd0, int *fd1){
         // printf("DEBUGGING - f1_node->dir_entry->size: %d\n", f1_node->dir_entry->size);
 
         int status = f_read(f1_fd, f1_node->dir_entry->size, buff);
-        printf("DEBUGGING - buff: %s\n", buff);
-        printf("DEBUGGING - status: %d\n", status);
+        // printf("DEBUGGING - buff: %s\n", buff);
+        // printf("DEBUGGING - status: %d\n", status);
 
         if(status >= 0 || status == EOF) {
             if(f_write(f2_fd,buff, sizeof(buff))==SUCCESS) {
@@ -743,7 +743,7 @@ int file_d_search(int fd, int mode) {
     }
     // printf("i: %d, file_d_size: %d, target: %d\n", i, file_d_size, target);
     while(i < file_d_size) {
-        printf("FILE_D SEARCH - file_d value: %d, i: %d, fd: %d\n", file_d[i], i, fd);
+        // printf("FILE_D SEARCH - file_d value: %d, i: %d, fd: %d\n", file_d[i], i, fd);
         if(file_d[i] == target) {
             if(mode == 2) {
                 file_d[i] = 0;
@@ -771,7 +771,7 @@ int f_open(const char *f_name, int mode){
         
         file_d[index] = fd;
         file_pos[index] = 0;
-        printf("FILE_D F_OPEN READ MODE - file_d value: %d, index: %d, fd: %d\n", file_d[index], index, fd);
+        // printf("FILE_D F_OPEN READ MODE - file_d value: %d, index: %d, fd: %d\n", file_d[index], index, fd);
         return fd;
     } else if(mode == F_WRITE || mode == F_APPEND) {
         // printf("mode is writing/appending");
@@ -848,7 +848,7 @@ int f_open(const char *f_name, int mode){
 
         file_d[index] = fd;
         file_pos[index] = 0;
-        printf("FILE_D F_OPEN WRITE/APPEND MODE - file_d value: %d, index: %d, fd: %d\n", file_d[index], index, fd);
+        // printf("FILE_D F_OPEN WRITE/APPEND MODE - file_d value: %d, index: %d, fd: %d\n", file_d[index], index, fd);
 
         return fd;
     }
@@ -983,7 +983,7 @@ int f_write(int fd, const char *content, int n,...){
     }
 
     
-    printf("CURRENTLY CALLING F_WRITE...\n");
+    // printf("CURRENTLY CALLING F_WRITE...\n");
     uint32_t byte_write = 0;
     uint32_t curr_block = fd;    // 3
     uint32_t start_index = curr_fat->dblock_starting_index + (curr_block - 2) * curr_fat->block_size / 2;    // 384
@@ -1192,7 +1192,7 @@ int f_close(int fd) {
 }
 
 int f_lseek(int fd, int offset, int whence){
-    printf("ENTER FILE_D SEARCH IN F_SEEK\n");
+    // printf("ENTER FILE_D SEARCH IN F_SEEK\n");
     int index = file_d_search(fd, 0);
     if(index == -1) {
         return FAILURE;
@@ -1331,4 +1331,8 @@ bool is_file_executable(char* f_name) {
         return false;
     }
     return true;
+}   
+
+void os_savefds() {
+    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
 }

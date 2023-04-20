@@ -68,9 +68,9 @@ file* read_file_from_fat(dir_node* f_node, FAT* fat);
 
 // void write_file_to_fat()
 
-uint8_t *read_file_bytes(uint16_t start_index, uint32_t length, FAT* fat); 
+uint8_t *read_file_bytes(uint32_t start_index, uint32_t length, FAT* fat); 
 
-int delete_file_bytes(uint16_t startIndex, uint32_t length, FAT *fat);
+int delete_file_bytes(uint32_t startIndex, uint32_t length, FAT *fat);
 
 int free_file(file* file);
 
