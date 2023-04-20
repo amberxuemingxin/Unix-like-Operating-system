@@ -18,7 +18,7 @@ int pennfat_mv(char *old_name, char *new_name);
 
 int pennfat_remove(char **files);
 
-int pennfat_cat(char **commands);
+int pennfat_cat(char **commands,int *fd0, int *fd1);
 
 int pennfat_cp(char **commands);
 
@@ -37,7 +37,7 @@ void save_fds(char *f_name, int file_d_size, int *file_d, int *file_pos);
 
 void load_fds(const char* file_path);
 
-void os_updatefds();
+bool is_file_executable(char* f_name);
 
 int f_open(const char *f_name, int mode);
 

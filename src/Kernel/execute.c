@@ -140,8 +140,9 @@ int execute(struct parsed_command *cmd, job *j, int priority) {
         child = p_spawn(my_kill, (void *)kill_arg, 2, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "cat") == 0) {
         char *arg_name = "cat";
-        void *cat_arg[2] = {arg_name, cmd->commands[0]};
-        child = p_spawn((void *)pennfat_cat, cat_arg, 1, j->fd0, j->fd1, priority, cmd->is_background);
+        void *cat_arg[4] = {arg_name, cmd->commands[0], &j->fd0, &j->fd1};
+
+        child = p_spawn((void *)pennfat_cat, cat_arg, 3, j->fd0, j->fd1, priority, cmd->is_background);
     } else if (file_system && strcmp(cmd->commands[0][0], "echo") == 0) {
         char *arg_name = "echo";
         void *echo_arg[4] = {arg_name, cmd->commands[0], &j->fd0, &j->fd1};

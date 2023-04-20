@@ -56,7 +56,10 @@ int parse_pennfat_command(char ***commands, int commandCount){
     } else if (strcmp(cmd, "rm") == 0) {
         return pennfat_remove(commands[0]);
     }  else if (strcmp(cmd, "cat") == 0) {
-        return pennfat_cat(commands[0]);
+        int fd0 ,fd1;
+        fd0 = PENNOS_STDIN;
+        fd1 = PENNOS_STDOUT;
+        return pennfat_cat(commands[0], &fd0, &fd1);
     } else if (strcmp(cmd, "cp") == 0) {
         return pennfat_cp(commands[0]);
     } else if (strcmp(cmd, "ls") == 0) {
@@ -267,8 +270,43 @@ int pennfat_remove(char **commands){
     return SUCCESS;
 }
 
-int pennfat_cat(char **commands){
+int pennfat_cat(char **commands, int *fd0, int *fd1){
+    //OS call handling:
     int count = 0;
+    while (commands[count] != NULL) {
+        count++;
+    }
+    bool redirect_in = false;
+    bool redirect_out = false;
+    if(*fd0 != PENNOS_STDIN){
+        redirect_in = true;
+    }
+    if(*fd1 != PENNOS_STDOUT){
+       redirect_out = true;
+    }
+
+    if(redirect_in || redirect_out) {
+        char *buf = malloc(1); // allocate initial buffer of size 1
+        int bytes_read = 0;
+        int total_bytes_read = 0;
+        bytes_read = f_read(*fd0, 1, buf + total_bytes_read); // read 1 byte into buffer
+        while(bytes_read!=EOF){
+            total_bytes_read += bytes_read; // increment total bytes read
+            if (total_bytes_read % 1024 == 0) { // increase buffer size in chunks of 1024 bytes
+                buf = realloc(buf, total_bytes_read + 1024);
+            }
+            bytes_read = f_read(*fd0, 1, buf + total_bytes_read); // read 1 byte into buffer
+            }
+            if(bytes_read == EOF) {
+                f_write(*fd1, buf, total_bytes_read);
+                return SUCCESS;
+            }
+            
+        }
+        
+    // }
+    
+
     while (commands[count] != NULL) {
         count++;
     }
@@ -613,7 +651,9 @@ int pennfat_ls(){
             case(NO_PERMS)       : perms = "--"; break;
             case(READ_PERMS)     : perms = "r-"; break;
             case(WRITE_PERMS)    : perms = "-w"; break;
-            case(READ_WRITE_EXCUTABLE): perms = "rw"; break;
+            case(READ_WRITE_PERMS): perms = "rw"; break;
+            case(READ_EXCUTABLE_PERMS): perms ="r-x";break;
+            case(READ_WRITE_EXCUTABLE): perms ="rwx";break;
         }
 
         struct tm *localTime = localtime(&entry->mtime);
@@ -637,6 +677,9 @@ int pennfat_ls(){
 }
 
 int pennfat_chmod(char **commands){
+    // chmod +/- r/w/x FILE 
+
+
     if (commands[1] == NULL) {
         printf("error: No file name entered\n");
         return FAILURE;
@@ -644,6 +687,11 @@ int pennfat_chmod(char **commands){
 
     if (commands[2] == NULL) {
         printf("error: No permission specified\n");
+        return FAILURE;
+    }
+    dir_node* file_node = search_file(commands[1], curr_fat, NULL);
+    if (file_node == NULL) {
+        printf("error: chmod, cannot find file specified.\n");
         return FAILURE;
     }
 
@@ -657,11 +705,16 @@ int pennfat_chmod(char **commands){
         perm = READ_WRITE_PERMS;
     } else if (strcmp(commands[2], "--") == 0) {
         perm = NO_PERMS;
-    } else {
+    } else if (strcmp(commands[2], "+x") == 0) {
+        if (file_node->dir_entry->perm == READ_PERMS) {
+            perm = READ_EXCUTABLE_PERMS;
+        }
+        perm = READ_WRITE_EXCUTABLE;
+    } 
+    else {
         printf("Permission type must be one of -w, r-, rw, +x, and --\n");
     }
 
-    dir_node* file_node = search_file(commands[1], curr_fat, NULL);
     file_node->dir_entry->perm = perm;
     if(delete_directory_from_block(*file_node->dir_entry, curr_fat) == FAILURE) {
         printf("error: delte entry from block");
@@ -733,7 +786,7 @@ int f_open(const char *f_name, int mode){
             // search in FAT REGION to find a empty block to place the fat entry
             if(firstBlock == 0) return FAILURE;
             // new a dir entry NODE with 0 byte (empty file)
-            file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_EXCUTABLE, time(0));
+            file_node = new_directory_node((char*)f_name, 0, firstBlock, REGULAR_FILETYPE, READ_WRITE_PERMS, time(0));
             // append this node to the FAT dir information. 
             if (curr_fat->first_dir_node == NULL){
                 curr_fat->first_dir_node = file_node;
@@ -806,8 +859,13 @@ int f_open(const char *f_name, int mode){
 int f_read(int fd, int n, char *buf){
     // printf("CURRENTLY CALLING F_READ...\n");    // reading f1
     uint32_t byte_read = 0;
+    if(fd == PENNOS_STDIN) {
+        size_t byte = 0;
+        getline(&buf, &byte, stdin);
+        return byte;
+    }
     int curr_block = fd;    // curr_block = fd = 2
-    printf("ENTER FILE_D SEARCH IN F_READ\n");
+    // printf("ENTER FILE_D SEARCH IN F_READ\n");
     int i = file_d_search(fd, 0);
     int pos = file_pos[i];
 
@@ -1264,6 +1322,13 @@ void load_fds(const char* f_name) {
     close(fd);
 }
 
-void os_updatefds() {
-    save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
+bool is_file_executable(char* f_name) {
+    dir_node* f_node = search_file(f_name, curr_fat, NULL);
+    if (f_node == NULL) {
+        return false;
+    }
+    if (f_node->dir_entry->perm != READ_EXCUTABLE_PERMS && f_node->dir_entry->perm != READ_WRITE_EXCUTABLE){
+        return false;
+    }
+    return true;
 }

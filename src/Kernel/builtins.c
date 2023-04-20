@@ -90,24 +90,55 @@ void my_kill(char *signo, char *pid)
 }
 
 void my_echo (char** commands, int *fd0, int *fd1) {
-    /* redirect in */
-    if (*fd0 != PENNOS_STDIN) {
-        
+    char **buf = malloc(sizeof(char *));
+    buf[0] = NULL;
+    
+    if (*fd0 == PENNOS_STDIN) {
+        int i = 1;
+        while (commands[i]) {
+            buf[i-1] = commands[i];
+            // printf("%d %s\n", i, commands[i]);
+            i++;
+            buf = realloc(buf, i * sizeof(char *));
+        }
+
+        buf[i-1] = NULL;
+    } else {
+        char *to_read = malloc(1); // allocate initial buffer of size 1
+        int bytes_read = 0;
+        int total_bytes_read = 0;
+        bytes_read = f_read(*fd0, 1, to_read + total_bytes_read); // read 1 byte into buffer
+        while(bytes_read != EOF)
+        {
+            total_bytes_read += bytes_read; // increment total bytes read
+            if (total_bytes_read % 1024 == 0) { // increase buffer size in chunks of 1024 bytes
+                to_read = realloc(to_read, total_bytes_read + 1024);
+            }
+            bytes_read = f_read(*fd0, 1, to_read + total_bytes_read); // read 1 byte into buffer
+        }
+
+        buf = realloc(buf, 2 * sizeof(char *));
+        buf[0] = to_read;
+        buf[1] = NULL;
     }
 
-    int i = 1;
+    int i = 0;
+    int return_value; //DEBUG
     // printf("%d\n", fd0);
-    while (commands[i] != NULL) {
-        if (i != 1) {
+    while (buf[i] != NULL) {
+        if (i != 0) {
             // Print a space between arguments
-            f_write(*fd1, " ", 0);
+            return_value = f_write(*fd1, " ", 0);
+            printf("return val = %d\n", return_value);
         }
-        f_write(*fd1, "%s", 0, commands[i]);
+        return_value = f_write(*fd1, "%s", 0, buf[i]);
+        printf("return val = %d\n", return_value);
 
         i++;
     }
 
     // Print a newline at the end
-    f_write(*fd1, "\n", 0);
+    return_value = f_write(*fd1, "\n", 0);
+    printf("return val = %d\n", return_value);
 
 }
