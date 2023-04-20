@@ -52,4 +52,7 @@ int f_lseek(int fd, int offset, int whence);
 int find_entry_block(char* f_name);
 
 void os_savefds();
+
+char* get_file_content(int fd);
+
 #endif
