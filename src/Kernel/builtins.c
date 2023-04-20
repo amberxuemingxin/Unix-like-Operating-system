@@ -91,22 +91,22 @@ void my_kill(char *signo, char *pid)
 
 void my_echo (char** commands, int *fd0, int *fd1) {
     /* redirect in */
-    // if (fd0 != PENNOS_IN) {
+    if (*fd0 != PENNOS_STDIN) {
+        
+    }
 
-    // }
     int i = 1;
     // printf("%d\n", fd0);
     while (commands[i] != NULL) {
         if (i != 1) {
-            // printf(" "); 
             // Print a space between arguments
             f_write(*fd1, " ", 0);
         }
         f_write(*fd1, "%s", 0, commands[i]);
-        // printf("%s", argv[i]);
+
         i++;
     }
-    // printf("\n"); 
+
     // Print a newline at the end
     f_write(*fd1, "\n", 0);
 

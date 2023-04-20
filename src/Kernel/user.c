@@ -182,7 +182,6 @@ void p_exit()
         free(scheduler_context.uc_stack.ss_sp);
 
         exit_scheduler();
-        free_logger();
 
         exit(EXIT_SUCCESS);
     }

@@ -14,7 +14,7 @@ ucontext_t exit_context;
 bool idle;
 bool file_system = false;
 
-extern char *log_name;
+char *log_name;
 
 // set up signals handling exit ctrl c
 /*
@@ -22,8 +22,6 @@ extern char *log_name;
  */
 int main(int argc, char *argv[])
 {
-    //// SHUFAN
-// SHUFAN
     char* f_name = argv[1];
     char* cmd = "mount ";
     char cmd_f_name[50]; 
@@ -36,15 +34,18 @@ int main(int argc, char *argv[])
         f_write(PENNOS_STDOUT, "error: failed to mount %s\n", 0, f_name);
     }
     file_system = true;
-    // parse_command("describe", &parsed_cmd);
-    // parse_pennfat_command(parsed_cmd->commands,1);
-    //// SHUFAN
+    
+    if (argv[2]) {
+        log_name = argv[2];
+    }
 
     // initialize the scheduler
     init_scheduler();
 
-    log_name = time_stamp();
-
+    if (!log_name) {
+        log_name = time_stamp();
+    }
+    
     // getcontext(&main_context);
     getcontext(&scheduler_context);
 

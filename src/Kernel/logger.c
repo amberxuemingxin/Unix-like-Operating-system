@@ -2,7 +2,7 @@
 
 #include "logger.h"
 
-char *log_name;
+extern char *log_name;
 
 char *time_stamp() {
     char *timestamp = (char *)malloc(sizeof(char) * 16);
@@ -59,8 +59,8 @@ void log_events(int type, int ticks, int pid, int priority, char *process) {
         break;
     }
 
-    char buffer[26]; // The filename buffer
-    snprintf(buffer, sizeof(char) * 26, "log/log%s.txt", log_name);
+    char buffer[30]; // The filename buffer
+    snprintf(buffer, sizeof(char) * 30, "log/log:%s.txt", log_name);
 
     // output file for log
     FILE *log_file = fopen(buffer, "a+");
@@ -92,8 +92,4 @@ void log_nice(int ticks, int pid, int old_priority, int new_priority, char *proc
         exit(EXIT_FAILURE);
     }
     fclose(log_file);
-}
-
-void free_logger() {
-    free(log_name);
 }

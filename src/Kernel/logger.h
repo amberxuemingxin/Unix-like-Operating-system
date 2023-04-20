@@ -44,8 +44,3 @@ void log_events(int type, int ticks, int pid, int priority, char *process);
  * @param process the name of the process
  */
 void log_nice(int ticks, int pid, int old_priority, int new_priority, char *process);
-
-/**
- * @brief free the logger data structure
- */
-void free_logger();
