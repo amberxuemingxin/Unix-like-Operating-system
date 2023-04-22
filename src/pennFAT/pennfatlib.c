@@ -397,7 +397,6 @@ int pennfat_cat(char **commands, int *fd0, int *fd1){
     // cat file1 -w file2
     // cat file1 -a file2
     if(count == 4 && (writing || appending)) {
-        printf("MV - ENTER CAT\n");
         char* f1_name = commands[1];
         char* f2_name = commands[3];
 
