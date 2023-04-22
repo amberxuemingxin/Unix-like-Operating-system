@@ -94,47 +94,30 @@ void my_echo (char** commands, int *fd0, int *fd1) {
 
     if (*fd0 == PENNOS_STDIN) {
         int i = 1;
-        result = malloc(1);
         while (commands[i]) {
-            result = realloc(result, (strlen(commands[i]) + 1) * sizeof(char));
-            memcpy(result, commands[i], (strlen(commands[i]) + 1));
+            f_write(*fd1, commands[i], strlen(commands[i]));
+            f_write(*fd1, " ", 1);
             i++;
         }
 
-        if (!commands[1]) {
-            result = NULL;
+        if (*fd1 == PENNOS_STDOUT) {
+            f_write(*fd1, "\n", 1);
+        } else {
+            os_savefds();
         }
+
     } else {
         result = get_file_content(*fd0);
+        if (result) {
+            // f_write(PENNOS_STDOUT, result, strlen(result));
+            f_write(*fd1, result, strlen(result));
+        }
+
+        if (*fd1 == PENNOS_STDOUT) {
+            f_write(*fd1, "\n", 1);
+        } else {
+            os_savefds();
+        }
     }
-
-    if (result) {
-        f_write(*fd1, result, strlen(result));
-    }
-    
-    if (*fd1 != PENNOS_STDOUT) {
-        os_savefds();
-    }
-    f_write(*fd1, "\n", 1);
-
-    // int i = 0;c
-    //int return_value;
-    // printf("%d\n", fd0);
-    // while (buf[i] != NULL) {
-    //     if (i != 0) {
-    //         // Print a space between arguments
-    //         f_write(*fd1, " ", 0);
-    //         // printf("return val = %d\n", return_value);
-    //     }
-    //     f_write(*fd1, "%s", 0, buf[i]);
-    //     // printf("return val = %d\n", return_value);
-
-    //     i++;
-    // }
-
-    // Print a newline at the end
-    // f_write(*fd1, buf[0], sizeof(buf[0]));
-    // printf("return val = %d\n", return_value);
-
 
 }
