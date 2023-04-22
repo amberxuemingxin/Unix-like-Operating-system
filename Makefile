@@ -21,7 +21,7 @@ OBJS_K += $(patsubst $(SRC_DIR_F)/%.c, $(BIN_DIR_F)/%.o, $(SRCS_F))
 OBJS_F = $(patsubst $(SRC_DIR_F)/%.c, $(BIN_DIR_F)/%.o, $(SRCS_F))
 OBJS_F := $(filter-out $(SRC_DIR_F)/pennFAT.o, $(OBJS_F))
 
-.PHONY: all $(PENNOS) $(PENNFAT) clean
+.PHONY: all $(PENNOS) $(PENNFAT) clean dir
 
 all: $(PENNOS) $(PENNFAT)
 
@@ -36,6 +36,11 @@ $(BIN_DIR_K)/%.o: $(SRC_DIR_K)/%.c | $(BIN_DIR_K)
 
 $(BIN_DIR_F)/%.o: $(SRC_DIR_F)/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+dir: 
+	mkdir -p $(BIN_DIR_F)
+	mkdir -p $(BIN_DIR_K)
+	mkdir -p $(LOG_DIR)
 
 clean:
 	rm -f $(BIN_DIR_K)/*.o $(LOG_DIR)/*.txt
