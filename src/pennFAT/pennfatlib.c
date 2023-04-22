@@ -521,11 +521,13 @@ int pennfat_cp(char **commands){
         // memcpy(buffer,(char*)src_file->file_bytes, src_file->size);
         // TODO FIND FILEBYTES SIZE;
         // printf("for Debugging purposes: line397 writing %s from srcfile of size %d\n",buffer, src_file->size);
-        if(f_write(d_fd, (char*)src_file->file_bytes, src_file->size) == FAILURE) {
+        int byte = f_write(d_fd, (char*)src_file->file_bytes, src_file->size); 
+        if( byte == FAILURE) {
             printf("error: cp, fail to write to dest file");
             f_close(d_fd);
             return FAILURE;
         }
+        f_node->dir_entry->size = byte; 
         f_close(d_fd);
         save_fds(curr_fat->f_name, file_d_size, file_d, &file_d_size);
         return SUCCESS;
@@ -1025,7 +1027,7 @@ int f_write(int fd, const char *content, int n,...){
                         index = start_index;    // index = 640
                     } else {
                         printf("error: fat region is full, not available for any other entry!");
-                        return FAILURE;
+                        return byte_write;
                     }
                     
                 }
